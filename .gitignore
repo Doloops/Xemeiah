@@ -1,0 +1,4 @@
+**/*.o
+src/.depends
+src/libxemeiah.so.0*
+src/xem
