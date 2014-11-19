@@ -1,0 +1,19 @@
+
+/**
+ * Xem WebServices Interface (xemwsi) namespace
+ */
+__STARTNAMESPACE ( xem_wsi, "http://www.xemeiah.org/ns/xem/wsi" );
+  __KEY ( bootstrap );
+  __KEY ( keys );
+  __KEY ( key );
+  __KEY ( id );
+  __KEY ( value );
+  __KEY ( namespaces );
+  __KEY ( namespace_ );
+  __KEY ( document );
+
+  __KEY ( serialize_revision_head );
+  __KEY ( serialize_revision_pages );
+  __KEY ( area );
+  __KEY ( length );
+__ENDNAMESPACE ( xem_wsi, xem_wsi );

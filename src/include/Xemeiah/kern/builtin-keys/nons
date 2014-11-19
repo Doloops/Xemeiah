@@ -1,0 +1,19 @@
+/*
+ * Miscelaneous non-namespaced QNames
+ */
+__STARTNAMESPACE ( nons, "" )
+  
+  __KEY(xmlns) //< The xmlns attribute, defined without namespace
+
+  /*
+   * General non-namespaced variable keys for XemProcessor handling
+   */
+  __KEY(this_)
+  __KEY(instance)
+  __KEY(name)
+  __KEY(super)
+  __KEY(Constructor) // Constructor method for objects
+  __KEY(none) //< Default role for the documents
+  
+__ENDNAMESPACE ( nons, nons )
+

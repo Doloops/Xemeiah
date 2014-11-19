@@ -1,0 +1,26 @@
+/*
+ * XUpdate builtin keys
+ */
+__STARTNAMESPACE ( xupdate, "http://www.xmldb.org/xupdate" )
+
+  /*
+   * XUpdate KeyIds
+   */
+  __KEY(modifications)
+  __KEY(variable)
+  __KEY(insert_before)
+  __KEY(insert_after)
+  __KEY(select)
+  __KEY(name)
+  __KEY(append)
+  __KEY(update)
+  __KEY(remove)
+  __KEY(rename)
+  __KEY(element)
+  __KEY(attribute)
+  __KEY(text)
+  __KEY(processing_instruction)
+  __KEY(comment)
+
+__ENDNAMESPACE ( xupdate, xupdate )
+

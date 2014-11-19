@@ -1,0 +1,7 @@
+/*
+ * Xem Role-based Identification
+ */
+__STARTNAMESPACE ( xem_role, "http://www.xemeiah.org/ns/xem-role" )
+  __KEY(code)
+  __KEY(main)
+__ENDNAMESPACE ( xem_role, xem_role )

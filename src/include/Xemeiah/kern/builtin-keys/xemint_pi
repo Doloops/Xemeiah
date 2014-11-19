@@ -1,0 +1,6 @@
+/*
+ * Pseudo-namespace for Processing Instructions handling
+ */
+__STARTNAMESPACE ( xemint_pi, "http://www.xemeiah.org/ns/xemint-pi" )
+__ENDNAMESPACE ( xemint_pi, xemint_pi )
+

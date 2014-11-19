@@ -1,0 +1,175 @@
+/*
+ * Builtin keys used in XemProcessor extensions
+ */
+
+__STARTNAMESPACE ( xem, "http://www.xemeiah.org/ns/xem" ) 
+  /*
+   * Miscellaneous functions
+   */
+  __KEY(get_current_time)
+  __KEY(get_version)
+  __KEY(rand)
+  __KEY(variable)
+
+  /*
+   * Xem Standard Objetcs
+   */
+  __KEY(object)
+  __KEY(class_)
+  	__KEY(classId)
+  __KEY(method)
+  	__KEY(method_takes_extra_params) //< Marker to grant that this method can take extra arguments
+  __KEY(function)
+  __KEY(exception)
+
+  __KEY(stylesheet)
+  __KEY(name)
+  __KEY(folder)
+  __KEY(file)
+
+  /*
+   * Objects, Methods and Functions map
+   */
+  __KEY(object_map)  
+  __KEY(constructor_map)
+  __KEY(method_map)
+  __KEY(function_map)
+
+  __KEY(build_objects_map) //< Deprecated : Force build of the objects map
+
+  __KEY(object_definition) //< Function xem:object-definition()
+  __KEY(qname_id) //< Function xem:qname-id()
+
+  __KEY(set_current_code_scope) //< Bind a document as being the current code scope !
+
+  __KEY(current_codescope)
+  __KEY(codescope_branch)
+  __KEY(stylesheet_name)
+
+  /*
+   * Xem Process commands
+   */
+  __KEY(procedure)
+  __KEY(process)
+  // __KEY(scope) // Already defined for meta-indexer
+  // __KEY(code_scope)
+  __KEY(select)
+  __KEY(root)
+  __KEY(type)
+  __KEY(result_file)
+
+  __KEY(instance)
+  __KEY(instance_scope)
+  
+  __KEY(NAMESPACE_)
+  __KEY(param)
+  __KEY(with_param)
+  __KEY(this_)
+
+  __KEY(call)
+  	__KEY(assume_params_are_in_env)
+
+  /*
+   * Xem event triggering mechanism
+   */
+  __KEY(trigger_event)
+
+  __KEY(document_event)
+    __KEY(document)
+    __KEY(target_document)
+    __KEY(target_branchRevId)
+    __KEY(target_branchName)
+    __KEY(target_role)
+
+  /*
+   * Xem Memory management commands
+   */
+  __KEY(document_lookup)
+  __KEY(document_lookup_base)  
+  __KEY(release_document)
+  __KEY(housewife)
+
+
+  /*
+   * Xem Exception Handling (prototype)
+   */
+  __KEY(catch_exceptions)
+  __KEY(try_)
+  __KEY(catch_)
+  __KEY(on_exception)
+
+  /*
+   * XSL and XUpdate Xem Extensions 
+   */
+  __KEY(set_document) // Force a document() to be equal to a given NodeRef. The name pointed at xem:href will refer to the node at xem:select (DEPRECATED !)
+  __KEY(set_default_lookup_directory) // Sets the default lookup directory for future calls to document() (DEPRECATED !).
+  __KEY(href) // The href of the document(). 
+
+  /*
+   * NAMESPACE finding mechanism (deprecated)
+   */
+  __KEY(xpath_find_method)
+  __KEY(NAMESPACENS)
+  __KEY(NAMESPACENoNSName)
+  __KEY(methodName)
+
+  /*
+   * Event handling
+   */
+  __KEY(events)
+  __KEY(event)
+
+
+  /*
+   * Xem-role Document handling
+   */
+  __KEY(transmittable)
+  __KEY(get_node)
+  __KEY(open_document)
+  	__KEY(role)
+  	__KEY(branch)
+  	__KEY(mode)
+
+  /*
+   * Xem Import extensions
+   */
+  __KEY(import_document)
+  __KEY(keep_text_mode)
+  __KEY(skip_exceptions)
+  __KEY(import_folder)
+  __KEY(import_zip)
+  __KEY(exclude)
+
+  /*
+   * External library loading (may be restricted)
+   */
+  __KEY(load_external_module)
+  
+  /*
+   * Meta Indexer implementation
+   */
+  __KEY(meta_indexer)
+    // __KEY(name)
+    __KEY(match)
+    __KEY(use)
+    __KEY(scope)
+	__KEY(orderby)
+  __KEY(set_meta_indexer)
+  __KEY(meta_indexer_trigger)
+   
+  /*
+   * Xem View implementation : instanciation instruction
+   */
+  __KEY(xem_view)
+  	__KEY(lookup) //< The meta-indexer used to lookup each level
+  	__KEY(lookup_name) //< The attribute used to lookup each level
+ 
+  /*
+   * Xem View implementation : implementation keys
+   */
+  __KEY(xem_view_trigger)
+  __KEY(base_view)
+  __KEY(created_elements_map)
+  // __KEY(view_refcount) //< Not implemented yet
+
+__ENDNAMESPACE(xem,xem)

@@ -1,0 +1,816 @@
+/**
+ * Here is the non-positionnal version of Axis walk-trough
+ */
+
+#if 0 
+
+
+#include <Xemeiah/xpath/xpath.h>
+#include <Xemeiah/core/env.h>
+#include <Xemeiah/trace.h>
+
+#include <Xemeiah/tools/import.h>
+
+#include <Xemeiah/auto-inline.hpp>
+
+#if 1
+#undef NotImplemented
+#define NotImplemented(...) throwXPathException ( "Not Implemented : " __VA_ARGS__ )
+
+#endif
+
+namespace Xem
+{
+#define __XPath_Axis(__name)				\
+  void XPath::evalAxis##__name ( __XPath_Functor_Args )
+#define __NotImplemented() throwXPathException ( "Not Implemented : '%s'\n", __FUNCTION__ );
+  /**
+   * Shared functions across Axis
+   */
+
+  bool XPath::evalNodePredicate ( EvalContext& ect, NodeRef& node, XPathStep* step, int index )
+  {
+    ect.getPosition()->incrementPosition ( index );
+    
+    if ( step->predicate != XPathStepId_NULL)
+      {
+        Result predResult; 
+        evalStep ( ect, predResult, node, step->predicate );
+        if ( predResult.isInteger() )
+          {
+	    Integer askedPos = predResult.toInteger();
+	    Integer myPos = ect.getPosition()->getPosition ( index );
+	    Log ( "Position Predicate : at %s=%llx:'%s', asked for '0x%llx', now at '0x%llx'\n",
+		  node.isElement() ? "element" : "attribute",
+		  node.isElement() ? node.toElement().getElementId() : 0, 
+		  node.getKey(), askedPos, myPos );
+	    if ( myPos == UnknownPosition )
+	    {
+		NotImplemented ( "Position retrieving.\n" );
+	    }
+	    if ( askedPos != myPos )
+		return false;
+	    Log ( "Position Predicate : %s=%llx:'%s' has good position.\n",
+		  node.isElement() ? "element" : "attribute",
+		  node.isElement() ? node.toElement().getElementId() : 0, 
+		  node.getKey() );
+	  }
+	else if ( !predResult.toBool () )
+	  return false;
+
+	
+	XPathStep* predStep = getStep ( step->predicate );
+	if ( predStep->predicate != XPathStepId_NULL )
+	{
+	    Log ( "Predicate has a predicate.\n" );
+	    return evalNodePredicate ( ect, node, predStep, index + 1 );
+#if 0
+	    ect.getPosition()->incrementPosition ( 1 );
+	    Result postPredResult;
+	    evalStep ( ect, postPredResult, node, predStep->predicate );
+	    if ( postPredResult.isInteger() )
+	    {
+    		Integer askedPos = postPredResult.toInteger();
+		Integer myPos = ect.getPosition()->getPosition ( 1 );
+    		Log ( "Position Post-Predicate : asked for '0x%llx', now at '0x%llx'\n",
+		      askedPos, myPos );
+		if ( myPos == UnknownPosition )
+		{
+		    NotImplemented ( "Position retrieving.\n" );
+		}
+		if ( askedPos != myPos  )
+		    return;
+	    }
+	    else if ( ! postPredResult.toBool() )
+	    {
+	        return;
+	    }
+#endif
+	}
+	
+      }
+    return true;
+  }
+
+  INLINE void XPath::evalNodeKeyAndPredicate ( __XPath_Functor_Args )
+  {
+#if PARANOID
+    AssertBug ( step->axis != XPathAxis_Func, "Axis is wrong !\n" );
+    AssertBug ( step->axis != XPathAxis_Variable, "Axis is wrong !\n" );
+#endif
+    if ( step->keyId )
+      {
+	KeyCache& keyCache = node.getKeyCache();       
+        if ( step->keyId == keyCache.builtinKeys.xemint_element() )
+	{
+	    Log ( "FILTERING : node=%s, xemint ns=%x, node ns=%x\n",
+		node.getKey(), keyCache.getNSKeyId ( keyCache.builtinKeys.xemint_element() ),
+		keyCache.getNSKeyId ( node.getKeyId() ) );
+	    if ( keyCache.getNSKeyId ( keyCache.builtinKeys.xemint_element()) 
+		 == keyCache.getNSKeyId ( node.getKeyId() ) )
+	    return;
+	}
+        else if ( step->keyId != node.getKeyId() )
+	    return;
+      }
+    if ( evalNodePredicate ( ect, node, step ) )
+	evalStep ( ect, result, node, step->nextStep );
+  }
+
+  /**
+   * Standard Axes
+   */
+  void XPath::evalAxisAncestorGeneric ( __XPath_Functor_Args, bool includeSelf )
+  {
+    std::list<XPath::Result*> backList;
+
+    ElementRef current(node.getContext());
+    ElementRef rootElement(node.getContext());
+    if ( node.isAttribute() )
+    {
+	current = node.toAttribute().getElement();
+	includeSelf = true;
+	rootElement = current.getRootElement ( ect.getEnv() );
+    }
+    else
+    {
+	current = node.toElement();
+	rootElement = current.getRootElement ( ect.getEnv() );
+	if ( current == rootElement ) return;
+	if ( ! includeSelf ) current = current.getFather();
+	if ( current == rootElement ) return;
+    }
+    for ( ElementRef ancestor = current ; ancestor ; ancestor = ancestor.getFather() )
+      {
+	Log ( "ANCESTOR finder : node=%s, root=%s, at elt=%s\n",
+	      node.getKey(), rootElement.getKey(), ancestor.getKey() );
+	if ( ancestor == rootElement )
+	    break;
+	XPath::Result * myResult = new XPath::Result();
+	evalNodeKeyAndPredicate ( ect, *myResult, ancestor, step );
+	if ( myResult->size() ) backList.push_front ( myResult );
+	else delete ( myResult );
+      }
+
+    result.pushBackList ( backList );
+  }
+
+  __XPath_Axis(Ancestor)
+  {
+    evalAxisAncestorGeneric ( ect, result, node, step, false );
+  }
+  
+  __XPath_Axis(Ancestor_Or_Self)
+  {
+    evalAxisAncestorGeneric ( ect, result, node, step, true );
+  }
+
+  __XPath_Axis(Attribute)
+  {
+    AssertBug ( node.isElement(), "Node is not element !\n" );
+    ElementRef current(node.toElement());
+    for ( AttributeRef attr = current.getFirstAttr() ;
+	  attr ; attr = attr.getNext() )
+      {
+	if ( ! attr.isBaseType() ) continue;
+	evalNodeKeyAndPredicate ( ect, result, attr, step );
+#if 0 // Optim
+	if ( step->keyId )
+	    break;
+#endif
+      }
+  }
+
+
+  __XPath_Axis(Child)
+  {
+    if ( ! node.isElement() )
+	return;
+    AssertBug ( node.isElement(), 
+		"Node is not element !\n" );
+    ElementRef& current = node.toElement();
+    for ( ElementRef child = current.getChild() ;
+	  child ; child = child.getYounger() )
+      {
+	Log_Eval ( "At child %llx keyId=%x (%s), keyId=%x\n",
+		   child.getElementId(), child.getKeyId(), child.getKey(),
+		   step->keyId );
+	evalNodeKeyAndPredicate ( ect, result, child, step );
+      }
+  }
+
+  INLINE void XPath::evalAxisDescendantGeneric ( __XPath_Functor_Args, bool includeSelf )
+  {
+    ElementRef element(node.getContext());
+    if ( node.isAttribute() )
+    {
+	if ( includeSelf )    
+	    evalNodeKeyAndPredicate ( ect, result, node, step );
+	return;
+    }
+    element = node.toElement ();
+    ElementRef current = element;
+    ElementRef rootElement = element.getRootElement ( ect.getEnv() );
+    if ( current == rootElement )
+    {
+	current = current.getChild ();
+	if ( ! current ) return;    
+    }
+    else if ( ! includeSelf )
+    {
+	current = current.getChild ();
+	if ( ! current ) return;
+    }
+    while ( true )
+      {
+	Log ( "DESCENDANTGEN : elt=%s, current=%s\n",
+	      element.getKey(), current.getKey() );
+	evalNodeKeyAndPredicate ( ect, result, current, step );
+	
+	ElementRef child = current.getChild ();
+	if ( child )
+	  {
+	    current = child;
+	    continue;
+	  }
+	else if ( current == element ) 
+	    return;
+
+	while ( ! current.getYounger() )
+	  {
+#if PARANOID
+	    AssertBug ( current.getFather(), "Current '%s' has no father ! element='%s', expr='%s'\n",
+		current.getKey(), element.getKey(), expression );
+#endif
+	    current = current.getFather ();
+	    if ( current == element ) return;
+	  }
+	current = current.getYounger ();
+      }
+  }
+
+  __XPath_Axis(Descendant)
+  {
+    evalAxisDescendantGeneric ( ect, result, node, step, false );
+  }
+
+
+  __XPath_Axis(Descendant_Or_Self)
+  {
+    evalAxisDescendantGeneric ( ect, result, node, step, true );
+  }
+
+  __XPath_Axis(Following)
+  {
+    ElementRef element(node.getContext());
+    ElementRef current = element;
+    if ( node.isAttribute() )
+    {
+	element = node.toAttribute().getElement();
+	current = element;
+	if ( current.getChild() )
+	    current = element.getChild();
+    }
+    else
+    {
+	element = node.toElement();
+	current = element;
+    }
+    ElementRef rootElement = element.getRootElement ( ect.getEnv() );
+    
+    Log ( "FOLLOWING : Called on element=%llx:%s, root=%llx:%s\n",
+	element.getElementId(), element.getKey(),
+	rootElement.getElementId(), rootElement.getKey() );
+
+    if ( element == rootElement ) return;
+
+    while ( true )
+    {
+	Log_Eval ( "FOLLOWING : root=%llx:%s, element=%llx:%s, current=%llx:%s\n", 
+	    rootElement.getElementId(), rootElement.getKey(),
+	    element.getElementId(), element.getKey(),
+	    current.getElementId(), current.getKey() 
+	    );
+	if ( current != element )
+	{
+	    evalNodeKeyAndPredicate ( ect, result, current, step );
+	    if ( current.getChild() )
+	    {
+		current = current.getChild();
+		continue;
+	    }    
+	}
+	while ( ! current.getYounger() )
+	{
+	    if ( current == rootElement ) return;
+	    current = current.getFather();
+	    if ( current == rootElement ) return;
+	}
+	current = current.getYounger();
+    }
+  }
+
+  __XPath_Axis(Following_Sibling)
+  {
+    
+    if ( node.isAttribute() ) return;
+
+    ElementRef current = node.toElement();
+    Log ( "Call following sibling from elt=%s\n", node.getKey() );
+    for ( ElementRef following = current.getYounger() ;
+	  following ; following = following.getYounger() )
+      {
+        Log ( "Processing Following_Sibling node=%s following=%s\n",
+	    node.getKey(), following.getKey() );
+	evalNodeKeyAndPredicate ( ect, result, following, step );
+      }
+  }
+
+  __XPath_Axis(Namespace)
+  {
+    __NotImplemented();
+    if ( ! node.isElement() )
+    {
+	throwXPathException ( "Axis Namespace : node must be an element !\n" );
+    }
+    Warn ( "TODO : Reimplement this cleanly.\n" );
+    NSKeyId xmlnsKeyId = node.getKeyCache().getNSKeyId ( node.getKeyCache().builtinKeys.xmlns_xem() );
+    for ( AttributeRef attr = node.toElement().getFirstAttr() ;
+	attr ; attr = attr.getNext() )
+	{
+	    if ( attr.getNSKeyId() == xmlnsKeyId )
+		result.pushBack ( attr );
+	}
+  }
+
+  __XPath_Axis(Parent)
+  {
+    if ( node.isAttribute() )
+    {
+	ElementRef current = node.toAttribute().getElement();
+	evalNodeKeyAndPredicate ( ect, result, current, step );
+	return;
+    }
+    ElementRef current = node.toElement();
+    
+    ElementRef rootElement = current.getRootElement ( ect.getEnv() );
+    if ( rootElement == current )
+	return;
+    ElementRef father = current.getFather();
+    if ( ! father )
+      {
+	throwXPathException ( "Element %llx (%x:%s) has no father !\n",
+			      current.getElementId(), 
+			      current.getKeyId(),
+			      current.getKey() );
+      }
+    evalNodeKeyAndPredicate ( ect, result, father, step );
+  }
+
+  __XPath_Axis(Preceding)
+  {
+    ElementRef current ( node.getContext() );
+    if ( node.isAttribute() )
+    {
+	current = node.toAttribute().getElement();
+    }
+    else
+    {
+	current = node.toElement ();
+    }
+    ElementRef rootElement = current.getRootElement( ect.getEnv() );
+    Log ( "PREC : root=%llx:%s, current=%llx:%s\n",
+	rootElement.getElementId(), rootElement.getKey(),
+	current.getElementId(), current.getKey() );
+
+    if ( rootElement == current )
+	return;
+
+    ElementRef preceding = current;
+    std::list<XPath::Result*> backList;
+    
+    /**
+     * We must find the element to start with.
+     *
+     */
+    while ( ! preceding.getElder() )
+      {
+        preceding = preceding.getFather ();
+	if ( preceding == rootElement ) return;
+      }
+    preceding = preceding.getElder();
+    ElementRef parentElement = preceding.getFather ();
+      
+#define __evalCurrent() \
+	XPath::Result* myResult = new XPath::Result(); \
+\
+        Log ( "PRECEDING : current=%llx:%s, at preceding=%llx:%s\n", \
+	    current.getElementId(), current.getKey(), \
+	    preceding.getElementId(), preceding.getKey() ); \
+\
+	evalNodeKeyAndPredicate ( ect, *myResult, preceding, step ); \
+	if ( myResult->size() ) backList.push_front ( myResult ); else delete ( myResult );
+
+
+    while ( true )
+      {
+
+        ElementRef lastChild = preceding.getLastChild();
+	if ( lastChild )
+	{
+	    preceding = lastChild;
+    	    continue;
+        }
+        // We don't have any child.
+
+        __evalCurrent ();
+      
+        while ( ! preceding.getElder() )
+	{
+	    ElementRef father = preceding.getFather ();
+	    Log ( "PRECEDING : While finding an elder : father=%llx:%s, preceding=%llx:%s\n",
+		father.getElementId(), father.getKey(), preceding.getElementId(), preceding.getKey() );
+	    if ( father == rootElement )
+	      {
+	        goto preceding_iteration_ends;
+	      }
+	    else if ( father == parentElement )
+	      {
+	        /*
+		 * We are on an ancestor of the current element.
+		 * We must find the next ancestor that has an elder
+		 */
+	    	while ( ! father.getElder() )
+		  {
+		    father = father.getFather();
+		    AssertBug ( father, "Could not get father !\n" );
+		    if ( father == rootElement )
+			goto preceding_iteration_ends;
+		  }
+		/*
+		 * Ok, now we have a father with an elder.
+		 * Make this our preceding, and record parentElement.
+		 */
+		preceding = father;
+		parentElement = father.getFather ();
+	      }
+	    else
+	      {
+	        Log ( "PRECEDING : Jumping to father=%llx:%s\n",
+		    father.getElementId(), father.getKey() );
+	        preceding = father;
+
+    		__evalCurrent ();
+	        continue;	      
+	      }	
+	}
+        preceding = preceding.getElder();
+      }
+preceding_iteration_ends:
+    result.pushBackList ( backList );
+#undef __evalCurrent
+  }
+
+  __XPath_Axis(Preceding_Sibling)
+  {
+    if ( node.isAttribute() ) return;
+    ElementRef current = node.toElement();
+    
+    ElementRef root = current.getRootElement ( ect.getEnv() );
+    if ( current == root ) return;
+    
+    if ( ! current.getFather() )
+    {
+	throwXPathException ( "At preceding-sibling : element has no father !\n" );
+	return;
+    }
+    Log ( "Call preceding sibling from elt=%s\n", node.getKey() );
+
+
+    std::list<XPath::Result*> backList;
+
+    for ( ElementRef preceding = current.getElder() ; preceding ; preceding = preceding.getElder() )
+      {
+	Log ( "Preceding : '%s' of '%s'\n", preceding.getKey(), current.getKey() );
+        XPath::Result* myResult = new XPath::Result();
+	evalNodeKeyAndPredicate ( ect, *myResult, preceding, step );
+	backList.push_front ( myResult );
+      }
+    result.pushBackList ( backList );
+  }
+
+  __XPath_Axis(Self)
+  {
+    if ( node.isElement() )
+    {
+        ElementRef rootElement = node.toElement().getRootElement ( ect.getEnv() );
+	if ( rootElement == node.toElement() ) return;
+    }
+    evalNodeKeyAndPredicate ( ect, result, node, step );
+  }
+
+  /*
+   * Non-standard Axes
+   */
+  __XPath_Axis(Root)
+  {
+    ElementRef current(node.getContext());
+    if ( node.isElement() )
+    {
+	current = node.toElement();
+    }
+    else
+    {
+	current = node.toAttribute().getElement();
+    }
+    ElementRef root = current.getRootElement ( ect.getEnv() );
+    evalStep ( ect, result, root, step->nextStep );
+  }
+
+  __XPath_Axis(Home)
+  {
+    NotImplemented ( "Home.\n" );
+  }
+
+  __XPath_Axis(Func)
+  {
+#if PARANOID
+    AssertBug ( step->funcCall.func < XPathFunc_NbFuncs, "Step : func '%u' out of range !\n", step->funcCall.func );
+#endif
+    __evalFunctor func = funcMap[step->funcCall.func];
+#if PARANOID
+    AssertBug ( func, "No function defined for '%u' (0x%x)\n", step->funcCall.func, step->funcCall.func );
+#endif
+    Log ( "eval function '%u', ptr at %p\n", step->funcCall.func, &func );
+    (this->*func) ( ect, result, node, step );
+  }
+
+  __XPath_Axis(Variable)
+  {
+    if ( ! ect.getEnv().hasVariable ( step->keyId ) )
+      {
+#if 1
+	XPathException * xpe = new XPathException ();
+	String& s = xpe->getMessage();
+	stringPrintf ( s, "Environment has no variable %x '%s'\n",
+			      step->keyId, 
+			      ect.getEnv().getKeyCache().getKey ( step->keyId ) );
+	ect.getEnv().dumpEnv ( xpe, true );
+	throw ( xpe );
+#else
+	throwXPathException ( "Env has no variable %x '%s'\n",
+			      step->keyId, 
+			      ect.getEnv().getKeyCache().getKey ( step->keyId ) );
+#endif
+      }
+    Result* variable = ect.getEnv().getVariable(step->keyId);
+    AssertBug ( variable != NULL, "NULL variable !\n" );
+    
+#if 0
+    __ui64 position = 1;
+    if ( variable->getIndexAttr() && step->predicate )
+      {
+	XPathStep* eq = getStep(step->predicate);
+	if ( eq->axis == XPathAxis_Func 
+	     && eq->funcCall.func == XPathFunc_Equals )
+	  {
+	    // TODO : be really sure about that !!!
+	    XPathStep* leftStep = getStep(eq->funcCall.args[0]);
+
+	    if ( leftStep->axis == XPathAxis_Attribute 
+		 && leftStep->keyId == variable->getIndexAttr() )
+	      {
+		ElementRef& current = node.toElement();
+		Result rightResult; evalStep ( ect, rightResult, current, eq->funcCall.args[1] );
+
+		for ( Result::iterator iter(rightResult) ; iter ; iter++ )
+		  {
+		    try
+		      {
+			String res = iter->toString ( );
+			ElementRef eltRef = variable->getIndex ( res );
+			if ( ! eltRef )
+			  {
+			    Warn ( "Empty eRef res='%s'!\n", res.c_str() );
+			    continue;
+			  }
+			evalStep ( ect, result, eltRef, step->nextStep );
+		      }
+		    catch ( IndexNotFoundException* infe )
+		      {
+			delete ( infe );
+		      }
+		    catch ( Exception *e )
+		      {
+			Bug ( "." );
+			throw (e);
+		      }
+		  }
+		return;
+	      }
+	  }
+      }
+#endif
+    for ( Result::iterator iter (variable ) ; iter ; iter ++ )
+      {
+	Item* item = iter;
+	Log ( "Item = %p, type=%d\n", item, item->getItemType() );
+	switch ( item->getItemType() )
+	  {
+	  case Item::Type_Element:
+	    {
+	      if ( evalNodePredicate ( ect, item->toNode(), step ) )
+		evalStep ( ect, result, item->toNode(), step->nextStep );
+#if 0
+	      ElementRef eltRef( item->toElement() );
+	      Log ( "At elt '%llx'\n", eltRef.getElementId() );
+	      if ( step->predicate != XPathStepId_NULL )
+		{
+		  Result predResult;
+		  evalStep ( ect, predResult, eltRef, step->predicate );
+		  AssertBug ( predResult.size() == 1,
+			      "Non-scalar predicate result !\n" );
+		  Item& predItem = predResult.front ();
+		  if ( predItem.getItemType() == Item::Type_Int )
+		    {
+		      __ui64 predPosition = predItem.toInt ();
+		      AssertBug ( position == 1, "Must have detected position before !\n" );
+		      AssertBug ( position <= predPosition, "Pred position is more than actual !\n" );
+		      while ( position < predPosition )
+			{
+			  position++;
+			  iter ++;
+			  AssertBug ( iter, "Iter at end, at position %llu, asked for  position %llu\n", 
+				      position, predPosition );
+			}
+		      eltRef = item->toElement();
+		      Log_Eval ( "Elt at %p\n", &eltRef );
+		      evalStep ( ect, result, eltRef, step->nextStep );
+		      Log_Eval ( "Found element at position %llu\n", position );
+		      return;
+		    }
+		  else if ( predItem.getItemType() == Item::Type_Bool )
+		    {
+		      if ( ! predItem.toBool() )
+			{
+			  continue;
+			}
+		    }
+		  else
+		    {
+		      Bug ( "Invalid predicate result !\n" );
+		    }
+		}
+	      Log ( "Element is ok.\n" );
+	      evalStep ( ect, result, eltRef, step->nextStep );
+#endif
+	      break;
+	    }
+	  case Item::Type_Attribute:
+	    {
+	      if ( evalNodePredicate ( ect, item->toNode(), step ) )
+		evalStep ( ect, result, item->toNode(), step->nextStep );
+#if 0
+	      if ( step->predicate != XPathStepId_NULL )
+		{
+	    	  throwXPathException ( "NotImplemented() : step has next or predicate, but item is of type 'attribute'\n" );
+		}
+	      AssertBug ( step->nextStep == XPathStepId_NULL,
+			  "Non Node variable, but has step.\n" );
+	      AssertBug ( step->predicate == XPathStepId_NULL,
+			  "Non Node variable, but has predicate.\n" );
+#endif
+//	      result.pushBack ( item->toAttribute() );
+	      break;
+	    }
+	  case Item::Type_Int:
+	    AssertBug ( step->nextStep == XPathStepId_NULL,
+			"Non Node variable, but has step.\n" );
+	    AssertBug ( step->predicate == XPathStepId_NULL,
+			"Non Node variable, but has predicate.\n" );
+	    result.pushBack ( item->toInt() );
+	    break;
+	  case Item::Type_String:
+	    {
+	      AssertBug ( step->predicate == XPathStepId_NULL,
+			  "Non Node variable, but has predicate (Not Implemented).\n" );
+	      if ( step->nextStep != XPathStepId_NULL )
+		{
+		  ElementRef eltRef = ect.getBaseNode().getContext().getElementById ( item->toString() );
+		  if ( ! eltRef )
+		    {
+		      Bug ( "Could not get element ref !\n" );
+		    }
+		  evalStep ( ect, result, eltRef, step->nextStep );
+		  break;
+		}
+	      AssertBug ( step->nextStep == XPathStepId_NULL,
+			  "Non Node variable, but has step.\n" );
+  
+	      result.pushBack ( item->toString() );
+	      break;
+	    }
+	  case Item::Type_Bool:
+	    {
+	      AssertBug ( step->nextStep == XPathStepId_NULL,
+			  "Non Node variable, but has step.\n" );
+	      AssertBug ( step->predicate == XPathStepId_NULL,
+			  "Non Node variable, but has predicate.\n" );
+	      result.pushBack ( item->toBool() );
+	      break;
+	    }
+	  default:
+	    NotImplemented ( "Var on item type=%d.", item->getItemType() );
+	  }
+#if 0
+	position++;
+#endif
+      }
+  }
+
+  __XPath_Axis(Resource)
+  {
+    result.pushBack ( String (getResource(step->resource) ) );
+  }
+
+  __XPath_Axis(NumericConstant)
+  {
+    result.pushBack ( ((Integer) step->keyId ) );
+  }
+};
+
+
+
+/*********************** GARBAGE ****************************/
+#if 0
+    if ( step->predicate != XPathStepId_NULL 
+	 && ( step->funcCall.func == XPathFunc_NodeSetRevert ) )
+    {
+	AssertBug ( result.size() == 0, "Function predicate assumes result is empty before running.\n" );
+	XPath::Result funcResult;
+        (this->*func) ( ect, funcResult, node, step );
+	// Position position = 0, position1 = 0;
+	Log ( "Function has a predicate. Function mere result is :\n" );
+	funcResult.log ();
+	for ( XPath::Result::iterator iter ( funcResult ) ; iter ; iter++ )
+	{
+	    if ( ! iter->isNode() )
+	    {
+		throwXPathException ( "Invalid predicate to function returning non-node item : %d!\n",
+		    iter->getItemType() );
+	    }
+	    // ect.setPosition ( position ); 
+	    Result predResult;
+	    evalStep ( ect, predResult, iter->toNode(), step->predicate );
+	    if ( predResult.isInteger () && predResult.toInteger() != position )
+		continue;
+	    else if ( ! predResult.toBool() )
+		continue;
+    
+
+	    XPathStep* predStep = getStep ( step->predicate );
+	    if ( predStep->predicate != XPathStepId_NULL )
+	    {
+		Log ( "Func : predicate has a predicate !\n" );
+		// ect.position1 = ++position1;
+		ect.position1 = &position1;
+		Result postResult; evalStep ( ect, postResult, iter->toNode(), predStep->predicate );
+		if ( postResult.isInteger() && predResult.toInteger() != position1 )
+		    continue;
+		else if ( ! postResult.toBool() )
+		    continue;
+	    }
+
+	    if ( iter->isElement() )
+		result.pushBack ( iter->toElement() );
+	    else if ( iter->isAttribute() )
+		result.pushBack ( iter->toAttribute() );
+	    else
+	    {
+		throwXPathException ( "Invalid type '%d' for item.\n", iter->getItemType() );
+	    }
+
+
+	}
+#if 0
+	if ( ! result.toBool() )
+	    return;
+	result.clear ();
+	if ( step->predicate == 0 )
+	{
+	    Bug ( "Invalid '0' predicate for expression = '%s'\n", expression );
+	}
+	Log ( "XPATHFUNC : Processing func predicate '%u'\n", step->predicate );
+	// logStep ( step->predicate );
+	evalStep ( ect, result, node, step->predicate );
+	Log ( "XPATHFUNC : Process Ok.\n" );
+	result.log ();
+	// NotImplemented ( "Func predicate !\n" );
+#endif
+    }
+    else
+    {
+#endif
+
+
+#endif

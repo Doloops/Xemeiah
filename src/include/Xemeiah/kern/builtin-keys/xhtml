@@ -1,0 +1,4 @@
+__STARTNAMESPACE ( xhtml, "http://www.w3.org/1999/xhtml" ) 
+  __KEY(html)
+__ENDNAMESPACE ( xhtml, xhtml )
+

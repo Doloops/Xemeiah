@@ -1,0 +1,10 @@
+__STARTNAMESPACE ( xem_ajax, "http://www.xemeiah.org/ns/xem/web/ajax" )
+  __KEY(updates)
+  __KEY(update)
+	__KEY(target)
+	__KEY(append)
+	__KEY(onCleanupMethod)
+  __KEY(response)
+  __KEY(script)
+__ENDNAMESPACE ( xem_ajax, xem_ajax )
+

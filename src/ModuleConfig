@@ -1,0 +1,86 @@
+MOD=xem
+MODULESUBS = kern dom xpath xprocessor io nodeflow parser misc # xsl exslt 
+
+VERSION_FILE = include/Xemeiah/version.h
+VERSION = $(shell cut -d '"' -f 2 $(VERSION_FILE))
+ifeq ($(XemCompileAsLib),true)
+    MODULESUBS_INCL = 
+    MODULESUBS_LIB_NAME = libxemeiah.so.$(VERSION)
+    MODULESUBS_SYMLINK_NAME = libxemeiah.so.0
+    MODULELINKFLAGS_SUBS += -lrt -ldl
+    MODULELINKFLAGS += -ldl -L. -l:$(MODULESUBS_SYMLINK_NAME)
+    MODULELINKFLAGS_LIB += -L. -l:$(MODULESUBS_LIB_NAME)
+    CFLAGS += -fPIC
+else
+    MODULESUBS_INCL = $(MODULESUBS)
+    MODULESUBS_LIB_NAME =
+    MODULELINKFLAGS += -lpthread -lm -ldl
+endif
+
+
+MODULELIBS_ = xsl exslt
+
+MODULECOMPILEFLAGS = -Iinclude
+# CFLAGS += -D__XEM_HAS_RT
+# MODULELINKFLAGS_LIB += -lrt 
+MODULELIBSPATH = xemeiah
+# CFLAGS +=  -rdynamic
+
+# Options Parsing
+
+# External Libraries
+ifeq ($(XemHasXUpdate),true)
+	MODULELIBS_ += xupdate
+endif
+ifeq ($(XemHasXemProcessor),true)
+	MODULELIBS_ += xemprocessor
+endif
+ifeq ($(XemHasWebServer),true)
+	MODULELIBS_ += webserver
+endif
+ifeq ($(XemHasXemFS),true)
+	MODULELIBS_ += xemfs
+endif
+ifeq ($(XemHasXemFSFuse),true)
+	MODULELIBS_ += xemfs-fuse
+endif
+ifeq ($(XemHasPersistence),true)
+	MODULELIBS_ += persistence
+endif
+ifeq ($(XemHasValhalla),true)
+	MODULELIBS_ += xem-valhalla
+endif
+ifeq ($(XemHasImageMagick),true)
+	MODULELIBS_ += xem-imagemagick
+	CFLAGS += -I/usr/include/ImageMagick
+endif
+ifeq ($(XemHasNetStore),true)
+	MODULELIBS_ += netstore
+	CFLAGS += -D__XEM_HAS_NETSTORE
+endif
+ifeq ($(XemHasLibZZip),true)
+	MODULELINKFLAGS += -lzzip
+	CFLAGS += -D__XEM_HAS_ZZIP
+endif
+ifeq ($(XemHasJNI),true)
+	CFLAGS += -I/usr/lib/jvm/java-7-openjdk-amd64/include
+	MODULELIBS_ += xem-jni
+endif
+
+ifeq ($(XemExternalizeLibs),false)
+	CFLAGS += -D__XEM_INTERNALIZE_LIBS
+	MODULESUBS += $(MODULELIBS_)
+	LIBCONFIGS = $(foreach lib,$(MODULELIBS_),$(lib)/LibConfig)
+	ifeq ($(LIBCONFIGS),)
+	
+	else
+		MODULELINKFLAGS += `cat $(LIBCONFIGS)`
+	endif
+	# MODULELIBS =
+else
+	ifeq ($(XemCompileAsLib),false)
+		CFLAGS += -fPIC
+	endif
+	MODULELIBS = $(MODULELIBS_)
+endif
+

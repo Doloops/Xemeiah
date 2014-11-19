@@ -1,0 +1,28 @@
+<?xml version = '1.0' encoding = 'UTF-8' standalone = 'yes'?>
+<doc:Document Scope="Syldavia" Category="DOCUMENT"
+	xmlns:folder="http://ea.assurance.bnpparibas.com/internal/schema/mco/casefolder/v1"
+	xmlns:acl="http://ea.assurance.bnpparibas.com/internal/schema/mco/acl/v1"
+	xmlns:common="http://ea.assurance.bnpparibas.com/internal/schema/mco/common/v1"
+	xmlns:task="http://ea.assurance.bnpparibas.com/internal/schema/mco/task/v1"
+	xmlns:file="http://ea.assurance.bnpparibas.com/internal/schema/mco/documentfile/v1"
+	xmlns:basket="http://ea.assurance.bnpparibas.com/internal/schema/mco/basket/v1"
+	xmlns:doc="http://ea.assurance.bnpparibas.com/internal/schema/mco/document/v1"
+	xmlns:businessscope="http://ea.assurance.bnpparibas.com/internal/schema/mco/businessscope/v1">
+	<doc:Id Issuer="CARDIF" Scheme="Sugar">2cb17ecf-3d70-4cc6-9ab4-b10ce5b256c6
+	</doc:Id>
+	<doc:Data>
+		<common:ClassId Issuer="CARDIF" VersId="0">d49c0f07-76df-474c-b8a9-ef063927ecf2</common:ClassId>
+		<common:CreatnDate>2014-11-12 17:37:29.859 +0100</common:CreatnDate>
+		<common:Name>Auto generated claim</common:Name>
+		<common:retentionStartDate>2009-12-12 17:37:29.860 +0100</common:retentionStartDate>
+		<common:ValidityCode>INVALID</common:ValidityCode>
+	</doc:Data>
+	<common:Tags>
+		<common:Tag name="ClientNumber">
+			<common:Value>N°000001</common:Value>
+		</common:Tag>
+		<common:Tag name="Weather">
+			<common:Value>Sunny</common:Value>
+		</common:Tag>
+	</common:Tags>
+</doc:Document>

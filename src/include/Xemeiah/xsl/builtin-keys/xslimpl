@@ -1,0 +1,48 @@
+/*
+ * XSL Implementation builtin keys
+ */
+__STARTNAMESPACE ( xslimpl, "http://www.xemeiah.org/ns/xem-xsl-implementation" )
+  /*
+   * Global-scope XSL options dynamically set using an XProcessor variable 
+   */
+  __KEY(warn_on_conflicts) // option : set this variable to warn on conflicts.
+  __KEY(disable_messages) // option : disable messages
+  __KEY(disable_result_document) // option : disable xsl:result-document
+  __KEY(disable_result_document_mkdir) // option : disable making directories in xsl:result-document
+
+  /*
+   * Registered Dom Events
+   */
+  __KEY(domevent_prepare_stylesheet) // Call this event when creating a xsl:stylesheet Element
+
+  /*
+   * State Variables
+   */
+  __KEY(main_stylesheet) // Internal variable which points to the root of the stylesheet. 
+  __KEY(current_stylesheet) // Reflects the current stylesheet being processed. Used in XPath 'document("")', for example.
+  __KEY(template_stylesheet) // Reflects the current stylesheet being used for template processing, used in XSLProcessor::chooseTemplate().
+
+  /*
+   * Templates map mechanism 
+   * The templates map are defined per-stylesheet, and must be built and retrieved on a per-stylesheet base,
+   * because the stylesheets may be stored in different Documents (and the SKMapRef assumes all elements come from the same Document).
+   */
+  __KEY(match_templates)   // Mode-based templates multi-map
+  __KEY(imported_match_templates) // Mode-based imported templates multi-map
+  __KEY(match_templates_opt)   // Mode-based templates multi-map, optimized
+  __KEY(imported_match_templates_opt) // Mode-based imported templates multi-map, optimized
+  __KEY(named_templates)   // Name-based templates single-map
+  __KEY(strip_spaces_map)  // Stores the stripspace XPath in an interger-map.
+  __KEY(attribute_set_map) // Stores the xsl:attribute-set elements
+  __KEY(attribute_value) // Stores the value of the computed xsl:attribute value 
+  __KEY(toplevel_params)   // Stores the list of top-level parameters.
+  __KEY(namespace_aliases) // Stores all namespace aliases (deprecated ?)
+  __KEY(key_definitions)   // Stores all key definitions
+  __KEY(decimal_formats)   // Stores all decimal-format declarations
+  __KEY(toplevel_elements) // Stores various top-level arguments, such as xsl:output
+
+  __KEY(default_sort_select_xpath)
+
+  __KEY(parsed_number_format) // Parsed format of xs:number (if we can parse it).
+
+__ENDNAMESPACE ( xslimpl, xslimpl )

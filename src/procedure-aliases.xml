@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xem-config:procedure-aliases xmlns:xem-config="http://www.xemeiah.org/ns/xem/config">
+  <xem-config:alias name="format-default" url="/usr/share/xemeiah/webserver/xem-standard/xem-format.xem.xml"/>
+  <xem-config:alias name="webserver" url="/usr/share/xemeiah/webserver/xem-standard/xem-run-webserver.xem.xml"/>
+</xem-config:procedure-aliases>

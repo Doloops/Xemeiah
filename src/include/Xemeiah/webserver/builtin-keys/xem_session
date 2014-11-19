@@ -1,0 +1,22 @@
+/*
+ * Session management keywords
+ */
+__STARTNAMESPACE ( xem_session, "http://www.xemeiah.org/ns/xem/session" ) 
+
+  __KEY(service)
+	  __KEY(name)
+  __KEY(session)
+	  __KEY(sessionId)
+	  __KEY(main_document)
+	  __KEY(creationTime)
+	  __KEY(lastAccessTime)
+	  __KEY(ttl)
+  __KEY(create_session)
+  __KEY(get_session)
+  __KEY(wait_news)
+  __KEY(process_event)  
+__ENDNAMESPACE ( xem_session, xem_session)
+
+
+
+

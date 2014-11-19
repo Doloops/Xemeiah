@@ -1,0 +1,18 @@
+__STARTNAMESPACE ( exslt_common, "http://exslt.org/common" ) 
+  __KEY(node_set)
+  __KEY(document)
+
+
+__ENDNAMESPACE ( exslt_common, exslt_common )
+
+__STARTNAMESPACE ( exslt_dynamic, "http://exslt.org/dynamic" ) 
+  __KEY(evaluate)
+
+
+__ENDNAMESPACE ( exslt_dynamic, exslt_dynamic )
+
+__STARTNAMESPACE ( exslt_sets, "http://exslt.org/sets" ) 
+  __KEY(leading)
+  __KEY(trailing)
+
+__ENDNAMESPACE ( exslt_sets, exslt_sets )

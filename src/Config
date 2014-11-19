@@ -1,0 +1,102 @@
+CC = g++ -pipe -pthread
+
+CFLAGS = -Wall -D_FILE_OFFSET_BITS=64
+CFLAGS +=  -DLOG
+
+# CFLAGS += -fprofile-arcs -ftest-coverage
+
+# Options
+
+XemHasXemProcessor = true
+XemHasExtensions   = true
+
+ifeq ($(XemHasExtensions),true)
+    XemHasXUpdate      = false
+    XemHasPersistence  = true
+    XemHasWebServer    = false
+    XemHasXemFS        = false
+    XemHasXemFSFuse    = false
+    XemHasValhalla     = false
+    XemHasImageMagick  = false
+
+    XemHasNetStore     = false
+    XemHasLibZZip      = false
+endif
+    XemHasJNI          = true
+
+    XemCompileAsLib    = true
+    XemExternalizeLibs = false
+
+    Profile = Debug
+#    Profile = DebugPerf
+#    Profile = ProfilePerf
+    Profile = Perf
+#    Profile = HighPerfSpace
+#    Profile = HighPerf
+
+
+ifeq ($(Profile),HighPerf)
+    CFLAGS += -O3 # -pg
+    CFLAGS += -Winline
+    CFLAGS += -D__XEM_USE_INLINE
+#	CFLAGS += -D__XEM_PROVIDE_INLINE
+	CFLAGS += -finline-limit=18000 --param inline-unit-growth=18000 --param large-function-growth=18000 --param max-inline-insns-single=180000
+#	CFLAGS += -DXEM_SYNC
+#	CFLAGS += -DXEM_MADVISE
+endif
+ifeq ($(Profile),HighPerfSpace)
+    CFLAGS += -Os
+# CFLAGS += -pg
+	CFLAGS += -D__XEM_USE_INLINE
+#	CFLAGS += -D__XEM_PROVIDE_INLINE
+#	CFLAGS += -fexternal-templates
+endif
+ifeq ($(Profile),ProfilePerf)
+	CFLAGS += -O3
+	CFLAGS += -pg
+	CFLAGS += -DXEM_SYNC
+	CFLAGS += -D__XEM_USE_INLINE
+	CFLAGS += -D__XEM_DISABLE_LOG_MESSAGES
+endif
+ifeq ($(Profile),Perf)
+	CFLAGS += -O3
+	CFLAGS += -DXEM_SYNC
+	CFLAGS += -D__XEM_USE_INLINE
+	CFLAGS += -D__XEM_DISABLE_LOG_MESSAGES
+#	CFLAGS += -Winline
+#	CFLAGS += -DXEM_MEM_PROTECT
+#	CFLAGS += -DXEM_MEM_PROTECT_SYS
+
+endif
+ifeq ($(Profile),DebugPerf)
+	CFLAGS += -O3
+	CFLAGS += -g
+	CFLAGS += -D__XEM_USE_INLINE
+	CFLAGS += -DXEM_SYNC
+#	CFLAGS += -pg
+#	CFLAGS += -DPARANOID=1
+#	CFLAGS += -DXEM_SYNC
+#	CFLAGS += -DXEM_MEM_PROTECT
+#	CFLAGS += -DXEM_MEM_PROTECT_SYS
+endif
+ifeq ($(Profile),Debug)
+	CFLAGS += -O0
+	CFLAGS += -pg
+	CFLAGS += -g
+	CFLAGS += -DPARANOID=1
+	CFLAGS += -DXEM_SYNC
+	CFLAGS += -D__XEM_PROVIDE_INLINE
+#	CFLAGS += -D__XEM_ENABLE_DEBUG_MESSAGES
+
+# Xem Memory Protection (XMPC) : See <Xemeiah/kern/store.h> and <Xemeiah/kern/document.h> for Details 
+	CFLAGS += -DXEM_MEM_PROTECT
+#	CFLAGS += -DXEM_MEM_PROTECT_LOG
+	CFLAGS += -DXEM_MEM_PROTECT_SYS
+#	CFLAGS += -DXEM_MEM_PROTECT_TABLE
+endif
+
+# Standard Config
+LANG = 
+ifeq ($(DESTDIR),)
+    DESTDIR = /usr
+endif

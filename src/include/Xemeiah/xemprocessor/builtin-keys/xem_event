@@ -1,0 +1,12 @@
+__STARTNAMESPACE ( xem_event, "http://www.xemeiah.org/ns/xem/event" )
+  __KEY(subscribed_events)
+    __KEY(subscribed_event)
+      __KEY(event_name)
+      __KEY(matches)
+      __KEY(synchronous)
+      __KEY(restrict_to_session) //< Restrict this event to this session only (shorter than a XPath)
+  __KEY(event_queue)
+    __KEY(event)
+      __KEY(subscribed_event_id)
+
+__ENDNAMESPACE ( xem_event, xem_event ) 

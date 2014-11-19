@@ -1,0 +1,29 @@
+/*
+ * Xem Role-based Identification
+ */
+__STARTNAMESPACE ( xem_service, "http://www.xemeiah.org/ns/xem/service" )
+  __KEY(register_service)
+  __KEY(unregister_service)
+  __KEY(start_service)
+  __KEY(stop_service)
+  	__KEY(timeout)
+  __KEY(restart_service)
+
+  __KEY(name)
+  __KEY(get_services)
+  __KEY(get_service)
+
+  __KEY(stop_service_manager)
+
+  __KEY(start_thread)
+  	__KEY(service_name)
+  
+  // XML Dump of running services
+  __KEY(services)  
+  __KEY(service)
+  	__KEY(method)
+
+  __KEY(state)
+  __KEY(threads)
+  __KEY(id)
+__ENDNAMESPACE ( xem_service, xem_service )

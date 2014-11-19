@@ -1,0 +1,50 @@
+/*
+ * Core Internal Xem KeyIds (xemint Namespace)
+ */
+__STARTNAMESPACE ( xemint, "http://www.xemeiah.org/ns/xemint" )
+  __KEY(root)
+  __KEY(element_map)
+  __KEY(element) // Fake markup to select only elements. (XPath 'element()').
+  __KEY(textnode)
+  __KEY(comment)
+  __KEY(textattribute)
+  __KEY(elementIndex)
+
+  __KEY(document_uri)
+  __KEY(document_base_uri)
+
+  __KEY(document_meta)
+    __KEY(dom_events)
+    	__KEY(event_map)
+  		__KEY(dom_event)
+  			__KEY(event_names)
+  			__KEY(event_mask)
+  			__KEY(match)
+  			__KEY(element_qnames)
+  			__KEY(attribute_qnames)
+  			__KEY(handler)
+  			__KEY(handler_id) //< Deprecated
+  			__KEY(target) //< Target QName for attribute generation (optional)
+
+  /*
+   * Standard DOM events
+   */  			
+  __KEY(domevent_xpath_attribute) // Call this event when an attribute is an XPath expression
+  __KEY(domevent_qname_attribute) // Call this event when an attribute is a single QName expression
+  __KEY(domevent_qnamelist_attribute) // Call this event when an attribute is a QName list expression
+  __KEY(domevent_namespacelist_attribute) // Call this event when an attribute is a Namespace list expression
+
+  /*
+   * Default serialization attributes : exclude and extension element prefixes
+   */
+  __KEY(exclude_result_prefixes)
+  __KEY(extension_element_prefixes)
+
+  /*
+   * Standard id() key mapping, as defined by a DOCTYPE ATTLIST ID and used by a XPath id() function
+   * These attributes are put at the root element when DOCTYPE parsing occurs
+   */
+  __KEY(id_match) //< id() : XPath expression to select eligible elements
+  __KEY(id_use)   //< id() : XPath expression to select attributes to use to fetch values 
+  __KEY(id_map)   //< id() : map attribute for Document indexing
+__ENDNAMESPACE ( xemint, xemint )

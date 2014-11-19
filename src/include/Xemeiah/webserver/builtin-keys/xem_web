@@ -1,0 +1,88 @@
+/*
+ * Builtin keys used in WebServer
+ */
+
+__STARTNAMESPACE ( xem_web, "http://www.xemeiah.org/ns/xem/web" )
+  __KEY(service)
+  __KEY(select)
+  __KEY(codescope_branch)
+
+  __KEY(listen)
+  __KEY(bind_address)
+  __KEY(port)
+
+  __KEY(query)
+	  __KEY(source)
+	  __KEY(cookies)
+	  __KEY(url_source)
+	  __KEY(protocol)
+	  __KEY(method)
+	  __KEY(response)
+	  	__KEY(response_code)
+	  	__KEY(response_string)
+	  __KEY(url)
+	  	__KEY(base)
+	  		__KEY(parameters)
+	  			__KEY(param)
+	  				__KEY(name)
+	  __KEY(cookie)
+	  __KEY(content)
+	    __KEY(part)
+	    __KEY(blob_contents)
+		__KEY(blob_contents_gzip)
+
+  __KEY(headers)
+
+  __KEY(open_document)
+  __KEY(branch)
+  __KEY(role)
+  __KEY(revision)
+  __KEY(variable)
+
+  __KEY(session)
+  __KEY(sessionId)
+
+  __KEY(creationTime)
+  __KEY(lastAccessTime)
+  __KEY(ttl)
+
+  __KEY(branchRevId)
+  __KEY(reponse_file)
+  __KEY(href)
+
+  __KEY(process_bootstrap)
+  __KEY(put_parameters_in_env)
+
+  __KEY(url_encode)
+
+  __KEY(response_file)
+
+  __KEY(add_response_param)
+    __KEY(value)
+  __KEY(set_result_code)
+    __KEY(code)
+  __KEY(set_content_length)
+    __KEY(length)
+  __KEY(set_content_type)  
+    __KEY(mime_type)
+  
+  __KEY(serialize_query_to_blob)
+    __KEY(blob)
+    __KEY(blob_name)
+    
+  __KEY(serialize_blob_to_response)
+    __KEY(range_start)
+    __KEY(range_end)
+    
+  /*
+   *Javascript Utility functions
+   */
+  __KEY(protect_js)
+  
+  /*
+   * URL HTTP query calls
+   */
+  __KEY(send_query)
+  __KEY(serialize_query_response)
+__ENDNAMESPACE ( xem_web, xem_web )
+

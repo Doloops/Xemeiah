@@ -1,0 +1,6 @@
+__STARTNAMESPACE ( xml, "http://www.w3.org/XML/1998/namespace" ) 
+  __KEY(text)
+  __KEY(space)
+  __KEY(lang)
+__ENDNAMESPACE ( xml, xml )
+

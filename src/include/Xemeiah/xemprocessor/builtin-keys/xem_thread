@@ -1,0 +1,10 @@
+__STARTNAMESPACE ( xem_thread, "http://www.xemeiah.org/ns/xem/thread" ) 
+
+  /*
+   * Xem Forking and Branch Management Commands
+   */
+  __KEY(fork)
+  __KEY(wait_threads)
+  __KEY(restrict_mode)
+__ENDNAMESPACE ( xem_thread, xem_thread )
+

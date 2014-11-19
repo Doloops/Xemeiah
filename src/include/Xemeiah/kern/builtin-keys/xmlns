@@ -1,0 +1,3 @@
+__STARTNAMESPACE ( xmlns, "http://www.w3.org/2000/xmlns/" )
+__ENDNAMESPACE ( xmlns, xmlns )
+

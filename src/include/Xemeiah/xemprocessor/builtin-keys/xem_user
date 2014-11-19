@@ -1,0 +1,15 @@
+__STARTNAMESPACE ( xem_user, "http://www.xemeiah.org/ns/xem/user" )
+  /*
+   * Standard hierarchy
+   */
+  __KEY(homes)
+    __KEY(user)
+  
+  __KEY(home) //< xem-user:home() function returns the default user
+  
+  __KEY(set_user)
+    __KEY(user_name)
+
+  __KEY(get_user_name)
+  
+__ENDNAMESPACE ( xem_user, xem_user ) 
