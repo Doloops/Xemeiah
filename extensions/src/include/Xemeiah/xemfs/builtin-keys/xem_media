@@ -1,0 +1,18 @@
+
+
+__STARTNAMESPACE ( xem_media, "http://www.xemeiah.org/ns/xem/media" )
+
+  __KEY(media_player)
+	__KEY(status)
+	  __KEY(play_state)
+	  __KEY(position)
+	  __KEY(length)
+	  __KEY(title_position)
+	  
+	__KEY(playlist)
+	  __KEY(title)
+	  __KEY(url)
+
+  __KEY(change_current_title)  	
+  __KEY(change_current_position)  
+__ENDNAMESPACE ( xem_media, xem_media )

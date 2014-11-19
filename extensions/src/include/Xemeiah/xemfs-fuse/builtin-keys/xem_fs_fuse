@@ -1,0 +1,17 @@
+/*
+ * Builtin keys used in XemFSFuse extensions
+ */
+
+__STARTNAMESPACE ( xem_fs_fuse, "http://www.xemeiah.org/ns/xem/fs/fuse" )
+  /**
+   * Fuse stuff
+   */  
+  __KEY(fuse_service)
+  	__KEY(codescope_branch)
+  	__KEY(use_branch)
+  	__KEY(root)
+  	__KEY(mountpoint)
+  __KEY(main) // Used for the role of main document
+  
+  __KEY(auto_blob)
+__ENDNAMESPACE ( xem_fs_fuse, xem_fs_fuse ) 

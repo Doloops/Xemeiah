@@ -1,0 +1,15 @@
+__STARTNAMESPACE ( xem_vh, "http://www.xemeiah.org/ns/xem/geexbox/valhalla" )
+  __KEY(scan)
+	__KEY(path)
+	__KEY(cover_path)
+	__KEY(db_path)
+    __KEY(prefix)
+	
+  __KEY(media_player)
+  
+  __KEY(send_command)
+  	__KEY(command)
+  	__KEY(arg)
+  	
+  __KEY(get_status)
+__ENDNAMESPACE ( xem_vh, xem_vh )

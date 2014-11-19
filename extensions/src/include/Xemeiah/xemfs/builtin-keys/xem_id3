@@ -1,0 +1,8 @@
+__STARTNAMESPACE ( xem_id3, "http://www.xemeiah.org/ns/xem/media/id3" )
+  __KEY(title)
+  __KEY(artist)
+  __KEY(album)
+  __KEY(year)
+  __KEY(comment)
+  __KEY(tracknum)  
+__ENDNAMESPACE(xem_id3,xem_id3)

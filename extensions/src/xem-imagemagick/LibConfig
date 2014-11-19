@@ -1,0 +1,1 @@
+ -lMagick++ -lMagickWand -lMagickCore -llcms -ltiff -lfreetype -ljpeg -lXext -lSM -lICE -lX11 -lXt -lbz2 -lz -lm -lgomp -lpthread -lltdl 

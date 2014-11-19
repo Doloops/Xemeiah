@@ -1,0 +1,12 @@
+__STARTNAMESPACE ( xem_im, "http://www.xemeiah.org/ns/xem/imagemagick" )
+  __KEY(crop)
+  __KEY(scale)
+  	__KEY(source)
+  	__KEY(target)
+  	__KEY(width)
+  	__KEY(height)
+  __KEY(reflection)
+  	__KEY(ratio)
+  __KEY(picture_mess)
+  	
+__ENDNAMESPACE ( xem_im, xem_im )

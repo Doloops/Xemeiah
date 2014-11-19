@@ -1,0 +1,79 @@
+/*
+ * Builtin keys used in XemFS extensions
+ */
+
+__STARTNAMESPACE ( xem_fs, "http://www.xemeiah.org/ns/xem/fs" ) 
+
+  /*
+   * Xem File-System related names
+   */
+  __KEY(folder)
+    __KEY(name)
+    __KEY(href)
+    __KEY(creation_time)
+    __KEY(last_modified_time)
+    __KEY(last_access_time)
+  	__KEY(folder_contents)
+
+  __KEY(document)
+    __KEY(mime_type)
+    __KEY(size)
+	__KEY(contents)
+	__KEY(contents_temp)
+	__KEY(get_id3)
+		__KEY(select)
+	
+	__KEY(uid)
+	__KEY(gid)
+	
+  __KEY(link)
+  	__KEY(target)
+  	__KEY(target_id)
+  __KEY(make_link)
+  __KEY(resolve_link)
+  	
+  __KEY(browse)
+  	__KEY(get_blob)
+	__KEY(get_mime_type)
+	  __KEY(exclude_name)
+	  	// __KEY(name)
+	  __KEY(exclude_suffix)
+	    __KEY(suffix)
+  __KEY(url)
+
+  __KEY(mime_type_trigger)
+
+  /**
+   * Blob Bridge
+   */
+  __KEY(create_blob)
+  __KEY(has_blob) // 
+  __KEY(get_blob_size) // Temp
+  __KEY(get_current_time)
+  
+  __KEY(read_blob_from_file)
+    __KEY(blob_name)
+  
+  __KEY(save_blob_to_file)
+  __KEY(get_blob_mime_type)
+
+  __KEY(copy_blob)
+    __KEY(select_source)
+    __KEY(source_blob_name)
+    __KEY(select_target)
+    __KEY(target_blob_name)
+
+  /**
+   * Run command stuff
+   */
+  __KEY(run_command_service)
+    __KEY(connect_host)
+	__KEY(path)
+	__KEY(recv_thread_type)
+
+  __KEY(send_command)
+  	__KEY(command)
+  __KEY(recv_command)
+
+  __KEY(get_recv_document)
+__ENDNAMESPACE(xem_fs,xem_fs)  
