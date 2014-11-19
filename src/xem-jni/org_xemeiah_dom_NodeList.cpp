@@ -15,16 +15,26 @@
 #include "xem-jni-dom.h"
 #include <Xemeiah/auto-inline.hpp>
 
+#undef Log
+#define Log(...) do{}while(0)
+
+
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_NodeList_cleanUp
+  (JNIEnv *ev, jobject jNodeList)
+{
+    Xem::NodeSet* nodeSet = jNodeList2NodeSet(ev, jNodeList);
+    Log("Delete nodeSet=%p\n", nodeSet);
+    delete(nodeSet);
+}
+
 JNIEXPORT jobject JNICALL
 Java_org_xemeiah_dom_NodeList_getItem (JNIEnv *ev, jobject jNodeList, jint jindex)
 {
     AssertBug(jNodeList, "Null jNodeList provided !\n");
     jobject jDocument = jNodeList2JDocument(ev, jNodeList);
-
-    Xem::Document* doc = jDocument2Document(ev, jDocument);
-    Log("jDocument=%p, doc=%p, jNodeList=%p, %i\n", jDocument, doc, jNodeList, jindex);
-
     Xem::NodeSet* nodeSet = jNodeList2NodeSet(ev, jNodeList);
+    AssertBug(nodeSet, "Null jNodeList provided !\n");
+
     int index = 0;
     for (Xem::NodeSet::iterator iter(*nodeSet); iter; iter++)
     {
@@ -35,39 +45,17 @@ Java_org_xemeiah_dom_NodeList_getItem (JNIEnv *ev, jobject jNodeList, jint jinde
                 Xem::ElementRef eltRef = iter->toElement();
                 return elementRef2JElement(ev, jDocument, eltRef);
             }
+            else if ( iter->isAttribute() )
+            {
+                Xem::AttributeRef attrRef = iter->toAttribute();
+                return attributeRef2JAttribute(ev, jDocument, attrRef);
+            }
             else
             {
                 Bug("Not implemented !");
             }
         }
         index++;
-//        if (iter->isElement())
-//        {
-//            elts[index] = iter->toElement().getElementPtr();
-//            attrs[index] = 0;
-//            index++;
-//        }
-//        else if (iter->isElement())
-//        {
-//            Xem::AttributeRef attrRef = iter->toAttribute();
-//            elts[index] = attrRef.getElement().getElementPtr();
-//            attrs[index] = attrRef.getAttributePtr();
-//            index++;
-//        }
-//        else
-//        {
-//            Bug(".");
-//        }
     }
-
-//  Log("jDocument=%p, doc=%p, eltPtr=%lx, attrPtr=%lx\n", jDocument, doc, eltPtr, attrPtr);
-//
-//  if ( attrPtr )
-//    {
-//      Xem::AttributeRef attrRef = Xem::AttributeRefConstructor(*doc, (Xem::ElementPtr) eltPtr, (Xem::AttributePtr) attrPtr );
-//      return attributeRef2J ( ev, jDocument, attrRef );
-//    }
-//  Xem::ElementRef eltRef = Xem::ElementRefConstructor(*doc, (Xem::ElementPtr) eltPtr );
-    // return elementRef2JElement(ev, jDocument, eltRef);
     return NULL;
 }

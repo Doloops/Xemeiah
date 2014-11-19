@@ -22,7 +22,7 @@
  * -# How to check that the mapping we are trying to re-use was built with the same matchXPath and useXPath ? hashing ? 
  */
 
-#define Log_EvalKey Debug
+#define Log_EvalKey Log
 
 namespace Xem
 { 
@@ -46,6 +46,9 @@ namespace Xem
   { 
     bool recursive = true; // Warn !!
     
+    Log_EvalKey ( "evalFunctionKeyBuild(baseElement=%s, match=%s, use=%s, scope=%s\n",
+                  baseElement.getKey().c_str(), matchXPath.expression, useXPath.expression, scopeXPath.expression);
+
     if ( ! recursive )
       {
         Warn ( "Building key in a non-recursive mode ! This is against XSL specifications !\n" );
@@ -98,7 +101,7 @@ namespace Xem
                         Info ( "New skMap at '%s'\n", scopeElement.generateVersatileXPath().c_str() );
                         currentMap = scopeElement.addSKMap ( mapId, SKMapType_ElementMultiMap );
                       }
-                    Info ( "Inserting '%s'\n", current.generateVersatileXPath().c_str() );
+                    Log_EvalKey ( "Inserting '%s'\n", current.generateVersatileXPath().c_str() );
                     currentMap.insert ( current, useXPath );
                   }
                 else

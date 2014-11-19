@@ -11,7 +11,6 @@ public class NodeList implements org.w3c.dom.NodeList
     
     private long __nodeListPtr;
     
-    
     protected NodeList(org.xemeiah.dom.Document document, int length, long __nodeListPtr)
     {
         this.document = document;
@@ -19,6 +18,13 @@ public class NodeList implements org.w3c.dom.NodeList
         this.__nodeListPtr = __nodeListPtr;
     }
 
+    private native void cleanUp();
+
+    protected void finalize()
+    {
+        cleanUp();
+    }
+    
     private native org.xemeiah.dom.Node getItem(int index);
 
     public int getLength()

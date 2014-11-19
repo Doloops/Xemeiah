@@ -15,7 +15,9 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
     
     private native void initStore(String filename);
     
-    private native void releaseDocument(Document document);
+    public native void close();
+    
+    public native void releaseDocument(Document document);
 
     private long __storePtr = 0;
 
@@ -49,6 +51,9 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
     public native org.xemeiah.dom.Document newStandaloneDocument(String branchName, String branchFlags);
 
     public native org.xemeiah.dom.Document newVolatileDocument();
+    
+    
+    public native void process (org.w3c.dom.Element processElement, org.w3c.dom.NodeList initialNodeSet);
     
     public org.w3c.dom.Document newDocument()
     {

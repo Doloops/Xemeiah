@@ -4,7 +4,7 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-#define Log_EMR Debug
+#define Log_EMR Log
 
 namespace Xem
 {

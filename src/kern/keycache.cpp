@@ -120,6 +120,17 @@ namespace Xem
     Log_Keys ( "Getting key '%s', create=%s\n", keyName, create ? "yes" : "no" );
     AssertBug ( keyName, "Null keyName provided !\n" );
 
+    const char* suffix = strchr(keyName, ':');
+    if ( suffix != NULL )
+    {
+        keyName = suffix + 1;
+    }
+
+//    if ( strncmp(keyName, "xmlns:", 6) == 0 )
+//    {
+//        keyName = &(keyName[6]);
+//    }
+
     /*
      * Check that keyName is really well formated
      * TODO : compute Hash at the same time
@@ -143,6 +154,8 @@ namespace Xem
              || ( *c == '-' ) || ( *c == '_' ) 
              || ( *c == '.' ) )
           continue;
+        Error("Invalid key '%s'\n", keyName );
+        Bug(".");
         throwException ( InvalidKeyException, "Invalid key '%s'\n", keyName );
       }
 

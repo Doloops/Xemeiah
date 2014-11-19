@@ -13,8 +13,11 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
+#undef Log
+#define Log(...) do{} while(0)
+
 // #define __XEM_JNI_USE_CACHE
-#define Log_XEMJNI Log
+#define Log_XEMJNI Debug
 
 #ifdef __XEM_JNI_USE_CACHE
 #define JCLASS(__jName) \
@@ -134,10 +137,22 @@ public:
 JCLASS("org/xemeiah/dom/xpath/XPathExpression")JMETHOD(constructor, "<init>", "(J)V")JFIELD(__xpathPtr, "__xpathPtr", "J")
 };
 
+class JClass_XPathException
+{
+public:
+JCLASS("org/w3c/dom/xpath/XPathException")JMETHOD(constructor, "<init>", "(SLjava/lang/String;)V")
+};
+
 class JClass_XPathResult
 {
 public:
 JCLASS("org/xemeiah/dom/xpath/XPathResult")JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
+};
+
+class JClass_NamedNodeMap
+{
+public:
+JCLASS("org/xemeiah/dom/NamedNodeMap")JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
 };
 
 class JClass_NodeList
@@ -156,8 +171,10 @@ public:
     JClass_Text text;
     JClass_Attribute attr;
     JClass_XPathExpression xpathExpression;
+    JClass_XPathException xpathException;
     JClass_XPathResult xpathResult;
     JClass_NodeList nodeList;
+    JClass_NamedNodeMap namedNodeMap;
 };
 
 static XemJNI xemJNI;
@@ -207,9 +224,6 @@ jstring2XemString (JNIEnv* ev, jstring js)
 jobject
 jDocument2JDocumentFactory (JNIEnv* ev, jobject jDoc)
 {
-//    jclass documentClass = ev->GetObjectClass(jDoc);
-//    jmethodID getDocumentFactoryId = ev->GetMethodID(documentClass, "getDocumentFactory",
-//                                                     "()Lorg/xemeiah/dom/DocumentFactory;");
     jobject jDocumentFactory = ev->CallObjectMethod(jDoc, getXemJNI().document.getDocumentFactory(ev));
     return jDocumentFactory;
 }
@@ -217,8 +231,6 @@ jDocument2JDocumentFactory (JNIEnv* ev, jobject jDoc)
 Xem::XProcessor*
 jDocumentFactory2XProcessor (JNIEnv* ev, jobject jDocumentFactory)
 {
-//    jclass factoryClass = ev->GetObjectClass(jDocumentFactory);
-//    jfieldID __xprocessorPtrId = ev->GetFieldID(factoryClass, "__xprocessorPtr", "J");
     Xem::XProcessor* xprocessor = (Xem::XProcessor*) (ev->GetLongField(jDocumentFactory,
                                                                        getXemJNI().documentFactory.__xprocessorPtr(ev)));
     return xprocessor;
@@ -261,7 +273,7 @@ elementRef2JElement (JNIEnv* ev, jobject jDocument, Xem::ElementRef& eltRef)
 }
 
 jobject
-attributeRef2J (JNIEnv* ev, jobject documentObject, Xem::AttributeRef& attrRef)
+attributeRef2JAttribute (JNIEnv* ev, jobject documentObject, Xem::AttributeRef& attrRef)
 {
     jobject jAttr = ev->NewObject(getXemJNI().attr.getClass(ev), getXemJNI().attr.constructor(ev), documentObject,
                                   attrRef.getElement().getElementPtr(), attrRef.getAttributePtr());
@@ -275,6 +287,13 @@ document2JDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document)
     jobject jDocument = ev->NewObject(getXemJNI().document.getClass(ev), getXemJNI().document.constructor(ev), jFactory,
                                       (jlong) (document));
     return jDocument;
+}
+
+void
+initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store, Xem::XProcessor* xprocessor)
+{
+    ev->SetLongField(jFactory,getXemJNI().documentFactory.__storePtr(ev), (jlong) store );
+    ev->SetLongField(jFactory,getXemJNI().documentFactory.__xprocessorPtr(ev), (jlong) xprocessor );
 }
 
 Xem::Store*
@@ -349,6 +368,8 @@ j2KeyId (JNIEnv* ev, Xem::KeyCache& keyCache, jstring jNamespace, jstring jName)
     const char* nsUrl = jNamespace ? ev->GetStringUTFChars(jNamespace, &isCopy) : NULL;
     const char* localName = ev->GetStringUTFChars(jName, &isCopy);
 
+    Log("j2KeyId : nsUrl=%s, localName=%s\n", nsUrl, localName);
+
     Xem::NamespaceId nsId = nsUrl ? keyCache.getNamespaceId(nsUrl) : 0;
     Xem::KeyId keyId = keyCache.getKeyId(nsId, localName, false);
 
@@ -358,51 +379,20 @@ j2KeyId (JNIEnv* ev, Xem::KeyCache& keyCache, jstring jNamespace, jstring jName)
 }
 
 jobject
+nodeSet2JNamedNodeMap (JNIEnv* ev, jobject jDocument, Xem::NodeSet* result)
+{
+    jobject nodeListObject = ev->NewObject(getXemJNI().namedNodeMap.getClass(ev),
+                                           getXemJNI().namedNodeMap.constructor(ev), jDocument, result->size(), result);
+    return nodeListObject;
+
+}
+
+jobject
 nodeSet2JNodeList (JNIEnv* ev, jobject jDocument, Xem::NodeSet* result)
 {
     jobject nodeListObject = ev->NewObject(getXemJNI().xpathResult.getClass(ev),
                                            getXemJNI().xpathResult.constructor(ev), jDocument, result->size(), result);
     return nodeListObject;
-
-    //    jlongArray eltsArray = ev->NewLongArray(result.size());
-//    jlongArray attrsArray = ev->NewLongArray(result.size());
-
-//    jboolean isCopy = false;
-//    jlong* elts = ev->GetLongArrayElements(eltsArray, &isCopy);
-//    jlong* attrs = ev->GetLongArrayElements(attrsArray, &isCopy);
-
-//    jlong* elts = (jlong*) malloc(result.size() * sizeof(jlong));
-//    jlong* attrs = (jlong*) malloc(result.size() * sizeof(jlong));
-
-//    int index = 0;
-//    for (Xem::NodeSet::iterator iter(result); iter; iter++)
-//    {
-//        if (iter->isElement())
-//        {
-//            elts[index] = iter->toElement().getElementPtr();
-//            attrs[index] = 0;
-//            index++;
-//        }
-//        else if (iter->isElement())
-//        {
-//            Xem::AttributeRef attrRef = iter->toAttribute();
-//            elts[index] = attrRef.getElement().getElementPtr();
-//            attrs[index] = attrRef.getAttributePtr();
-//            index++;
-//        }
-//        else
-//        {
-//            Bug(".");
-//        }
-//    }
-//
-//    Log("ev=%p, jDocument=%p, Regions : elts=%p, attrs=%p\n", ev, jDocument, elts, attrs);
-
-//    ev->SetLongArrayRegion(eltsArray, 0, result.size(), elts);
-//    ev->SetLongArrayRegion(attrsArray, 0, result.size(), attrs);
-//    ev->ReleaseLongArrayElements(eltsArray, elts, 0);
-//    ev->ReleaseLongArrayElements(attrsArray, attrs, 0);
-
 }
 
 Xem::NodeSet*
@@ -437,4 +427,11 @@ jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression)
     Xem::XPath* xpath = (Xem::XPath*) (ptr);
     Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpath, jXPathExpression);
     return xpath;
+}
+
+jthrowable
+exception2JXPathException (JNIEnv* ev, Xem::Exception* exception)
+{
+    jstring msg = ev->NewStringUTF(exception->getMessage().c_str());
+    return (jthrowable) ev->NewObject(getXemJNI().xpathException.getClass(ev), getXemJNI().xpathException.constructor(ev), (jshort) 0, msg);
 }

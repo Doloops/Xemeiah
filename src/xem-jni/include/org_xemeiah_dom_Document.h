@@ -73,6 +73,14 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createElementNS
 
 /*
  * Class:     org_xemeiah_dom_Document
+ * Method:    createTextNode
+ * Signature: (Ljava/lang/String;)Lorg/w3c/dom/Text;
+ */
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createTextNode
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_xemeiah_dom_Document
  * Method:    getDocumentElement
  * Signature: ()Lorg/xemeiah/dom/Element;
  */

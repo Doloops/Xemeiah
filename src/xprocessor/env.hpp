@@ -64,7 +64,7 @@ namespace Xem
   {
     if ( iteratorStack.empty() )
       {
-        Bug ( "." );
+        Bug ( "Current Node is Empty !" );
         throwException ( Exception, "Empty iterator stack !\n" );
       }
     NodeSet::iterator* iter = iteratorStack.front ();

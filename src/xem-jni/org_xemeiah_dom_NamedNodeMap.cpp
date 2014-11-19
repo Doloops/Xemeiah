@@ -15,6 +15,9 @@
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_NamedNodeMap_getNamedItemNS
   (JNIEnv *ev, jobject namedNodeMapObject, jstring jNamespace, jstring jName)
 {
+    NotImplemented ( "." );
+    return NULL;
+#if 0
   jobject documentObject = jNodeList2JDocument(ev, namedNodeMapObject);
   Xem::Document* doc = jDocument2Document(ev, documentObject);
   jclass namedNodeMapClass = ev->GetObjectClass(namedNodeMapObject);
@@ -43,7 +46,7 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_NamedNodeMap_getNamedItemNS
             {
               ev->ReleaseLongArrayElements((jlongArray)eltPtrListObject, eltPtrs, 0);
               ev->ReleaseLongArrayElements((jlongArray)attrPtrListObject, attrPtrs, 0);
-              return attributeRef2J(ev, documentObject, attrRef);
+              return attributeRef2JAttribute(ev, documentObject, attrRef);
             }
         }
       else
@@ -54,6 +57,7 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_NamedNodeMap_getNamedItemNS
   ev->ReleaseLongArrayElements((jlongArray)eltPtrListObject, eltPtrs, 0);
   ev->ReleaseLongArrayElements((jlongArray)attrPtrListObject, attrPtrs, 0);
   return NULL;
+#endif
 }
 
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_NamedNodeMap_removeNamedItemNS

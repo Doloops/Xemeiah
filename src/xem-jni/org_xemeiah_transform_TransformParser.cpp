@@ -20,24 +20,25 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-JNIEXPORT void JNICALL Java_org_xemeiah_transform_TransformParser_doParse
-  (JNIEnv *ev, jobject parserObject, jobject inputStreamObject, jobject elementObject)
+JNIEXPORT void JNICALL
+Java_org_xemeiah_transform_TransformParser_doParse (JNIEnv *ev, jobject parserObject, jobject inputStreamObject,
+                                                    jobject elementObject)
 {
-  Xem::ElementRef root = jElement2ElementRef(ev, elementObject);
-  Xem::XProcessor xproc(root.getStore());
-  xproc.loadLibrary("xsl",true);
-  // xproc.registerEvents(root.getDocument());
-  Xem::SAXHandlerDom saxHandler(xproc,root);
-  Xem::JavaReader reader(ev, inputStreamObject);
-  Xem::Parser parser(reader, saxHandler);
+    Xem::ElementRef root = jElement2ElementRef(ev, elementObject);
+    Xem::XProcessor xproc(root.getStore());
+    xproc.loadLibrary("xsl", true);
+    // xproc.registerEvents(root.getDocument());
+    Xem::SAXHandlerDom saxHandler(xproc, root);
+    Xem::JavaReader reader(ev, inputStreamObject);
+    Xem::Parser parser(reader, saxHandler);
 
-  try
-  {
-    parser.parse();
-  }
-  catch ( Xem::Exception * e )
-  {
-    jclass exceptionClass = ev->FindClass("javax/xml/transform/TransformerException");
-    ev->ThrowNew(exceptionClass,e->getMessage().c_str());
-  }
+    try
+    {
+        parser.parse();
+    }
+    catch (Xem::Exception * e)
+    {
+        jclass exceptionClass = ev->FindClass("javax/xml/transform/TransformerException");
+        ev->ThrowNew(exceptionClass, e->getMessage().c_str());
+    }
 }

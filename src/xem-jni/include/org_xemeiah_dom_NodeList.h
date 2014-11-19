@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_NodeList
+ * Method:    cleanUp
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_NodeList_cleanUp
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_NodeList
  * Method:    getItem
  * Signature: (I)Lorg/xemeiah/dom/Node;
  */

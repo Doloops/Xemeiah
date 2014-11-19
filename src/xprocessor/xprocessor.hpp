@@ -53,7 +53,7 @@ namespace Xem
 
   __INLINE NodeFlow& XProcessor::getNodeFlow()
   {
-#if 1
+#if 0
     if ( ! currentNodeFlow ) throwException ( Exception, "No NodeFlow defined !\n" );
 #else
     if ( ! currentNodeFlow ) Bug ( "No NodeFlow defined !\n" );

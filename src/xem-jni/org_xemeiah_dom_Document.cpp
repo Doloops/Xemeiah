@@ -104,6 +104,19 @@ Java_org_xemeiah_dom_Document_createElementNS (JNIEnv *ev, jobject jDocument, js
     return jElement;
 }
 
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createTextNode
+  (JNIEnv *ev, jobject jDocument, jstring jText)
+{
+    Xem::Document* doc = jDocument2Document (ev, jDocument);
+    Xem::ElementRef nullRef = Xem::ElementRef(*doc);
+
+    Xem::String xemText = jstring2XemString(ev, jText);
+    Xem::ElementRef newElement = doc->createTextNode(nullRef, xemText);
+
+    return elementRef2JElement(ev, jDocument, newElement);
+}
+
+
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createAttributeNS
   (JNIEnv *ev, jobject jDocument, jstring jNamespaceUri, jstring jKey)
 {

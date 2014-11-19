@@ -14,23 +14,44 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression
-  (JNIEnv *ev, jobject xpathEvaluatorObject, jstring jExpression, jobject resolverObject)
+JNIEXPORT jobject JNICALL
+Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression (JNIEnv *ev, jobject xpathEvaluatorObject,
+                                                            jstring jExpression, jobject resolverObject)
 {
-  Xem::ElementRef resolver = jElement2ElementRef(ev, resolverObject);
-  Xem::String expression = jstring2XemString(ev, jExpression);
+    Xem::ElementRef resolver = jElement2ElementRef(ev, resolverObject);
+    Xem::String expression = jstring2XemString(ev, jExpression);
 
-  Xem::XPathParser* xPathParser = new Xem::XPathParser(resolver, expression);
+    Log("createExpression(%s)\n", expression.c_str());
+    try
+    {
+        Xem::XPathParser* xPathParser = new Xem::XPathParser(resolver, expression);
 
-  jobject jDocument = jNode2JDocument(ev, resolverObject);
-  jobject jFactory = jDocument2JDocumentFactory(ev, jDocument);
-  Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor (ev, jFactory);
+        jobject jDocument = jNode2JDocument(ev, resolverObject);
+        jobject jFactory = jDocument2JDocumentFactory(ev, jDocument);
+        Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
 
+        Xem::XPath* xpath = new Xem::XPath(*xprocessor, xPathParser, true);
 
-  Xem::XPath* xpath = new Xem::XPath(*xprocessor, xPathParser, true);
-
-  return xpath2JXPathExpression(ev, xpath);
-
+        return xpath2JXPathExpression(ev, xpath);
+    }
+    catch (Xem::XPathException * e)
+    {
+        Error("Catched Xem::XPathException : %s\n", e->getMessage().c_str());
+        jthrowable jException = exception2JXPathException(ev, e);
+        ev->Throw(jException);
+    }
+    catch(Xem::Exception * e)
+    {
+        Error("Catched Xem::Exception : %s\n", e->getMessage().c_str());
+        jthrowable jException = exception2JXPathException(ev, e);
+        ev->Throw(jException);
+        return NULL;
+    }
+    catch(void * e)
+    {
+        Bug("Catched : %p\n", e);
+    }
+    return NULL;
 //  int sz = (int) xpathParser.getParsedSize();
 //  Xem::XPathSegment* segment = xpathParser.getPackedParsed();
 //

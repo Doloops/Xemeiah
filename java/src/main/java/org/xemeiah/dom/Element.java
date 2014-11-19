@@ -164,4 +164,6 @@ public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element
             setAttributeNS("http://www.w3.org/2000/xmlns/", prefix, getNamespaceURI());
         }
     }
+    
+    public native void triggerElementEnd();
 }

@@ -17,6 +17,14 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_initStore
 
 /*
  * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    close
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_close
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
  * Method:    releaseDocument
  * Signature: (Lorg/xemeiah/dom/Document;)V
  */
@@ -38,6 +46,14 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_DocumentFactory_newStandaloneDocu
  */
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_DocumentFactory_newVolatileDocument
   (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    process
+ * Signature: (Lorg/w3c/dom/Element;Lorg/w3c/dom/NodeList;)V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_process
+  (JNIEnv *, jobject, jobject, jobject);
 
 /*
  * Class:     org_xemeiah_dom_DocumentFactory

@@ -8,6 +8,7 @@
 #include "include/org_xemeiah_dom_Element.h"
 #include <Xemeiah/kern/document.h>
 #include <Xemeiah/dom/elementref.h>
+#include <Xemeiah/dom/nodeset.h>
 #include <Xemeiah/dom/childiterator.h>
 #include <Xemeiah/trace.h>
 #include <Xemeiah/log.h>
@@ -15,6 +16,9 @@
 #include "xem-jni-dom.h"
 
 #include <Xemeiah/auto-inline.hpp>
+
+#undef Log
+#define Log(...) do{}while(0)
 
 JNIEXPORT jstring JNICALL
 Java_org_xemeiah_dom_Element_getNodeName (JNIEnv *ev, jobject elementObject)
@@ -46,6 +50,11 @@ Java_org_xemeiah_dom_Element_getFirstChild (JNIEnv *ev, jobject elementObject)
     Xem::ElementRef eltRef = jElement2ElementRef(ev, elementObject);
     Xem::ElementRef childRef = eltRef.getChild();
 
+    if ( ! childRef )
+    {
+        return NULL;
+    }
+
     jobject documentObject = jNode2JDocument(ev, elementObject);
     return elementRef2JElement(ev, documentObject, childRef);
 }
@@ -58,6 +67,11 @@ Java_org_xemeiah_dom_Element_getLastChild (JNIEnv *ev, jobject jElement)
     Log("eltRef at %llx\n", eltRef.getElementPtr());
 
     Xem::ElementRef childRef = eltRef.getLastChild();
+
+    if ( ! childRef )
+    {
+        return NULL;
+    }
 
     jobject jDocument = jNode2JDocument(ev, jElement);
     jobject jElementChild = elementRef2JElement(ev, jDocument, childRef);
@@ -74,27 +88,14 @@ Java_org_xemeiah_dom_Element_getChildNodes (JNIEnv *ev, jobject elementObject)
     Xem::ElementRef eltRef = jElement2ElementRef(ev, elementObject);
     Xem::Integer childrenNumber = eltRef.getNumberOfChildren();
 
-    jlongArray nodesArray = ev->NewLongArray(childrenNumber);
+    Xem::NodeSet* nodeSet = new Xem::NodeSet();
 
-    jboolean isCopy = false;
-    jlong* nodes = ev->GetLongArrayElements(nodesArray, &isCopy);
 
-    int index = 0;
     for (Xem::ChildIterator iter(eltRef); iter; iter++)
     {
-        nodes[index++] = iter.getElementPtr();
+        nodeSet->pushBack(iter.toElement());
     }
-    ev->SetLongArrayRegion(nodesArray, 0, childrenNumber, nodes);
-
-    jclass nodeListClass = ev->FindClass("org/xemeiah/dom/NodeList");
-    jmethodID nodeListConstructorId = ev->GetMethodID(nodeListClass, "<init>", "(Lorg/xemeiah/dom/Document;[J[J)V");
-
-    jlongArray attrsArray = NULL;
-
-    jobject nodeListObject = ev->NewObject(nodeListClass, nodeListConstructorId, documentObject, nodesArray,
-                                           attrsArray);
-
-    return nodeListObject;
+    return nodeSet2JNodeList(ev, documentObject, nodeSet);
 }
 
 JNIEXPORT jstring JNICALL
@@ -118,53 +119,27 @@ Java_org_xemeiah_dom_Element_getAttributeNodeNS (JNIEnv *ev, jobject jElement, j
     Xem::AttributeRef attrRef = eltRef.findAttr(keyId);
     if (attrRef)
     {
-        return attributeRef2J(ev, jDocument, attrRef);
+        return attributeRef2JAttribute(ev, jDocument, attrRef);
     }
     return NULL;
 }
 
 JNIEXPORT jobject JNICALL
-Java_org_xemeiah_dom_Element_getAttributes (JNIEnv *ev, jobject elementObject)
+Java_org_xemeiah_dom_Element_getAttributes (JNIEnv *ev, jobject jElement)
 {
-    jobject documentObject = jNode2JDocument(ev, elementObject);
-    Xem::ElementRef eltRef = jElement2ElementRef(ev, elementObject);
+    jobject jDocument = jNode2JDocument(ev, jElement);
+    Xem::ElementRef eltRef = jElement2ElementRef(ev, jElement);
 
-    Xem::Integer attrsNumber = 0;
-    for (Xem::AttributeRef attrRef = eltRef.getFirstAttr(); attrRef; attrRef = attrRef.getNext())
-    {
-        // Log ( "At %s\n", attrRef.generateVersatileXPath().c_str() );
-        if (attrRef.getAttributeType() != Xem::AttributeType_NamespaceAlias && !attrRef.isBaseType())
-            continue;
-        attrsNumber++;
-    }
+    Xem::NodeSet* nodeSet = new Xem::NodeSet();
 
-    jlongArray eltsArray = ev->NewLongArray(attrsNumber);
-    jlongArray attrsArray = ev->NewLongArray(attrsNumber);
-
-    jboolean isCopy = false;
-    jlong* elts = ev->GetLongArrayElements(eltsArray, &isCopy);
-    jlong* attrs = ev->GetLongArrayElements(attrsArray, &isCopy);
-
-    int index = 0;
     for (Xem::AttributeRef attrRef = eltRef.getFirstAttr(); attrRef; attrRef = attrRef.getNext())
     {
         if (attrRef.getAttributeType() != Xem::AttributeType_NamespaceAlias && !attrRef.isBaseType())
             continue;
-        elts[index] = eltRef.getElementPtr();
-        attrs[index] = attrRef.getAttributePtr();
-        index++;
+        nodeSet->pushBack(attrRef);
     }
-    ev->SetLongArrayRegion(eltsArray, 0, attrsNumber, elts);
-    ev->SetLongArrayRegion(attrsArray, 0, attrsNumber, attrs);
 
-    jclass namedNodeMapClass = ev->FindClass("org/xemeiah/dom/NamedNodeMap");
-    jmethodID namedNodeMapConstructorId = ev->GetMethodID(namedNodeMapClass, "<init>",
-                                                          "(Lorg/xemeiah/dom/Document;[J[J)V");
-
-    jobject namedNodeMapObject = ev->NewObject(namedNodeMapClass, namedNodeMapConstructorId, documentObject, eltsArray,
-                                               attrsArray);
-
-    return namedNodeMapObject;
+    return nodeSet2JNamedNodeMap(ev, jDocument, nodeSet);
 }
 
 JNIEXPORT void JNICALL
@@ -185,10 +160,26 @@ Java_org_xemeiah_dom_Element_setAttributeNS (JNIEnv *ev, jobject jElement, jstri
 JNIEXPORT jobject JNICALL
 Java_org_xemeiah_dom_Element_appendChild (JNIEnv *ev, jobject jElement, jobject jChildNode)
 {
+    AssertBug(jElement != NULL, "Null jElement !\n");
+    AssertBug(jChildNode != NULL, "Null child !\n");
     Xem::ElementRef father = jElement2ElementRef(ev, jElement);
     Xem::ElementRef child = jElement2ElementRef(ev, jChildNode);
 
     father.appendChild(child);
 
     return jChildNode;
+}
+
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_Element_triggerElementEnd
+  (JNIEnv *ev, jobject jElement)
+{
+    Xem::ElementRef me = jElement2ElementRef(ev, jElement);
+
+    jobject jDocument = jNode2JDocument(ev, jElement);
+    jobject jDocumentFactory = jDocument2JDocumentFactory(ev, jDocument);
+    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jDocumentFactory);
+
+    Log("Trigger event : %s\n", me.generateVersatileXPath().c_str());
+
+    me.eventElement(*xprocessor, DomEventType_CreateElement);
 }

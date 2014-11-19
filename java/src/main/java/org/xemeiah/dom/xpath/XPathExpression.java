@@ -12,6 +12,13 @@ public class XPathExpression implements org.w3c.dom.xpath.XPathExpression {
 	{
 		this.__xpathPtr = __xpathPtr;
 	}
+
+    private native void cleanUp();
+
+    protected void finalize()
+    {
+        cleanUp();
+    }
 	
 	public native Object evaluate(Node contextNode, short type, Object result)
 			throws XPathException, DOMException;

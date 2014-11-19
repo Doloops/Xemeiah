@@ -11,6 +11,7 @@
 #include <Xemeiah/kern/document.h>
 #include <Xemeiah/dom/elementref.h>
 #include <Xemeiah/dom/attributeref.h>
+#include <Xemeiah/xpath/xpath.h>
 #include <Xemeiah/kern/exception.h>
 
 #include <jni.h>
@@ -30,7 +31,7 @@ jDocumentFactory2XProcessor (JNIEnv* ev, jobject jDocumentFactory);
 jobject
 elementRef2JElement (JNIEnv* ev, jobject documentObject, Xem::ElementRef& eltRef);
 jobject
-attributeRef2J (JNIEnv* ev, jobject documentObject, Xem::AttributeRef& attrRef);
+attributeRef2JAttribute (JNIEnv* ev, jobject documentObject, Xem::AttributeRef& attrRef);
 
 jobject
 jNode2JDocument (JNIEnv* ev, jobject nodeObject);
@@ -42,6 +43,10 @@ document2JDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document);
 
 Xem::Store*
 jDocumentFactory2Store (JNIEnv* ev, jobject jFactory);
+
+void
+initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store, Xem::XProcessor* xprocessor);
+
 Xem::Document*
 jDocument2Document (JNIEnv* ev, jobject documentObject);
 Xem::ElementRef
@@ -55,8 +60,11 @@ j2KeyId (JNIEnv* ev, Xem::KeyCache& keyCache, jstring jNamespace, jstring jName)
 jobject
 nodeSet2JNodeList (JNIEnv* ev, jobject documentObject, Xem::NodeSet* result);
 
+jobject
+nodeSet2JNamedNodeMap (JNIEnv* ev, jobject documentObject, Xem::NodeSet* result);
+
 Xem::NodeSet*
-jNodeList2NodeSet ( JNIEnv* ev, jobject jNodeList);
+jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList);
 
 //jobject
 //jXPathExpression2ParsedBytes (JNIEnv* ev, jobject jXPathExpression);
@@ -67,5 +75,7 @@ xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath);
 Xem::XPath*
 jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression);
 
+jthrowable
+exception2JXPathException (JNIEnv* ev, Xem::Exception* exception);
 
 #endif /* XEMJNI_H_ */

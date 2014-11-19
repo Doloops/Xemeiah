@@ -69,8 +69,7 @@ public abstract class Node implements org.w3c.dom.Node
     @Override
     public String getNodeValue() throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     public Document getOwnerDocument()
@@ -79,31 +78,21 @@ public abstract class Node implements org.w3c.dom.Node
     }
 
     @Override
-    public org.w3c.dom.Node getParentNode()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
+    public native org.w3c.dom.Node getParentNode();
 
     @Override
-    public String getPrefix()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
+    public native String getPrefix();
+    
     @Override
     public org.w3c.dom.Node getPreviousSibling()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String getTextContent() throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override

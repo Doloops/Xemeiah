@@ -1,4 +1,5 @@
 #include <Xemeiah/kern/store.h>
+#include <Xemeiah/kern/exception.h>
 #include <Xemeiah/persistence/persistentdocumentallocator.h>
 #include <Xemeiah/trace.h>
 
@@ -174,7 +175,7 @@ namespace Xem
         __ui64 index;
         if (!doGetPageInfoPage(relativePagePtr, pageInfoPage, index, write))
         {
-            Bug(".");
+            throwException(PageInfoException, "Could not getPageInfo(relativPagePtr=%llx, write=%d)\n", relativePagePtr, write);
         }
         PageInfo& pageInfo = pageInfoPage->pageInfo[index];
         return pageInfo;

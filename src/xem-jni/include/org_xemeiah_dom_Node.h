@@ -15,6 +15,22 @@ extern "C" {
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getNextSibling
   (JNIEnv *, jobject);
 
+/*
+ * Class:     org_xemeiah_dom_Node
+ * Method:    getParentNode
+ * Signature: ()Lorg/w3c/dom/Node;
+ */
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getParentNode
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_Node
+ * Method:    getPrefix
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_Node_getPrefix
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

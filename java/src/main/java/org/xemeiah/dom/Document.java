@@ -23,7 +23,7 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     {
         super(null, 0);
         
-        LOGGER.info("New " + Document.class.getName() + " with documentFactory=" + documentFactory + ", __documentPtr=0x" + Long.toHexString(__documentPtr));
+        // LOGGER.info("New " + Document.class.getName() + " with documentFactory=" + documentFactory + ", __documentPtr=0x" + Long.toHexString(__documentPtr));
         
         this.document = this;
         this.documentFactory = documentFactory;
@@ -112,17 +112,12 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     }
 
     @Override
-    public Text createTextNode(String data)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
+    public native Text createTextNode(String data);
 
     @Override
     public DocumentType getDoctype()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException ("NOT IMPLEMENTED !");
     }
 
     @Override
@@ -131,15 +126,13 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public String getDocumentURI()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException ("NOT IMPLEMENTED !");
     }
 
     @Override
     public DOMConfiguration getDomConfig()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException ("NOT IMPLEMENTED !");
     }
 
     @Override
@@ -148,8 +141,7 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public DOMImplementation getImplementation()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException ("NOT IMPLEMENTED !");
     }
 
     @Override

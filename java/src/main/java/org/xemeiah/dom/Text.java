@@ -12,6 +12,12 @@ public class Text extends org.xemeiah.dom.CharacterData implements org.w3c.dom.T
 	public short getNodeType() { return org.w3c.dom.Node.TEXT_NODE; }
 	public String getNodeName() { return "#text";	}
 	
+	@Override
+    public String getNodeValue() throws DOMException
+    {
+	    return getData();
+    }
+	
 	public String getWholeText() { return getData(); }
 
 	public native boolean isElementContentWhitespace();

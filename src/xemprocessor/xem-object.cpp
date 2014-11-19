@@ -60,8 +60,14 @@ namespace Xem
   {
     if (!isElementFunction)
       {
+#if 0
         throwException ( Exception, "Not implemented : defaulted but not an Element Function : '%s' !\n",
             getKeyCache().dumpKey(functionKeyId).c_str() );
+#else
+
+        Log("Spurious : defaulted but not an Element Function : '%s' !\n",
+            getKeyCache().dumpKey(functionKeyId).c_str() );
+#endif
       }
 
     if ( KeyCache::getNamespaceId(functionKeyId) )

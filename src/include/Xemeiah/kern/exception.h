@@ -108,9 +108,9 @@ namespace Xem
 #define throwException(__exceptionClass,...)	\
   do { \
     __exceptionClass* e = new __exceptionClass(STRINGIFY(__exceptionClass)); \
-    Error ( "Exception '%s'\n", STRINGIFY(__exceptionClass) ); \
     e->doAppendMessage ( __FILE__, __FUNCTION__, __LINE__, "Exception '%s'\n", STRINGIFY(__exceptionClass) ); \
     e->doAppendMessage ( __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__ ); \
+    Error ( "Exception '%s'\n", e->getMessage().c_str()); \
     throw ( e ); \
   } while (0)
 
