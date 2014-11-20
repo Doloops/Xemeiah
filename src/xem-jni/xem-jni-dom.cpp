@@ -98,108 +98,89 @@
 class JClass_JavaLangClass
 {
 public:
-    JCLASS("java/lang/Class")
-    JMETHOD(getName, "getName", "()Ljava/lang/String;")
+    JCLASS("java/lang/Class") JMETHOD(getName, "getName", "()Ljava/lang/String;")
 };
 
 class JClass_DocumentFactory
 {
 public:
-    JCLASS("org/xemeiah/dom/DocumentFactory")
-    JFIELD(__storePtr, "__storePtr", "J")
-    JFIELD(__xprocessorPtr, "__xprocessorPtr", "J")
+    JCLASS("org/xemeiah/dom/DocumentFactory") JFIELD(__storePtr, "__storePtr", "J") JFIELD(__xprocessorPtr, "__xprocessorPtr", "J")
 };
 
 class JClass_Document
 {
 public:
-    JCLASS("org/xemeiah/dom/Document")
-    JMETHOD(constructor, "<init>",
-            "(Lorg/xemeiah/dom/DocumentFactory;J)V")
-    JMETHOD(getDocumentFactory, "getDocumentFactory",
-            "()Lorg/xemeiah/dom/DocumentFactory;")
-    JFIELD(__documentPtr, "__documentPtr", "J")
+    JCLASS("org/xemeiah/dom/Document") JMETHOD(constructor, "<init>",
+            "(Lorg/xemeiah/dom/DocumentFactory;J)V") JMETHOD(getDocumentFactory, "getDocumentFactory",
+            "()Lorg/xemeiah/dom/DocumentFactory;") JFIELD(__documentPtr, "__documentPtr", "J")
 };
 
 class JClass_Node
 {
 public:
-    JCLASS("org/xemeiah/dom/Node")
-    JFIELD(nodePtr, "__nodePtr", "J")
-    JFIELD(document, "document", "Lorg/xemeiah/dom/Document;")
+    JCLASS("org/xemeiah/dom/Node") JFIELD(nodePtr, "__nodePtr", "J") JFIELD(document, "document", "Lorg/xemeiah/dom/Document;")
 };
 
 class JClass_Element
 {
 public:
-    JCLASS("org/xemeiah/dom/Element")
-    JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;J)V")
+    JCLASS("org/xemeiah/dom/Element") JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;J)V")
 };
 
 class JClass_Text
 {
 public:
-    JCLASS("org/xemeiah/dom/Text")
-    JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;J)V")
+    JCLASS("org/xemeiah/dom/Text") JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;J)V")
 };
 
 class JClass_Attribute
 {
 public:
-    JCLASS("org/xemeiah/dom/Attr")
-    JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;JJ)V")
+    JCLASS("org/xemeiah/dom/Attr") JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;JJ)V") JFIELD(__nodePtr,"__nodePtr", "J")
+    JFIELD(__attributePtr, "__attributePtr", "J")
 };
 
 class JClass_XPathEvaluator
 {
 public:
-    JCLASS("org/xemeiah/dom/xpath/XPathEvaluator")
-    JMETHOD(getDocumentFactory, "getDocumentFactory",
+    JCLASS("org/xemeiah/dom/xpath/XPathEvaluator") JMETHOD(getDocumentFactory, "getDocumentFactory",
             "()Lorg/xemeiah/dom/DocumentFactory;")
 };
 
 class JClass_XPathNSResolver
 {
 public:
-    JCLASS("org/w3c/dom/xpath/XPathNSResolver")
-    JMETHOD(lookupNamespaceURI, "lookupNamespaceURI", "(Ljava/lang/String;)Ljava/lang/String;")
+    JCLASS("org/w3c/dom/xpath/XPathNSResolver") JMETHOD(lookupNamespaceURI, "lookupNamespaceURI", "(Ljava/lang/String;)Ljava/lang/String;")
 };
 
 class JClass_XPathExpression
 {
 public:
-    JCLASS("org/xemeiah/dom/xpath/XPathExpression")
-    JMETHOD(constructor, "<init>", "(J)V")
-    JFIELD(__xpathPtr, "__xpathPtr", "J")
+    JCLASS("org/xemeiah/dom/xpath/XPathExpression") JMETHOD(constructor, "<init>", "(J)V") JFIELD(__xpathPtr, "__xpathPtr", "J")
 };
 
 class JClass_XPathException
 {
 public:
-    JCLASS("org/w3c/dom/xpath/XPathException")
-    JMETHOD(constructor, "<init>", "(SLjava/lang/String;)V")
+    JCLASS("org/w3c/dom/xpath/XPathException") JMETHOD(constructor, "<init>", "(SLjava/lang/String;)V")
 };
 
 class JClass_XPathResult
 {
 public:
-    JCLASS("org/xemeiah/dom/xpath/XPathResult")
-    JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
+    JCLASS("org/xemeiah/dom/xpath/XPathResult") JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
 };
 
 class JClass_NamedNodeMap
 {
 public:
-    JCLASS("org/xemeiah/dom/NamedNodeMap")
-    JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
+    JCLASS("org/xemeiah/dom/NamedNodeMap") JMETHOD(constructor, "<init>", "(Lorg/xemeiah/dom/Document;IJ)V")
 };
 
 class JClass_NodeList
 {
 public:
-    JCLASS("org/xemeiah/dom/NodeList")
-    JFIELD(document, "document", "Lorg/xemeiah/dom/Document;")
-    JFIELD(__nodeListPtr, "__nodeListPtr", "J")
+    JCLASS("org/xemeiah/dom/NodeList") JFIELD(document, "document", "Lorg/xemeiah/dom/Document;") JFIELD(__nodeListPtr, "__nodeListPtr", "J")
 };
 
 class XemJNI
@@ -234,25 +215,7 @@ void
 XemJniInit (JNIEnv* ev)
 {
     Log("Called XemJniInit with ev=%p\n", ev);
-
     Log("XemJNI size=%lu\n", sizeof(XemJNI));
-#ifdef __XEM_JNI_USE_CACHE
-    Log("Init : docc lass=%p\n", getXemJNI().document.__class);
-#endif
-
-//    jclass cl1 = ev->FindClass("Lorg/xemeiah/dom/Document;");
-//    jclass cl2 = ev->FindClass("Lorg/xemeiah/dom/Document;");
-//
-//    if (cl1 != cl2)
-//    {
-//        Warn("Diverging classes ! cl1=%p, cl2=%p\n", cl1, cl2);
-//    }
-//    jmethodID mth1 = ev->GetMethodID(cl1, "<init>", "(Lorg/xemeiah/dom/DocumentFactory;J)V");
-//    jmethodID mth2 = ev->GetMethodID(cl2, "<init>", "(Lorg/xemeiah/dom/DocumentFactory;J)V");
-//    if (mth1 != mth2)
-//    {
-//        Warn("Diverging methodes ! mth1=%p, mth2=%p\n", mth1, mth2);
-//    }
 }
 
 Xem::String
@@ -389,8 +352,8 @@ getJObjectClassname (JNIEnv* ev, jobject jObject)
 bool
 isJElement (JNIEnv* ev, jobject jElement)
 {
-    return ( ev->IsInstanceOf(jElement, getXemJNI().element.getClass(ev))
-            || ev->IsInstanceOf(jElement, getXemJNI().text.getClass(ev)) );
+    return (ev->IsInstanceOf(jElement, getXemJNI().element.getClass(ev))
+            || ev->IsInstanceOf(jElement, getXemJNI().text.getClass(ev)));
 }
 
 Xem::ElementRef
@@ -420,11 +383,8 @@ j2AttributeRef (JNIEnv* ev, jobject attrObject)
     jobject documentObject = jNode2JDocument(ev, attrObject);
     Xem::Document* doc = jDocument2Document(ev, documentObject);
 
-    jclass attrClass = ev->GetObjectClass(attrObject);
-    jfieldID nodePtrId = ev->GetFieldID(attrClass, "__nodePtr", "J");
-    jfieldID attrPtrId = ev->GetFieldID(attrClass, "__attributePtr", "J");
-    jlong nodePtr = ev->GetLongField(attrObject, nodePtrId);
-    jlong attrPtr = ev->GetLongField(attrObject, attrPtrId);
+    jlong nodePtr = ev->GetLongField(attrObject, getXemJNI().attr.__nodePtr(ev));
+    jlong attrPtr = ev->GetLongField(attrObject, getXemJNI().attr.__attributePtr(ev));
 
     return Xem::AttributeRefConstructor(*doc, nodePtr, attrPtr);
 }
@@ -504,7 +464,7 @@ jLookupNamespaceURI (JNIEnv* ev, jobject jNSResolver, Xem::String nsPrefix)
     jstring jNsPrefix = ev->NewStringUTF(nsPrefix.c_str());
     jstring result = (jstring) ev->CallObjectMethod(jNSResolver, getXemJNI().xpathNSResolver.lookupNamespaceURI(ev),
                                                     jNsPrefix);
-    if ( result != NULL )
+    if (result != NULL)
     {
         return jstring2XemString(ev, result);
     }

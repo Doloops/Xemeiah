@@ -3,6 +3,7 @@ package org.xemeiah.dom.parser;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 
 import org.xml.sax.InputSource;
@@ -19,7 +20,7 @@ public class XemParser
         javax.xml.transform.dom.DOMResult result = new javax.xml.transform.dom.DOMResult();
         result.setNode(rootElement);
 
-        org.xemeiah.transform.TransformParser transformParser = new org.xemeiah.transform.TransformParser();
+        Transformer transformParser = new org.xemeiah.transform.TransformParser();
 
         try
         {
@@ -27,15 +28,7 @@ public class XemParser
         }
         catch (TransformerException e)
         {
-            e.printStackTrace();
             throw new SAXException("Could not parse", e);
-        }
-
-        if (false && rootElement.getOwnerDocument() instanceof org.xemeiah.dom.Document)
-        {
-            org.xemeiah.dom.Document xemDoc = (org.xemeiah.dom.Document) rootElement.getOwnerDocument();
-            xemDoc.commit();
-            xemDoc.reopen();
         }
     }
 

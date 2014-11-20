@@ -14,7 +14,8 @@
 #define Log_CreateRevision Debug
 #define Log_DropRevision Log
 
-#define __XEM_PERS_DEFAULT_ALLOCATION_PROFILES 1
+#define __XEM_PERS_DEFAULT_ALLOCATION_PROFILES 16
+
 namespace Xem {
 void PersistentBranchManager::inheritRevisionPage(RevisionPage* target,
 		const RevisionPage* source) {

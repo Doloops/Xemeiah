@@ -27,9 +27,6 @@ Java_org_xemeiah_dom_DocumentFactory_initStore (JNIEnv* ev, jobject jFactory, js
 
     Info("Init Store (C++) Xemeiah Version '%s'!\n", __XEM_VERSION);
     Info("Sizes : (void*)=%lu, jint=%lu, jlong=%lu\n", sizeof(void*), sizeof(jint), sizeof(jlong));
-//    jclass factoryClass = ev->GetObjectClass(jFactory);
-//    jfieldID __storePtrId = ev->GetFieldID(factoryClass, "__storePtr", "J");
-//    jfieldID __xprocessorPtrId = ev->GetFieldID(factoryClass, "__xprocessorPtr", "J");
 
     AssertBug(jDocumentFactory2Store(ev, jFactory) == NULL, "Already initialized !\n");
 
