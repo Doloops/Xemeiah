@@ -111,7 +111,7 @@ namespace Xem
     /**
      * NamespaceAlias destructor.
      */
-    ~NamespaceAlias ();
+    virtual ~NamespaceAlias ();
 
     /**
      * Sets a new namespace prefix aliasing.
@@ -143,7 +143,7 @@ namespace Xem
      * @param prefixId the prefixId, i.e. the (namespace):* part of the key.
      * @return the corresponding NamespaceId, or 0 if no aliasing is defined.
      */
-    NamespaceId getNamespaceIdFromPrefix ( LocalKeyId prefixId );
+    virtual NamespaceId getNamespaceIdFromPrefix ( LocalKeyId prefixId );
 
     /**
      * Provides the current prefix defined for a namespaceId.

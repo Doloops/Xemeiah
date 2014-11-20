@@ -13,6 +13,7 @@ namespace Xem
 {
   KeyCache::KeyCache ( Store& __s ) : store(__s), writeMutex("KeyCache Write")
   {
+      builtinKeys = NULL;
   }
 
   KeyCache::~KeyCache ()

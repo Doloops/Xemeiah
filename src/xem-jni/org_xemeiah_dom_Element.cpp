@@ -86,10 +86,8 @@ Java_org_xemeiah_dom_Element_getChildNodes (JNIEnv *ev, jobject elementObject)
     jobject documentObject = jNode2JDocument(ev, elementObject);
 
     Xem::ElementRef eltRef = jElement2ElementRef(ev, elementObject);
-    Xem::Integer childrenNumber = eltRef.getNumberOfChildren();
 
     Xem::NodeSet* nodeSet = new Xem::NodeSet();
-
 
     for (Xem::ChildIterator iter(eltRef); iter; iter++)
     {

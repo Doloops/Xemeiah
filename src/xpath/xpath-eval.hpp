@@ -120,7 +120,7 @@ namespace Xem
 
     if ( result.size() == 0 )
       {
-        Warn ( "Empty NodeSet ! returning empty element !\n" );
+        Warn ( "Empty NodeSet for expression=%s ! returning empty element !\n", expression);
         return ElementRef(getXProcessor().getCurrentNode().getDocument());
       }
 

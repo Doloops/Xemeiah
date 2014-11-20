@@ -25,6 +25,9 @@ jstring2XemString (JNIEnv* ev, jstring js);
 jobject
 jDocument2JDocumentFactory (JNIEnv* ev, jobject jDoc);
 
+jobject
+jXPathEvaluator2JDocumentFactory (JNIEnv* ev, jobject jXPathEvaluator);
+
 Xem::XProcessor*
 jDocumentFactory2XProcessor (JNIEnv* ev, jobject jDocumentFactory);
 
@@ -51,6 +54,10 @@ Xem::Document*
 jDocument2Document (JNIEnv* ev, jobject documentObject);
 Xem::ElementRef
 jElement2ElementRef (JNIEnv* ev, jobject jElement);
+
+bool
+isJElement (JNIEnv* ev, jobject jElement);
+
 Xem::AttributeRef
 j2AttributeRef (JNIEnv* ev, jobject elementObject);
 
@@ -77,5 +84,8 @@ jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression);
 
 jthrowable
 exception2JXPathException (JNIEnv* ev, Xem::Exception* exception);
+
+Xem::String
+jLookupNamespaceURI (JNIEnv* ev, jobject jNSResolver, Xem::String nsPrefix);
 
 #endif /* XEMJNI_H_ */

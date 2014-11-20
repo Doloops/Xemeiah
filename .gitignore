@@ -2,3 +2,4 @@
 src/.depends
 src/libxemeiah.so.0*
 src/xem
+java/hs_err_*.log

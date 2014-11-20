@@ -31,7 +31,7 @@ Java_org_xemeiah_dom_DocumentFactory_initStore (JNIEnv* ev, jobject jFactory, js
 //    jfieldID __storePtrId = ev->GetFieldID(factoryClass, "__storePtr", "J");
 //    jfieldID __xprocessorPtrId = ev->GetFieldID(factoryClass, "__xprocessorPtr", "J");
 
-    AssertBug(ev->GetLongField(jFactory,__storePtrId) == 0, "Already initialized !\n");
+    AssertBug(jDocumentFactory2Store(ev, jFactory) == NULL, "Already initialized !\n");
 
     Xem::Store* store = NULL;
     if (filename == NULL)
