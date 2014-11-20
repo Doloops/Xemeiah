@@ -16,7 +16,7 @@
 #undef Log
 #define Log(...) do{} while(0)
 
-// #define __XEM_JNI_USE_CACHE
+#define __XEM_JNI_USE_CACHE
 #define Log_XEMJNI Debug
 
 #ifdef __XEM_JNI_USE_CACHE
@@ -24,7 +24,9 @@
         jclass __class = NULL; \
         jclass getClass(JNIEnv* __ev) { \
         if ( __class == NULL ) { \
-            __class = __ev->FindClass(__jName); \
+            jclass __local_class = __ev->FindClass(__jName); \
+            __class = (jclass) __ev->NewGlobalRef(__local_class); \
+            __ev->DeleteLocalRef(__local_class); \
             Log_XEMJNI ("[ev=%p] For class=%s, caching %p\n", __ev, __jName, __class); \
             AssertBug ( __class != NULL, "Could not find class " __jName ); \
         } \
