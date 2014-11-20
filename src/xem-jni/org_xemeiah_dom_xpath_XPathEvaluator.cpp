@@ -35,7 +35,7 @@ namespace Xem
 
             Xem::String result = jLookupNamespaceURI(ev, resolver, prefix);
 
-            Info("prefix = %s => result = %s\n", prefix.c_str(), result.c_str());
+            Log("prefix = %s => result = %s\n", prefix.c_str(), result.c_str());
             return keyCache.getNamespaceId(result.c_str());
         }
     };
