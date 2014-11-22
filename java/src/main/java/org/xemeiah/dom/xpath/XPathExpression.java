@@ -22,5 +22,10 @@ public class XPathExpression implements org.w3c.dom.xpath.XPathExpression {
 	
 	public native Object evaluate(Node contextNode, short type, Object result)
 			throws XPathException, DOMException;
+	
+	public native void pushEnv();
+	
+	public native void popEnv();
 
+	public native void setVariable(String name, Object value);
 }

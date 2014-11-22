@@ -14,6 +14,8 @@
 #include <Xemeiah/xpath/xpath.h>
 #include <Xemeiah/kern/exception.h>
 
+#include "xem-jni-classes.h"
+
 #include <jni.h>
 
 void
@@ -23,7 +25,7 @@ Xem::String
 jstring2XemString (JNIEnv* ev, jstring js);
 
 jobject
-jDocument2JDocumentFactory (JNIEnv* ev, jobject jDoc);
+jDocument2JDocumentFactory (JNIEnv* ev, jobject jDocument);
 
 jobject
 jXPathEvaluator2JDocumentFactory (JNIEnv* ev, jobject jXPathEvaluator);
@@ -73,9 +75,6 @@ nodeSet2JNamedNodeMap (JNIEnv* ev, jobject documentObject, Xem::NodeSet* result)
 Xem::NodeSet*
 jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList);
 
-//jobject
-//jXPathExpression2ParsedBytes (JNIEnv* ev, jobject jXPathExpression);
-
 jobject
 xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath);
 
@@ -85,7 +84,19 @@ jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression);
 jthrowable
 exception2JXPathException (JNIEnv* ev, Xem::Exception* exception);
 
+jthrowable
+exception2JDOMException (JNIEnv* ev, const char* message);
+
 Xem::String
 jLookupNamespaceURI (JNIEnv* ev, jobject jNSResolver, Xem::String nsPrefix);
+
+extern XemJNI xemJNI;
+
+static INLINE
+XemJNI&
+getXemJNI ()
+{
+    return xemJNI;
+}
 
 #endif /* XEMJNI_H_ */

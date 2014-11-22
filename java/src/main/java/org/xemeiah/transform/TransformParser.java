@@ -91,8 +91,13 @@ public class TransformParser extends Transformer {
 	
 	public void transform(Source source, Result result) throws TransformerException 
 	{
-		throw new TransformerException("Parser : Class not handled : source : " + source.getClass().getCanonicalName()
-				+ "result : " + result.getClass().getCanonicalName() );
+	   if ( source instanceof javax.xml.transform.sax.SAXSource && result instanceof javax.xml.transform.dom.DOMResult)
+	   {
+	       transform((javax.xml.transform.sax.SAXSource) source, (javax.xml.transform.dom.DOMResult) result); 
+	       return;
+	   }
+		throw new TransformerException("Parser : Class not handled : source : " + source.getClass().getName()
+				+ ", result : " + result.getClass().getName() );
 	}
 
 }

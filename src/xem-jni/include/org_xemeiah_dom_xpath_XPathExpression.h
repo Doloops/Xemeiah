@@ -23,6 +23,30 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_cleanUp
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_evaluate
   (JNIEnv *, jobject, jobject, jshort, jobject);
 
+/*
+ * Class:     org_xemeiah_dom_xpath_XPathExpression
+ * Method:    pushEnv
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_pushEnv
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_xpath_XPathExpression
+ * Method:    popEnv
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_popEnv
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_xpath_XPathExpression
+ * Method:    setVariable
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_setVariable
+  (JNIEnv *, jobject, jstring, jobject);
+
 #ifdef __cplusplus
 }
 #endif

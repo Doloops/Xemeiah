@@ -89,7 +89,6 @@ namespace Xem
                     currentMap = scopeElement.addSKMap ( mapId, SKMapType_ElementMultiMap );
                 }
             }
-            Log_DMI ( "Inserting '%s'\n", base.generateVersatileXPath().c_str() );
             return currentMap;
         }
         Log_DMI ( "Silently ignoring '%s' : scope did not eval to an Element.\n",
@@ -253,7 +252,8 @@ namespace Xem
             }
         }
         else if ( domEventType == DomEventType_DeleteAttribute
-                || domEventType == DomEventType_BeforeModifyAttribute )
+                || domEventType == DomEventType_BeforeModifyAttribute
+                || domEventType == DomEventType_DeleteElement )
         {
             ElementRef eltRef = nodeRef.getElement();
 

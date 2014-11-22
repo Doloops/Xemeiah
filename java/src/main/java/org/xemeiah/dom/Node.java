@@ -98,99 +98,82 @@ public abstract class Node implements org.w3c.dom.Node
     @Override
     public Object getUserData(String key)
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean hasAttributes()
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean hasChildNodes()
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public org.w3c.dom.Node insertBefore(org.w3c.dom.Node newChild, org.w3c.dom.Node refChild) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean isDefaultNamespace(String namespaceURI)
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean isEqualNode(org.w3c.dom.Node arg)
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean isSameNode(org.w3c.dom.Node other)
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean isSupported(String feature, String version)
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String lookupNamespaceURI(String prefix)
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String lookupPrefix(String namespaceURI)
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void normalize()
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
-    public org.w3c.dom.Node removeChild(org.w3c.dom.Node oldChild) throws DOMException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
+    public native org.w3c.dom.Node removeChild(org.w3c.dom.Node oldChild) throws DOMException;
 
     @Override
     public org.w3c.dom.Node replaceChild(org.w3c.dom.Node newChild, org.w3c.dom.Node oldChild) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void setNodeValue(String nodeValue) throws DOMException
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
@@ -202,15 +185,13 @@ public abstract class Node implements org.w3c.dom.Node
     @Override
     public void setTextContent(String textContent) throws DOMException
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public Object setUserData(String key, Object data, UserDataHandler handler)
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
 }

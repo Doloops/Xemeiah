@@ -42,3 +42,25 @@ JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_Node_getPrefix
 {
     return NULL;
 }
+
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_removeChild
+  (JNIEnv *ev, jobject jParentElement, jobject jChildElement)
+{
+    Log ("removeChild ev=%p, jParentElement=%p, jChildElement=%p\n", ev, jParentElement, jChildElement);
+
+    Xem::ElementRef parentElement = jElement2ElementRef(ev, jParentElement);
+    Xem::ElementRef childElement = jElement2ElementRef(ev, jChildElement);
+
+    if ( childElement.getFather() != parentElement )
+    {
+        ev->Throw(exception2JDOMException(ev, "Element is not the child provided father node !"));
+        return NULL;
+    }
+
+    jobject jDocument = jNode2JDocument(ev, jChildElement);
+    jobject JFactory = jDocument2JDocumentFactory(ev, jDocument);
+    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, JFactory);
+
+    childElement.deleteElement(*xprocessor);
+    return jChildElement;
+}

@@ -31,6 +31,14 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getParentNode
 JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_Node_getPrefix
   (JNIEnv *, jobject);
 
+/*
+ * Class:     org_xemeiah_dom_Node
+ * Method:    removeChild
+ * Signature: (Lorg/w3c/dom/Node;)Lorg/w3c/dom/Node;
+ */
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_removeChild
+  (JNIEnv *, jobject, jobject);
+
 #ifdef __cplusplus
 }
 #endif

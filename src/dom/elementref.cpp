@@ -341,6 +341,11 @@ namespace Xem
     else
       {
         /*
+         * Trigger the eventDeleteElement
+         */
+        eventElement ( xproc, DomEventType_DeleteElement );
+
+        /*
          * Delete whole hierarchy
          */
         deleteChildren ( xproc );
@@ -349,11 +354,6 @@ namespace Xem
          * Delete my attributes
          */
         deleteAttributes ( xproc );
-
-        /*
-         * Trigger the eventDeleteElement
-         */
-        eventElement ( xproc, DomEventType_DeleteElement );
 
         /*
          * Remove contents

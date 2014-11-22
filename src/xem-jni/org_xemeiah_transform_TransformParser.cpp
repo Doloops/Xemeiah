@@ -20,17 +20,32 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
+#if 0
+#undef Log
+#define Log Info
+#endif
+
 JNIEXPORT void JNICALL
-Java_org_xemeiah_transform_TransformParser_doParse (JNIEnv *ev, jobject parserObject, jobject inputStreamObject,
-                                                    jobject elementObject)
+Java_org_xemeiah_transform_TransformParser_doParse (JNIEnv *ev, jobject jTransformParser, jobject jInputStream,
+                                                    jobject jElement)
 {
-    Xem::ElementRef root = jElement2ElementRef(ev, elementObject);
-    Xem::XProcessor xproc(root.getStore());
-    xproc.loadLibrary("xsl", true);
-    // xproc.registerEvents(root.getDocument());
-    Xem::SAXHandlerDom saxHandler(xproc, root);
-    Xem::JavaReader reader(ev, inputStreamObject);
+    Log("doParse : jTransformParser=%p\n", jTransformParser);
+
+    AssertBug(jInputStream != NULL, "Null jInputstream !");
+    AssertBug(jElement != NULL, "Null jElement !");
+
+    jobject jDocument = jNode2JDocument(ev, jElement);
+    jobject jFactory = jDocument2JDocumentFactory(ev, jDocument);
+
+    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
+
+    Xem::ElementRef root = jElement2ElementRef(ev, jElement);
+
+    Xem::SAXHandlerDom saxHandler(*xprocessor, root);
+    Xem::JavaReader reader(ev, jInputStream);
     Xem::Parser parser(reader, saxHandler);
+
+    Log("doParse : jTransformParser=%p => inited.\n", jTransformParser);
 
     try
     {
@@ -41,4 +56,5 @@ Java_org_xemeiah_transform_TransformParser_doParse (JNIEnv *ev, jobject parserOb
         jclass exceptionClass = ev->FindClass("javax/xml/transform/TransformerException");
         ev->ThrowNew(exceptionClass, e->getMessage().c_str());
     }
+    Log("doParse : jTransformParser=%p => finished parse.\n", jTransformParser);
 }

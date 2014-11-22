@@ -20,42 +20,43 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-JNIEXPORT void JNICALL Java_org_xemeiah_transform_TransformXSL_doTransform
-  (JNIEnv *ev, jobject transformXSLObject, jobject xmlElementObject, jobject resultElementObject)
+JNIEXPORT void JNICALL
+Java_org_xemeiah_transform_TransformXSL_doTransform (JNIEnv *ev, jobject transformXSLObject, jobject xmlElementObject,
+                                                     jobject resultElementObject)
 {
-  try
-  {
-    Xem::ElementRef xmlRoot = jElement2ElementRef(ev, xmlElementObject);
-    Xem::ElementRef resultRoot = jElement2ElementRef(ev, resultElementObject);
+    try
+    {
+        Xem::ElementRef xmlRoot = jElement2ElementRef(ev, xmlElementObject);
+        Xem::ElementRef resultRoot = jElement2ElementRef(ev, resultElementObject);
 
-    jclass transformXSLClass = ev->GetObjectClass(transformXSLObject);
-    jmethodID getParameterId = ev->GetMethodID(transformXSLClass,"getParameter", "(Ljava/lang/String;)Ljava/lang/Object;");
+        jclass transformXSLClass = ev->GetObjectClass(transformXSLObject);
+        jmethodID getParameterId = ev->GetMethodID(transformXSLClass, "getParameter",
+                                                   "(Ljava/lang/String;)Ljava/lang/Object;");
 
-    jstring xslObjectParameter = ev->NewStringUTF("{http://www.w3.org/1999/XSL/Transform}stylesheet");
-    jobject xslElementObject = ev->CallObjectMethod(transformXSLObject,getParameterId,xslObjectParameter);
+        jstring xslObjectParameter = ev->NewStringUTF("{http://www.w3.org/1999/XSL/Transform}stylesheet");
+        jobject xslElementObject = ev->CallObjectMethod(transformXSLObject, getParameterId, xslObjectParameter);
 
-    Xem::ElementRef xslStylesheet = jElement2ElementRef(ev, xslElementObject);
+        Xem::ElementRef xslStylesheet = jElement2ElementRef(ev, xslElementObject);
 
-    Log ( "xslStylesheet=%s\n", xslStylesheet.generateVersatileXPath().c_str() );
+        Log("xslStylesheet=%s\n", xslStylesheet.generateVersatileXPath().c_str());
 
-    Xem::XProcessor xproc(xmlRoot.getStore());
-    // xproc.installModule ( "http://www.xemeiah.org/ns/xemint-pi" );
-    xproc.loadLibrary("xsl", true);
-    xproc.loadLibrary("exslt", false);
+        Xem::XProcessor xproc(xmlRoot.getStore());
+        // xproc.installModule ( "http://www.xemeiah.org/ns/xemint-pi" );
+        xproc.loadLibrary("xsl", true);
+        xproc.loadLibrary("exslt", false);
 
+        Xem::NodeSet xmlTreeNodeSet;
+        xmlTreeNodeSet.pushBack(xmlRoot);
+        Xem::NodeSet::iterator xmlTreeIterator(xmlTreeNodeSet, xproc);
 
-    Xem::NodeSet xmlTreeNodeSet;
-    xmlTreeNodeSet.pushBack ( xmlRoot );
-    Xem::NodeSet::iterator xmlTreeIterator ( xmlTreeNodeSet, xproc );
+        Xem::NodeFlowDom nodeFlow(xproc, resultRoot);
+        xproc.setNodeFlow(nodeFlow);
 
-    Xem::NodeFlowDom nodeFlow(xproc, resultRoot);
-    xproc.setNodeFlow(nodeFlow);
-
-    xproc.process(xslStylesheet);
-  }
-  catch ( Xem::Exception *e )
-  {
-    jclass exceptionClass = ev->FindClass("javax/xml/transform/TransformerException");
-    ev->ThrowNew(exceptionClass,e->getMessage().c_str());
-  }
+        xproc.process(xslStylesheet);
+    }
+    catch (Xem::Exception *e)
+    {
+        jclass exceptionClass = ev->FindClass("javax/xml/transform/TransformerException");
+        ev->ThrowNew(exceptionClass, e->getMessage().c_str());
+    }
 }

@@ -66,7 +66,7 @@ ifeq ($(Profile),Perf)
 #	CFLAGS += -Winline
 #	CFLAGS += -DXEM_MEM_PROTECT
 #	CFLAGS += -DXEM_MEM_PROTECT_SYS
-
+	CFLAGS += -DPARANOID=1
 endif
 ifeq ($(Profile),DebugPerf)
 	CFLAGS += -O3

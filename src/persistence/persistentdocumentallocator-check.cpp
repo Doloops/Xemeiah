@@ -772,7 +772,7 @@ namespace Xem
                     }
                     itemPtr = item->next[0];
                 } // Iterating over items
-                CheckInfo ( "SKMMap=%llx : items=%llu, lists=%llu\n", skMapListPtr, nbItems, nbLists );
+                CheckInfo ( "SKMMap=%llx (type %x): items=%llu, lists=%llu\n", skMapListPtr, skMapHeader->config.skMapType, nbItems, nbLists );
                 if ( nbElements )
                 {
                     CheckInfo ( "\tnbElements=%llu, %llu elements per list\n", nbElements, nbElements / nbLists );

@@ -8,6 +8,8 @@
 #include <Xemeiah/io/bufferedreader.h>
 #include <jni.h>
 
+#include "xem-jni-classes.h"
+
 namespace Xem
 {
   class JavaReader : public BufferedReader
@@ -15,27 +17,23 @@ namespace Xem
   protected:
     JNIEnv* env;
     jobject inputStreamObject;
-    jclass inputStreamClass;
-    jmethodID readMethodId;
+
     jbyteArray byteArray;
     jint fillSize;
   public:
     JavaReader(JNIEnv* env_, jobject inputStreamObject_)
     : env(env_), inputStreamObject(inputStreamObject_)
     {
-      inputStreamClass = env->GetObjectClass(inputStreamObject);
-      readMethodId = env->GetMethodID(inputStreamClass,"read","([B)I");
-      AssertBug ( readMethodId, "Could not fetch readMethodId ?\n" );
-
       fillSize = 4096;
       byteArray = env->NewByteArray(fillSize);
-
     }
 
     ~JavaReader()
     {
       if ( buffer )
+      {
         env->ReleaseByteArrayElements(byteArray,(jbyte*)buffer,0);
+      }
       buffer = NULL;
     }
 
@@ -45,7 +43,7 @@ namespace Xem
         env->ReleaseByteArrayElements(byteArray,(jbyte*)buffer,0);
       buffer = NULL;
 
-      jint readBytes = env->CallIntMethod(inputStreamObject,readMethodId, byteArray);
+      jint readBytes = env->CallIntMethod(inputStreamObject,getXemJNI().javaIoInputStream.read(env), byteArray);
 
       if ( readBytes < 0 )
         {

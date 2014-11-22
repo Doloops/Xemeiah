@@ -290,7 +290,7 @@ namespace Xem
     /**
      * Env destructor
      */
-    ~Env();
+    virtual ~Env();
 
     /**
      * get the binded store.
