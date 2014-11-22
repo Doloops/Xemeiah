@@ -22,7 +22,7 @@ namespace Xem
 
 #define __doCompareTyped(__typeT,__operand,__printfSwitch, __leftOp, __rightOp,__postOp) \
      result = (leftItem.to##__typeT () __operand rightItem.to##__typeT ()); \
-     Log_XPathComparator ( "Comparing with operand='%s', type='%s', result=%d'\n", #__operand,#__typeT, result ); \
+     Log_XPathComparator ( "Comparing with operand='%s', type='%s', result='%d'\n", #__operand,#__typeT, result ); \
      Log_XPathComparator ( "Left='%s' (sz %lu), Right='%s' (sz %lu)\n", leftItem.toString().c_str(), leftItem.toString().size(), \
         rightItem.toString().c_str(), rightItem.toString().size() ); \
      return result;
@@ -175,7 +175,9 @@ namespace Xem
   void XPath::evalActionComparator ( __XPath_Functor_Args )
   {
     Log_XPathComparator ( "At expression : '%s'\n", expression );
-    result.setSingleton ( evalComparator ( step->action, node, step->functionArguments[0], step->functionArguments[1] ) );
+    bool boolResult = evalComparator ( step->action, node, step->functionArguments[0], step->functionArguments[1] );
+    Log_XPathComparator ( "=> Final result=%s\n", boolResult ? "true" : "false");
+    result.setSingleton ( boolResult );
   }
 
 };

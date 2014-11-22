@@ -41,11 +41,19 @@ Java_org_xemeiah_dom_xpath_XPathExpression_evaluate (JNIEnv *ev, jobject jXPathE
     Xem::ElementRef contextNode = jElement2ElementRef(ev, jContextNode);
 
     Xem::NodeSet* result = new Xem::NodeSet();
-    xpath->eval(*result, contextNode);
+    try
+    {
+        xpath->eval(*result, contextNode);
 
-    Log("jContextNode=%p, jDocument=%p, doc=%p, contextNode->getDocument()=%p\n", jContextNode, jDocument,
-        jDocument2Document(ev, jDocument), &(contextNode.getDocument()));
-    return nodeSet2JNodeList(ev, jDocument, result);
+        Log("jContextNode=%p, jDocument=%p, doc=%p, contextNode->getDocument()=%p\n", jContextNode, jDocument,
+            jDocument2Document(ev, jDocument), &(contextNode.getDocument()));
+        return nodeSet2JNodeList(ev, jDocument, result);
+    }
+    catch (Xem::Exception *e)
+    {
+        delete(result);
+        ev->Throw(exception2JXPathException(ev, e));
+    }
 }
 
 JNIEXPORT void JNICALL
@@ -81,7 +89,9 @@ Java_org_xemeiah_dom_xpath_XPathExpression_setVariable (JNIEnv *ev, jobject jXPa
     {
         jstring jValueString = (jstring) jValue;
         Xem::String cValue = jstring2XemString(ev, jValueString);
-        nodeSet->setSingleton(jValueString);
+
+        Info("Set '%s' = '%s'\n", cName.c_str(), cValue.c_str());
+        nodeSet->setSingleton(cValue);
     }
     else
     {

@@ -63,9 +63,9 @@ public:
         {
             jclass objectClass = getClass(ev);
             cachedMethodId = ev->GetMethodID(objectClass, methodName, signature);
-            Log_XEMJNI("[ev=%p] SET class=%p, mthName=%s, __signature=%s, jmethodID=%p\n", ev, objectClass, methodName, signature, cachedFieldId );
+            Log_XEMJNI("[ev=%p] SET class=%p, mthName=%s, __signature=%s, jmethodID=%p\n", ev, objectClass, methodName, signature, cachedMethodId );
         }
-        Log_XEMJNI("[ev=%p] GET __mthName=%s, __signature=%s, jmethodID=%p\n", ev, methodName, signature, cachedFieldId );
+        Log_XEMJNI("[ev=%p] GET __mthName=%s, __signature=%s, jmethodID=%p\n", ev, methodName, signature, cachedMethodId );
         return cachedMethodId;
     }
 };

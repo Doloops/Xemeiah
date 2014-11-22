@@ -264,7 +264,10 @@ namespace Xem
                  "No variable 0x%x '%s'\n", keyId, store.getKeyCache().dumpKey(keyId).c_str() );
         return NULL;
       }
-    return itemMap[keyId];
+    NodeSet* variable = itemMap[keyId];
+    Debug("Has a result for variable 0x%x '%s' : '%s'\n", keyId, store.getKeyCache().dumpKey(keyId).c_str(), variable->toString().c_str());
+
+    return variable;
   }
 
   __INLINE void Env::setVariableNode ( KeyId keyId, NodeRef& nodeRef, bool behind )

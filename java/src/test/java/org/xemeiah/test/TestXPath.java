@@ -80,12 +80,13 @@ public class TestXPath
                 throw new RuntimeException("Shall not be called !");
             }
         };
-        XPathExpression expression = evaluator.createExpression("/*/*[local-name()=$arg]", nsResolver);
+        XPathExpression expression = evaluator.createExpression("/*[@tag=$arg]/*", nsResolver);
 
         Document doc = documentFactory.newVolatileDocument();
         Element elt = doc.getDocumentElement();
         
         Element elt1 = doc.createElementNS("http://myns1", "key1");
+        elt1.setAttribute("tag", "MyValue");
         elt.appendChild(elt1);
         
         Element elt2 = doc.createElementNS("http://myns2", "key2");
@@ -95,7 +96,7 @@ public class TestXPath
         elt2.appendChild(text);
         
         expression.pushEnv();
-        expression.setVariable("arg", "key2");
+        expression.setVariable("arg", "MyValue");
         NodeList nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
         expression.popEnv();
         
@@ -104,5 +105,20 @@ public class TestXPath
         Element eltRes = (Element) nodeList.item(0);
         Assert.assertEquals("key2", eltRes.getLocalName());
         Assert.assertEquals("http://myns2", eltRes.getNamespaceURI());
+        
+        expression = evaluator.createExpression("/*/*[local-name()=$arg]", nsResolver);
+        
+        expression.pushEnv();
+        expression.setVariable("arg", "key2");
+        nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
+        expression.popEnv();
+        
+        Assert.assertEquals(1, nodeList.getLength());
+        
+        eltRes = (Element) nodeList.item(0);
+        Assert.assertEquals("key2", eltRes.getLocalName());
+        Assert.assertEquals("http://myns2", eltRes.getNamespaceURI());
+        
+        
     }
 }

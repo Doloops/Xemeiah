@@ -418,7 +418,9 @@ namespace Xem
         return String();
       }
     Log_NodeSetHPP ( "toString, front type=%x\n", front().getItemType() );
-    return front().toString ();
+    String result = front().toString ();
+    Log_NodeSetHPP ( "toString, result=%s\n", result.c_str());
+    return result;
   }
 
   __INLINE Integer NodeSet::toInteger ()
