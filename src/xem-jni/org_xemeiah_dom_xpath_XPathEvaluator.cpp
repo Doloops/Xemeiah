@@ -79,7 +79,7 @@ Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression (JNIEnv *ev, jobject 
 
         Xem::XPath* xpath = new Xem::XPath(*xprocessor, xPathParser, true);
 
-        return xpath2JXPathExpression(ev, xpath);
+        return xpath2JXPathExpression(ev, xpath, jFactory);
     }
     catch (Xem::XPathException * e)
     {

@@ -14,14 +14,21 @@ public:
     ;
 };
 
+class JClass_JavaLangString
+{
+public:
+    JCLASS("java/lang/String")
+    ;
+};
+
 class JClass_JavaIoInputStream
 {
 public:
     JCLASS("java/io/InputStream")
-    ;JMETHOD(read, "read", "([B)I");
+    ;JMETHOD(read, "read", "([B)I")
+    ;
     ;
 };
-
 
 class JClass_DocumentFactory
 {
@@ -83,8 +90,8 @@ class JClass_XPathEvaluator
 {
 public:
     JCLASS("org/xemeiah/dom/xpath/XPathEvaluator")
-    ;JMETHOD(getDocumentFactory, "getDocumentFactory",
-            "()Lorg/xemeiah/dom/DocumentFactory;")
+    ;JFIELD(documentFactory, "documentFactory",
+            "Lorg/xemeiah/dom/DocumentFactory;")
     ;
 };
 
@@ -100,8 +107,10 @@ class JClass_XPathExpression
 {
 public:
     JCLASS("org/xemeiah/dom/xpath/XPathExpression")
-    ;JMETHOD(constructor, "<init>", "(J)V")
+    ;JMETHOD(constructor, "<init>", "(JLorg/xemeiah/dom/DocumentFactory;)V")
     ;JFIELD(__xpathPtr, "__xpathPtr", "J")
+    ;JFIELD(documentFactory, "documentFactory",
+            "Lorg/xemeiah/dom/DocumentFactory;")
     ;
 };
 
@@ -150,6 +159,7 @@ class XemJNI
 {
 public:
     JClass_JavaLangClass javaLangClass;
+    JClass_JavaLangString javaLangString;
     JClass_JavaIoInputStream javaIoInputStream;
     JClass_DocumentFactory documentFactory;
     JClass_Document document;

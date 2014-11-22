@@ -10,8 +10,9 @@ import org.w3c.dom.Text;
 import org.w3c.dom.xpath.XPathEvaluator;
 import org.w3c.dom.xpath.XPathNSResolver;
 import org.xemeiah.dom.DocumentFactory;
+import org.xemeiah.dom.xpath.XPathExpression;
 
-public class TestXPathParsing
+public class TestXPath
 {
     private DocumentFactory documentFactory; 
     
@@ -58,6 +59,45 @@ public class TestXPathParsing
         elt2.appendChild(text);
         
         NodeList nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
+        
+        Assert.assertEquals(1, nodeList.getLength());
+        
+        Element eltRes = (Element) nodeList.item(0);
+        Assert.assertEquals("key2", eltRes.getLocalName());
+        Assert.assertEquals("http://myns2", eltRes.getNamespaceURI());
+    }
+
+    @Test
+    public void testXPathWithVariables()
+    {
+        org.xemeiah.dom.xpath.XPathEvaluator evaluator = new org.xemeiah.dom.xpath.XPathEvaluator(documentFactory);
+        
+        XPathNSResolver nsResolver = new XPathNSResolver()
+        {
+            @Override
+            public String lookupNamespaceURI(String arg0)
+            {
+                throw new RuntimeException("Shall not be called !");
+            }
+        };
+        XPathExpression expression = evaluator.createExpression("/*/*[local-name()=$arg]", nsResolver);
+
+        Document doc = documentFactory.newVolatileDocument();
+        Element elt = doc.getDocumentElement();
+        
+        Element elt1 = doc.createElementNS("http://myns1", "key1");
+        elt.appendChild(elt1);
+        
+        Element elt2 = doc.createElementNS("http://myns2", "key2");
+        elt1.appendChild(elt2);
+        
+        Text text = doc.createTextNode("Hello");
+        elt2.appendChild(text);
+        
+        expression.pushEnv();
+        expression.setVariable("arg", "key2");
+        NodeList nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
+        expression.popEnv();
         
         Assert.assertEquals(1, nodeList.getLength());
         

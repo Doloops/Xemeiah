@@ -13,11 +13,6 @@ public class XPathEvaluator implements org.w3c.dom.xpath.XPathEvaluator
 
 	private final DocumentFactory documentFactory;
 	
-	protected DocumentFactory getDocumentFactory()
-	{
-	    return documentFactory;
-	}
-	
 	@Deprecated
 	public XPathEvaluator()
 	{

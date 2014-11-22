@@ -76,10 +76,13 @@ Xem::NodeSet*
 jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList);
 
 jobject
-xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath);
+xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath, jobject jFactory);
 
 Xem::XPath*
 jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression);
+
+jobject
+jXPathExpression2JDocumentFactory (JNIEnv* ev, jobject jXPathExpression);
 
 jthrowable
 exception2JXPathException (JNIEnv* ev, Xem::Exception* exception);

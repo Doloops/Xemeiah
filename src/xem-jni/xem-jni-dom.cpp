@@ -48,7 +48,7 @@ jDocument2JDocumentFactory (JNIEnv* ev, jobject jDocument)
 jobject
 jXPathEvaluator2JDocumentFactory (JNIEnv* ev, jobject jXPathEvaluator)
 {
-    jobject jDocumentFactory = ev->CallObjectMethod(jXPathEvaluator, getXemJNI().xpathEvaluator.getDocumentFactory(ev));
+    jobject jDocumentFactory = ev->GetObjectField(jXPathEvaluator, getXemJNI().xpathEvaluator.documentFactory(ev));
     return jDocumentFactory;
 }
 
@@ -242,10 +242,10 @@ jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList)
 }
 
 jobject
-xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath)
+xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath, jobject jFactory)
 {
     jobject jXPathExpression = ev->NewObject(getXemJNI().xpathExpression.getClass(ev),
-                                             getXemJNI().xpathExpression.constructor(ev), (jlong) xpath);
+                                             getXemJNI().xpathExpression.constructor(ev), (jlong) xpath, jFactory);
     Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpath, jXPathExpression);
     return jXPathExpression;
 }
@@ -257,6 +257,12 @@ jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression)
     Xem::XPath* xpath = (Xem::XPath*) (ptr);
     Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpath, jXPathExpression);
     return xpath;
+}
+
+jobject
+jXPathExpression2JDocumentFactory (JNIEnv* ev, jobject jXPathExpression)
+{
+    return ev->GetObjectField(jXPathExpression, getXemJNI().xpathExpression.documentFactory(ev));
 }
 
 jthrowable
