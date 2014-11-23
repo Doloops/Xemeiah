@@ -21,6 +21,13 @@ public:
     ;
 };
 
+class JClass_JavaLangRuntimeException
+{
+public:
+    JCLASS("java/lang/RuntimeException")
+    ;
+};
+
 class JClass_JavaIoInputStream
 {
 public:
@@ -159,6 +166,7 @@ class XemJNI
 {
 public:
     JClass_JavaLangClass javaLangClass;
+    JClass_JavaLangRuntimeException javaLangRuntimeException;
     JClass_JavaLangString javaLangString;
     JClass_JavaIoInputStream javaIoInputStream;
     JClass_DocumentFactory documentFactory;

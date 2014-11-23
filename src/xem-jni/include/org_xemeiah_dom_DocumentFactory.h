@@ -9,10 +9,18 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_DocumentFactory
- * Method:    initStore
+ * Method:    format
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_initStore
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_format
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    open
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_open
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -30,6 +38,14 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_close
  */
 JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_releaseDocument
   (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    createBranch
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_createBranch
+  (JNIEnv *, jobject, jstring, jstring);
 
 /*
  * Class:     org_xemeiah_dom_DocumentFactory

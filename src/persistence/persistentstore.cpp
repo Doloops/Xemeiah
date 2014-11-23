@@ -393,7 +393,9 @@ namespace Xem
     {
         Info("Openning Store File '%s'\n", filename);
         if (!openFile(filename, false))
+        {
             return false;
+        }
         if (!checkFormat())
         {
             closeFile();
@@ -432,15 +434,19 @@ namespace Xem
     bool
     PersistentStore::close ()
     {
+#if 0
         Info("Stopping services...\n");
         getServiceManager().stopServiceManager();
         Info("Waiting services termination...\n");
         getServiceManager().waitTermination();
-
         Info("All services stopped.\n");
+#endif
+
         delete (branchManager);
         branchManager = NULL;
         closeFile();
+
+        Info("PersistentStore=%p : closed !", this);
         return true;
     }
 

@@ -90,7 +90,7 @@ Java_org_xemeiah_dom_xpath_XPathExpression_setVariable (JNIEnv *ev, jobject jXPa
         jstring jValueString = (jstring) jValue;
         Xem::String cValue = jstring2XemString(ev, jValueString);
 
-        Info("Set '%s' = '%s'\n", cName.c_str(), cValue.c_str());
+        Log("Set '%s' = '%s'\n", cName.c_str(), cValue.c_str());
         nodeSet->setSingleton(cValue);
     }
     else

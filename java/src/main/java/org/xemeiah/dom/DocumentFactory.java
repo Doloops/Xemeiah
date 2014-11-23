@@ -13,7 +13,9 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
 {
     private final XemParser xemParser = new XemParser();
     
-    private native void initStore(String filename);
+    public native void format(String fileName);
+    
+    public native void open(String fileName);
     
     public native void close();
     
@@ -30,23 +32,14 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
 
     public DocumentFactory()
     {
-        this(null, null);
-    }
-
-    public DocumentFactory(String filename)
-    {
-        this(filename, null);
-    }
-    
-    public DocumentFactory(String filename, String branchName)
-    {
-        initStore(filename);
     }
 
     public final XemParser getXemParser()
     {
         return xemParser;
     }
+    
+    public native void createBranch(String branchName, String branchFlags);
     
     public native org.xemeiah.dom.Document newStandaloneDocument(String branchName, String branchFlags);
 

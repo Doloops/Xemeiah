@@ -37,9 +37,13 @@ public class TestLoadDocument
 
         long start = System.currentTimeMillis();
 
-        DocumentFactory documentFactory = new DocumentFactory("test.dat");
+        DocumentFactory documentFactory = new DocumentFactory();
+        
+        documentFactory.format("test.dat");
+        documentFactory.open("test.dat");
+        documentFactory.createBranch("main", "");
 
-        XPathEvaluator xpathEvaluator = new org.xemeiah.dom.xpath.XPathEvaluator();
+        XPathEvaluator xpathEvaluator = new org.xemeiah.dom.xpath.XPathEvaluator(documentFactory);
 
         org.xemeiah.dom.Document rootDocument = documentFactory.newStandaloneDocument("main", "write");
         LOGGER.info("rootDocument => " + rootDocument);

@@ -29,7 +29,7 @@ namespace Xem
     void
     XPath::evalAxisVariable ( __XPath_Functor_Args)
     {
-        Info("XPathVariable : Getting variable keyid=%x\n", step->keyId);
+        Log_Eval("XPathVariable : Getting variable keyid=%x\n", step->keyId);
         if (!xproc.hasVariable(step->keyId))
         {
             XPathUndefinedVariableException * xpe = new XPathUndefinedVariableException();

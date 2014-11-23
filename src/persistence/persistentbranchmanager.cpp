@@ -62,6 +62,13 @@ namespace Xem
             RevisionPagePtr revisionPagePtr = branchPage->lastRevisionPage;
             RevisionPage* revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
 
+            if ( revisionPage == NULL )
+            {
+                Warn("At branch='%s' (branchId=%llx), revisionPagePtr=%llx has no absolutePage !\n",
+                     branchPage->name, branchPage->branchId, revisionPagePtr);
+                continue;
+            }
+
             if (revisionPage->documentAllocationHeader.writable)
             {
                 Warn("At branch='%s' (branchId=%llx), revisionId=%llx, last revision is marked writable !\n",
