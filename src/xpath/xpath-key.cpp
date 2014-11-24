@@ -22,7 +22,7 @@
  * -# How to check that the mapping we are trying to re-use was built with the same matchXPath and useXPath ? hashing ? 
  */
 
-#define Log_EvalKey Debug
+#define Log_EvalKey Log
 
 namespace Xem
 { 

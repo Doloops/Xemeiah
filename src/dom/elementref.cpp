@@ -487,12 +487,20 @@ namespace Xem
     ElementRef::toString ()
     {
         Log_Element ( "ElementRef::toString ! contents markup='%s'\n", getKey().c_str() );
-        if ( isText() || isComment() || isPI() ) return getText();
+        if ( isText() || isComment() || isPI() )
+        {
+            Log_Element ("Is text : '%s'\n", getText().c_str());
+            return getText();
+        }
 
         ElementRef child = getChild();
-        if ( ! child ) return String();
+        if ( ! child )
+        {
+            return String();
+        }
         if ( child.isText() && ! child.getYounger() )
         {
+            Log_Element ("Child is single text : '%s'\n", child.getText().c_str());
             return child.getText();
         }
 

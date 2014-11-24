@@ -233,7 +233,7 @@ namespace Xem
         AssertBug(metaIndexer, "DomEvent is not a metaIndexer !\n");
 
         if (domEventType == DomEventType_CreateAttribute || domEventType == DomEventType_AfterModifyAttribute
-                || domEventType == DomEventType_CreateElement )
+                || domEventType == DomEventType_CreateElement)
         {
             ElementRef eltRef = nodeRef.getElement();
 

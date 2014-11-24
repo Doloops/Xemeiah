@@ -51,8 +51,9 @@ Java_org_xemeiah_dom_xpath_XPathExpression_evaluate (JNIEnv *ev, jobject jXPathE
     }
     catch (Xem::Exception *e)
     {
-        delete(result);
+        delete (result);
         ev->Throw(exception2JXPathException(ev, e));
+        return NULL;
     }
 }
 
@@ -78,23 +79,37 @@ Java_org_xemeiah_dom_xpath_XPathExpression_setVariable (JNIEnv *ev, jobject jXPa
     jobject jDocumentFactory = jXPathExpression2JDocumentFactory(ev, jXPathExpression);
     Xem::Store* store = jDocumentFactory2Store(ev, jDocumentFactory);
 
-    jboolean isCopy = false;
-
     Xem::String cName = jstring2XemString(ev, jName);
     Xem::KeyId keyId = store->getKeyCache().getKeyId(0, cName.c_str(), true);
 
     Xem::NodeSet* nodeSet = xpath->getXProcessor().setVariable(keyId);
 
-    if (ev->IsInstanceOf(jValue, getXemJNI().javaLangString.getClass(ev)))
+    try
     {
-        jstring jValueString = (jstring) jValue;
-        Xem::String cValue = jstring2XemString(ev, jValueString);
+        if (ev->IsInstanceOf(jValue, getXemJNI().javaLangString.getClass(ev)))
+        {
+            jstring jValueString = (jstring) jValue;
+            Xem::String cValue = jstring2XemString(ev, jValueString);
 
-        Log("Set '%s' = '%s'\n", cName.c_str(), cValue.c_str());
-        nodeSet->setSingleton(cValue);
+            Log("Set '%s' = '%s'\n", cName.c_str(), cValue.c_str());
+            nodeSet->setSingleton(cValue);
+        }
+        else if (ev->IsInstanceOf(jValue, getXemJNI().document.getClass(ev)))
+        {
+            NotImplemented("Variable '%s' resolves to a Document !\n", cName.c_str());
+        }
+        else if (ev->IsInstanceOf(jValue, getXemJNI().element.getClass(ev)))
+        {
+            Xem::ElementRef elt = jElement2ElementRef(ev, jValue);
+            nodeSet->pushBack(elt);
+        }
+        else
+        {
+            NotImplemented("Invalid class for variable '%s'\n", cName.c_str());
+        }
     }
-    else
+    catch (Xem::Exception* e)
     {
-        NotImplemented("Invalid class for variable '%s'\n", cName.c_str());
+        ev->Throw(exception2JDOMException(ev, e));
     }
 }

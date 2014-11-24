@@ -87,9 +87,14 @@ Java_org_xemeiah_dom_Document_createElementNS (JNIEnv *ev, jobject jDocument, js
 {
     Xem::Document* doc = jDocument2Document (ev, jDocument);
     jboolean isCopy = false;
-    const char* ns = ev->GetStringUTFChars(jNamespaceUri, &isCopy);
-    Xem::NamespaceId nsId = doc->getKeyCache().getNamespaceId(ns);
 
+    Xem::NamespaceId nsId  = 0;
+    if ( jNamespaceUri != NULL )
+    {
+        const char* ns = ev->GetStringUTFChars(jNamespaceUri, &isCopy);
+        nsId = doc->getKeyCache().getNamespaceId(ns);
+        ev->ReleaseStringUTFChars(jNamespaceUri, ns);
+    }
     const char* key = ev->GetStringUTFChars(jKey, &isCopy);
     Xem::KeyId keyId = doc->getKeyCache().getKeyId(nsId, key, true);
 
@@ -98,7 +103,6 @@ Java_org_xemeiah_dom_Document_createElementNS (JNIEnv *ev, jobject jDocument, js
 
     jobject jElement = elementRef2JElement(ev, jDocument, newElement);
 
-    ev->ReleaseStringUTFChars(jNamespaceUri, ns);
     ev->ReleaseStringUTFChars(jKey, key);
 
     return jElement;
