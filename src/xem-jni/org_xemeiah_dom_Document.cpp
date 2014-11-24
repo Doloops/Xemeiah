@@ -111,9 +111,16 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createTextNode
     Xem::ElementRef nullRef = Xem::ElementRef(*doc);
 
     Xem::String xemText = jstring2XemString(ev, jText);
-    Xem::ElementRef newElement = doc->createTextNode(nullRef, xemText);
-
-    return elementRef2JElement(ev, jDocument, newElement);
+    try
+    {
+        Xem::ElementRef newElement = doc->createTextNode(nullRef, xemText);
+        return elementRef2JElement(ev, jDocument, newElement);
+    }
+    catch ( Xem::Exception* e)
+    {
+        ev->Throw(exception2JDOMException(ev, e));
+    }
+    return NULL;
 }
 
 

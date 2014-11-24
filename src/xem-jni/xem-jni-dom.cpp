@@ -281,6 +281,12 @@ exception2JDOMException (JNIEnv* ev, const char* message)
                                       getXemJNI().domException.constructor(ev), (jshort) 0, msg);
 }
 
+jthrowable
+exception2JDOMException (JNIEnv* ev, Xem::Exception* exception)
+{
+    return exception2JDOMException(ev, exception->getMessage().c_str());
+}
+
 Xem::String
 jLookupNamespaceURI (JNIEnv* ev, jobject jNSResolver, Xem::String nsPrefix)
 {

@@ -111,10 +111,13 @@ namespace Xem
     SegmentPtr
     DocumentAllocator::getFreeSegmentPtr (__ui64 size, AllocationProfile allocProfile)
     {
-        // log ();
         if (!isWritable())
         {
             throwException(Exception, "Document not writable !!!\n");
+        }
+        if (size > SegmentSizeMax)
+        {
+            throwException(Exception, "Asked segment size is too large : 0x%llx (maximum : 0x%llx)\n", size, SegmentSizeMax);
         }
         /*
          * Normalize size : we always allocate multiples of FreeSegment, ie 32 bytes of data

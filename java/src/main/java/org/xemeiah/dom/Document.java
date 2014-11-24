@@ -112,7 +112,7 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     }
 
     @Override
-    public native Text createTextNode(String data);
+    public native Text createTextNode(String data) throws DOMException;
 
     @Override
     public DocumentType getDoctype()
@@ -121,7 +121,7 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     }
 
     @Override
-    public native org.xemeiah.dom.Element getDocumentElement();
+    public native org.xemeiah.dom.Element getDocumentElement() throws DOMException;
 
     @Override
     public String getDocumentURI()
