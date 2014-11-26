@@ -5,39 +5,64 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-public abstract class CharacterData extends org.xemeiah.dom.Node implements org.w3c.dom.CharacterData 
+public abstract class CharacterData extends org.xemeiah.dom.Node implements org.w3c.dom.CharacterData
 {
-	protected CharacterData(Document document, long elementPtr) 
-	{
-		super(document, elementPtr);
-	}
+    protected CharacterData(Document document, long elementPtr)
+    {
+        super(document, elementPtr);
+    }
 
-	
-	public native void appendData(String arg0) throws DOMException;
+    @Override
+    public native void appendData(String arg0) throws DOMException;
 
-	public native void deleteData(int arg0, int arg1) throws DOMException;
+    @Override
+    public native void deleteData(int arg0, int arg1) throws DOMException;
 
-	public native String getData() throws DOMException;
+    @Override
+    public native String getData() throws DOMException;
 
-	public native int getLength();
+    @Override
+    public native int getLength();
 
-	public native void insertData(int arg0, String arg1) throws DOMException;
+    @Override
+    public native void insertData(int arg0, String arg1) throws DOMException;
 
-	public native void replaceData(int arg0, int arg1, String arg2) throws DOMException;
+    @Override
+    public native void replaceData(int arg0, int arg1, String arg2) throws DOMException;
 
-	public native void setData(String arg0) throws DOMException;
+    @Override
+    public native void setData(String arg0) throws DOMException;
 
-	public native String substringData(int arg0, int arg1) throws DOMException;
-	
-	
-	public Node appendChild(Node newChild) throws DOMException { return null;	}
+    @Override
+    public native String substringData(int arg0, int arg1) throws DOMException;
 
-	public NamedNodeMap getAttributes() { return null; }
+    @Override
+    public Node appendChild(Node newChild) throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
 
-	public NodeList getChildNodes() { return null; }
+    @Override
+    public NamedNodeMap getAttributes() throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
 
-	public Node getFirstChild() { return null; }
+    @Override
+    public NodeList getChildNodes() throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
 
-	public Node getLastChild() { return null;	}
+    @Override
+    public Node getFirstChild() throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
 
+    @Override
+    public Node getLastChild() throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
 }

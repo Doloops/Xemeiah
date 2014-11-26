@@ -1,4 +1,4 @@
-package org.xemeiah.test;
+package org.xemeiah.it_tests;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,6 +17,7 @@ import org.w3c.dom.Text;
 import org.w3c.dom.xpath.XPathEvaluator;
 import org.w3c.dom.xpath.XPathExpression;
 import org.w3c.dom.xpath.XPathNSResolver;
+import org.xemeiah.dom.Document;
 import org.xemeiah.dom.DocumentFactory;
 import org.xemeiah.dom.xpath.XPathResult;
 import org.xml.sax.SAXException;

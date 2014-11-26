@@ -1,4 +1,4 @@
-package org.xemeiah.test;
+package org.xemeiah.dom;
 
 import org.junit.Test;
 import org.w3c.dom.DOMException;
@@ -10,7 +10,7 @@ public class TestDomDocument extends AbstractVolatileDocumentTest
     @Test(expected=DOMException.class)
     public void testDocumentAppendChildFails()
     {
-        Document document = documentFactory.newVolatileDocument();
+        Document document = createDocument();
         
         Element element = document.createElement("MyFakeRoot");
         document.appendChild(element);

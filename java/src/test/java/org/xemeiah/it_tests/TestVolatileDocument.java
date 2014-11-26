@@ -1,10 +1,11 @@
-package org.xemeiah.test;
+package org.xemeiah.it_tests;
 
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.xemeiah.dom.AbstractVolatileDocumentTest;
 
 public class TestVolatileDocument extends AbstractVolatileDocumentTest
 {
@@ -16,7 +17,7 @@ public class TestVolatileDocument extends AbstractVolatileDocumentTest
         for (int nbTest = 0; nbTest < 10 * 1000; nbTest++)
         {
             LOGGER.info("At test=#" + nbTest);
-            Document document = documentFactory.newVolatileDocument();
+            Document document = createDocument();
 
             Element node = document.createElement("myElement");
             document.getDocumentElement().appendChild(node);
