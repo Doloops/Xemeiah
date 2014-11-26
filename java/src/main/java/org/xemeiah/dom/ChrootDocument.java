@@ -18,7 +18,7 @@ public class ChrootDocument extends org.xemeiah.dom.Element implements org.w3c.d
 {
     protected ChrootDocument(org.xemeiah.dom.Element chrootElement)
     {
-        super((org.xemeiah.dom.Document) chrootElement.getOwnerDocument(), chrootElement.__nodePtr);
+        super((org.xemeiah.dom.Document) chrootElement.getOwnerDocument(), 0); // chrootElement.__nodePtr);
     }
 
     @Override

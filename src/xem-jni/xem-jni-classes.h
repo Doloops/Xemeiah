@@ -21,6 +21,36 @@ public:
     ;
 };
 
+class JClass_JavaUtilMap
+{
+public:
+    JCLASS("java/util/Map");
+    JMETHOD(entrySet, "entrySet", "()Ljava/util/Set;");
+};
+
+class JClass_JavaUtilMapEntry
+{
+public:
+    JCLASS("java/util/Map$Entry");
+    JMETHOD(getKey, "getKey", "()Ljava/lang/Object;");
+    JMETHOD(getValue, "getValue", "()Ljava/lang/Object;");
+};
+
+class JClass_JavaUtilSet
+{
+public:
+    JCLASS("java/util/Set");
+    JMETHOD(iterator, "iterator", "()Ljava/util/Iterator;");
+};
+
+class JClass_JavaUtilIterator
+{
+public:
+    JCLASS("java/util/Iterator");
+    JMETHOD(next, "next", "()Ljava/lang/Object;");
+    JMETHOD(hasNext, "hasNext", "()Z");
+};
+
 class JClass_JavaLangRuntimeException
 {
 public:
@@ -42,7 +72,6 @@ class JClass_DocumentFactory
 public:
     JCLASS("org/xemeiah/dom/DocumentFactory")
     ;JFIELD(__storePtr, "__storePtr", "J")
-    ;JFIELD(__xprocessorPtr, "__xprocessorPtr", "J")
     ;
 };
 
@@ -51,10 +80,11 @@ class JClass_Document
 public:
     JCLASS("org/xemeiah/dom/Document")
     ;JMETHOD(constructor, "<init>",
-            "(Lorg/xemeiah/dom/DocumentFactory;J)V")
+            "(Lorg/xemeiah/dom/DocumentFactory;JJ)V")
     ;JMETHOD(getDocumentFactory, "getDocumentFactory",
             "()Lorg/xemeiah/dom/DocumentFactory;")
     ;JFIELD(__documentPtr, "__documentPtr", "J")
+    ;JFIELD(__xprocessorPtr, "__xprocessorPtr", "J")
     ;
 };
 
@@ -166,6 +196,10 @@ class XemJNI
 {
 public:
     JClass_JavaLangClass javaLangClass;
+    JClass_JavaUtilMap javaUtilMap;
+    JClass_JavaUtilMapEntry javaUtilMapEntry;
+    JClass_JavaUtilSet javaUtilSet;
+    JClass_JavaUtilIterator javaUtilIterator;
     JClass_JavaLangRuntimeException javaLangRuntimeException;
     JClass_JavaLangString javaLangString;
     JClass_JavaIoInputStream javaIoInputStream;

@@ -58,8 +58,7 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_removeChild
     }
 
     jobject jDocument = jNode2JDocument(ev, jChildElement);
-    jobject JFactory = jDocument2JDocumentFactory(ev, jDocument);
-    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, JFactory);
+    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
 
     childElement.deleteElement(*xprocessor);
     return jChildElement;

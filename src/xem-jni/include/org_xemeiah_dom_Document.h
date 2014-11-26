@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_Document
+ * Method:    cleanUp
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_Document_cleanUp
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_Document
  * Method:    commit
  * Signature: ()V
  */
@@ -65,19 +73,19 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createComment
 
 /*
  * Class:     org_xemeiah_dom_Document
- * Method:    createElementNS
- * Signature: (Ljava/lang/String;Ljava/lang/String;)Lorg/w3c/dom/Element;
- */
-JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createElementNS
-  (JNIEnv *, jobject, jstring, jstring);
-
-/*
- * Class:     org_xemeiah_dom_Document
  * Method:    createTextNode
  * Signature: (Ljava/lang/String;)Lorg/w3c/dom/Text;
  */
 JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createTextNode
   (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_xemeiah_dom_Document
+ * Method:    createElementNS
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)Lorg/w3c/dom/Element;
+ */
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Document_createElementNS
+  (JNIEnv *, jobject, jstring, jstring);
 
 /*
  * Class:     org_xemeiah_dom_Document

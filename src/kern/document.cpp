@@ -16,478 +16,524 @@
 #include <Xemeiah/auto-inline.hpp>
 
 #define Log_RefCount Debug
-#define Log_Document Debug
+#define Log_Document Log
 
 namespace Xem
 {
-  Document::Document ( Store& _store, DocumentAllocator& _documentAllocator ) 
-  : store(_store), documentAllocator(_documentAllocator), refCountMutex("RefCount", this)
-  {
-    documentHeadPtr = NullPtr;
-    boundDocumentAllocator = NULL;
-    
-    isIndexed = false;
-    
-    rootElementPtr = NullPtr;
+    Document::Document (Store& _store, DocumentAllocator& _documentAllocator) :
+            store(_store), documentAllocator(_documentAllocator), refCountMutex("RefCount", this)
+    {
+        documentHeadPtr = NullPtr;
+        boundDocumentAllocator = NULL;
 
-    roleId = store.getKeyCache().getBuiltinKeys().nons.none();
+        isIndexed = false;
 
-    refCount = 0;
-    unparsedEntitiesMap = NULL;
-  }
+        rootElementPtr = NullPtr;
 
-  Document::~Document()
-  {
-    Log_Document ( "Deleting Document ! this=%p, boundDocumentAllocator=%p\n", this, boundDocumentAllocator );
-    if ( boundDocumentAllocator )
-      {
-        AssertBug ( boundDocumentAllocator->getRefCount(), "Null refCount !\n" );
-        boundDocumentAllocator->decrementRefCount(*this);
-        if ( boundDocumentAllocator->getRefCount() == 0 )
-          delete ( boundDocumentAllocator );
-      }
+        roleId = store.getKeyCache().getBuiltinKeys().nons.none();
+
+        refCount = 0;
+        unparsedEntitiesMap = NULL;
+    }
+
+    Document::~Document ()
+    {
+        Log_Document ( "Deleting Document ! this=%p, boundDocumentAllocator=%p\n", this, boundDocumentAllocator );
+        if (boundDocumentAllocator)
+        {
+            AssertBug(boundDocumentAllocator->getRefCount(), "Null refCount !\n");
+            boundDocumentAllocator->decrementRefCount(*this);
+            if (boundDocumentAllocator->getRefCount() == 0)
+            {
+                delete (boundDocumentAllocator);
+            }
+        }
 #if 0
-    Info ( "At Document Destruction for '%s' - showStats : \n", getDocumentTag().c_str() );
-    stats.showStats ();
+        Info ( "At Document Destruction for '%s' - showStats : \n", getDocumentTag().c_str() );
+        stats.showStats ();
 #endif
-    AssertBug ( refCount == 0, "%p: Destroying while refCount=%llx\n", this, refCount );
-    if ( unparsedEntitiesMap )
-      delete ( unparsedEntitiesMap );
-  }
+        AssertBug(refCount == 0, "%p: Destroying while refCount=%llx\n", this, refCount);
+        if (unparsedEntitiesMap)
+            delete (unparsedEntitiesMap);
+    }
 
-  void Document::bindDocumentAllocator ( DocumentAllocator* allocator )
-  {
-    allocator->incrementRefCount(*this);
-    boundDocumentAllocator = allocator;
-  }
+    void
+    Document::bindDocumentAllocator (DocumentAllocator* allocator)
+    {
+        allocator->incrementRefCount(*this);
+        boundDocumentAllocator = allocator;
+    }
 
-  void Document::lockRefCount()
-  {
-    refCountMutex.lock ();
-  }
+    void
+    Document::lockRefCount ()
+    {
+        refCountMutex.lock();
+    }
 
-  void Document::unlockRefCount()
-  {
-    refCountMutex.unlock ();
-  }
+    void
+    Document::unlockRefCount ()
+    {
+        refCountMutex.unlock();
+    }
 
-  void Document::assertRefCountLocked()
-  {
-    refCountMutex.assertLocked();
-  }
+    void
+    Document::assertRefCountLocked ()
+    {
+        refCountMutex.assertLocked();
+    }
 
-  void Document::incrementRefCount ()
-  {
-    lockRefCount();
-    refCount++;
-    Log_RefCount ( "incrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
-    unlockRefCount();
-  }
+    void
+    Document::incrementRefCount ()
+    {
+        lockRefCount();
+        refCount++;
+        Log_RefCount ( "incrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
+        unlockRefCount();
+    }
 
-  void Document::decrementRefCount ()
-  {
-    lockRefCount();
-    AssertBug ( refCount, "Invalid zero refCount for document %p (role='%s')\n", this, getRole().c_str() );
-    refCount--;
-    Log_RefCount ( "decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
-    unlockRefCount();
-  }
+    void
+    Document::decrementRefCount ()
+    {
+        lockRefCount();
+        AssertBug(refCount, "Invalid zero refCount for document %p (role='%s')\n", this, getRole().c_str());
+        refCount--;
+        Log_RefCount ( "decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
+        unlockRefCount();
+    }
 
-  void Document::incrementRefCountLockLess ()
-  {
-    refCountMutex.assertLocked();
-    refCount++;
-    Log_RefCount ( "LOCKLESS decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
-  }
+    void
+    Document::incrementRefCountLockLess ()
+    {
+        refCountMutex.assertLocked();
+        refCount++;
+        Log_RefCount ( "LOCKLESS decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
+    }
 
-  void Document::decrementRefCountLockLess ()
-  {
-    refCountMutex.assertLocked();
-    AssertBug ( refCount, "Invalid zero refCount for document %p (role='%s')\n", this, getRole().c_str() );
-    refCount--;
-    Log_RefCount ( "LOCKLESS decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
-  }
+    void
+    Document::decrementRefCountLockLess ()
+    {
+        refCountMutex.assertLocked();
+        AssertBug(refCount, "Invalid zero refCount for document %p (role='%s')\n", this, getRole().c_str());
+        refCount--;
+        Log_RefCount ( "LOCKLESS decrementRefCount(this=%p, refCount=%llx)\n", this, refCount );
+    }
 
-  bool Document::isReferenced ()
-  {
-    bool res;
-    lockRefCount();
-    res = refCount != 0;
-    unlockRefCount();
-    return res;
-  }
+    bool
+    Document::isReferenced ()
+    {
+        bool res;
+        lockRefCount();
+        res = refCount != 0;
+        unlockRefCount();
+        return res;
+    }
 
-  void Document::housewife ()
-  {
-    Log_Document ( "Document::housewife : Nothing to do in default Document implementation !\n" );
-  }
+    void
+    Document::housewife ()
+    {
+        Log_Document ( "Document::housewife : Nothing to do in default Document implementation !\n" );
+    }
 
 #if 0
-  void Document::release ()
-  {
+    void Document::release ()
+    {
 #ifdef __XEM_DOCUMENT_HAS_REFCOUNT
-    decrementRefCount ();
-    if ( isReferenced() ) return;
+        decrementRefCount ();
+        if ( isReferenced() ) return;
 #endif 
-    delete ( this );
-  }
+        delete ( this );
+    }
 #endif
-  
-  bool Document::createRootElement ()
-  {
-    AssertBug ( rootElementPtr == NullPtr, "Root Element already defined !\n" );
-    
-    ElementRef nullElement = ElementRef ( *this );
-    ElementRef rootElement = createElement ( nullElement, store.getKeyCache().getBuiltinKeys().xemint.root(),
-        getFreeElementId() );
-    
-    rootElementPtr = rootElement.getElementPtr ();
 
-    alterDocumentHead ();
-    getDocumentHead().rootElementPtr = rootElementPtr;
-    getDocumentHead().elements = 1;
-    protectDocumentHead ();
+    bool
+    Document::createRootElement ()
+    {
+        AssertBug(rootElementPtr == NullPtr, "Root Element already defined !\n");
 
-    if ( mayIndex() )
-      {
-        isIndexed = true;
-        SKMapConfig config;
-        config.maxLevel = 32;
+        ElementRef nullElement = ElementRef(*this);
+        ElementRef rootElement = createElement(nullElement, store.getKeyCache().getBuiltinKeys().xemint.root(),
+                                               getFreeElementId());
 
-        config.itemAllocProfile = 0x1e;
-        config.listAllocProfile = 0x1f;
+        rootElementPtr = rootElement.getElementPtr();
 
-        for ( __ui32 level = 0 ; level < config.maxLevel ; level++ )
-          config.probability[level] = 128;
+        alterDocumentHead();
+        getDocumentHead().rootElementPtr = rootElementPtr;
+        getDocumentHead().elements = 1;
+        protectDocumentHead();
 
-        rootElement.addSKMap ( store.getKeyCache().getBuiltinKeys().xemint.element_map(), config, SKMapType_ElementMultiMap );
-        
-        /*
-         * The root element was created with isIndexed=false, so we have to index it now.
-         */
-        indexElementById ( rootElement );
-      }
-    rootElement.addNamespaceAlias ( store.getKeyCache().getBuiltinKeys().xml.defaultPrefix(),
-      store.getKeyCache().getBuiltinKeys().xml.ns() );
-    return true;
-  }
+        if (mayIndex())
+        {
+            isIndexed = true;
+            SKMapConfig config;
+            config.maxLevel = 32;
 
-  ElementRef Document::getRootElement ()
-  {
-    AssertBug ( rootElementPtr, "Null Document !\n" );
-    return ElementRef ( *this, rootElementPtr );
-  }
-  
+            config.itemAllocProfile = 0x1e;
+            config.listAllocProfile = 0x1f;
 
-  String Document::getDocumentTag()
-  {
-    String tag;
-    String uri = getDocumentURI();
-    if ( uri.c_str() && *uri.c_str() )
-      {
-        stringPrintf(tag,"document(\"%s\")", uri.c_str() );
-      }
-    else if ( getBranchRevId().branchId )
-      {
-        stringPrintf(tag,"document(\"branch:%llx:%llx\",\"%s\")", _brid(getBranchRevId()), getRole().c_str() );
-      }
-    else
-      {
-        stringPrintf(tag,"volatile-document(%p,%s)", this, getRole().c_str() );
-      }
-    return tag;
-  }
+            for (__ui32 level = 0; level < config.maxLevel; level++)
+                config.probability[level] = 128;
 
-  String Document::getDocumentURI()
-  {
-    if ( ! getRootElement().hasAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_uri() ) )
-      return String();
-    return getRootElement().getAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_uri() );
-  }
+            rootElement.addSKMap(store.getKeyCache().getBuiltinKeys().xemint.element_map(), config,
+                                 SKMapType_ElementMultiMap);
 
-  
-  String Document::getDocumentBaseURI()
-  {
-    if ( ! getRootElement().hasAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri() ) )
-      return String();
-    return getRootElement().getAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri() );
-  }
-  
-  
-  void Document::setDocumentURI ( const String& uri )
-  {
-    char* baseURI = strdup(uri.c_str());
-    char* lastSeparator = strrchr ( baseURI, '/' );
-    if ( lastSeparator )
-      {
-        lastSeparator++;
-        *lastSeparator = '\0';
-      }
-    else
-      {
-        free ( baseURI );
-        baseURI = NULL;
-      }
-    ElementRef rootElement = getRootElement();
+            /*
+             * The root element was created with isIndexed=false, so we have to index it now.
+             */
+            indexElementById(rootElement);
+        }
+        rootElement.addNamespaceAlias(store.getKeyCache().getBuiltinKeys().xml.defaultPrefix(),
+                                      store.getKeyCache().getBuiltinKeys().xml.ns());
+        return true;
+    }
 
-    Log_Document ( "setDocumentURI : tag='%s', uri='%s', baseURI='%s'\n",
-      getDocumentTag().c_str(), uri.c_str(), baseURI );
+    ElementRef
+    Document::getRootElement ()
+    {
+        AssertBug(rootElementPtr, "Null Document !\n");
+        return ElementRef(*this, rootElementPtr);
+    }
 
-    rootElement.addAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_uri(), uri );
+    String
+    Document::getDocumentTag ()
+    {
+        String tag;
+        String uri = getDocumentURI();
+        if (uri.c_str() && *uri.c_str())
+        {
+            stringPrintf(tag, "document(\"%s\")", uri.c_str());
+        }
+        else if (getBranchRevId().branchId)
+        {
+            stringPrintf(tag, "document(\"branch:%llx:%llx\",\"%s\")", _brid(getBranchRevId()), getRole().c_str());
+        }
+        else
+        {
+            stringPrintf(tag, "volatile-document(%p,%s)", this, getRole().c_str());
+        }
+        return tag;
+    }
 
-    rootElement.addAttr ( getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri(), 
-      baseURI ? baseURI : "" );
-    
-    if ( baseURI ) free ( baseURI );
-  }
+    String
+    Document::getDocumentURI ()
+    {
+        if (!getRootElement().hasAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_uri()))
+            return String();
+        return getRootElement().getAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_uri());
+    }
 
-  /*
-   * *************************** Element Creation ************************
-   */
+    String
+    Document::getDocumentBaseURI ()
+    {
+        if (!getRootElement().hasAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri()))
+            return String();
+        return getRootElement().getAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri());
+    }
 
-  ElementRef Document::createElement ( ElementRef& fromElement, KeyId keyId )
-  {
-    return createElement  ( fromElement, keyId, isIndexed ? getFreeElementId() : 0 );
-  }
-  
-  ElementRef Document::createElement ( ElementRef& fromElement, KeyId keyId, ElementId elementId )
-  {
+    void
+    Document::setDocumentURI (const String& uri)
+    {
+        char* baseURI = strdup(uri.c_str());
+        char* lastSeparator = strrchr(baseURI, '/');
+        if (lastSeparator)
+        {
+            lastSeparator++;
+            *lastSeparator = '\0';
+        }
+        else
+        {
+            free(baseURI);
+            baseURI = NULL;
+        }
+        ElementRef rootElement = getRootElement();
+
+        Log_Document ( "setDocumentURI : tag='%s', uri='%s', baseURI='%s'\n",
+                getDocumentTag().c_str(), uri.c_str(), baseURI );
+
+        rootElement.addAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_uri(), uri);
+
+        rootElement.addAttr(getStore().getKeyCache().getBuiltinKeys().xemint.document_base_uri(),
+                            baseURI ? baseURI : "");
+
+        if (baseURI)
+            free(baseURI);
+    }
+
+    /*
+     * *************************** Element Creation ************************
+     */
+
+    ElementRef
+    Document::createElement (ElementRef& fromElement, KeyId keyId)
+    {
+        return createElement(fromElement, keyId, isIndexed ? getFreeElementId() : 0);
+    }
+
+    ElementRef
+    Document::createElement (ElementRef& fromElement, KeyId keyId, ElementId elementId)
+    {
 #if PARANOID
-    AssertBug ( isWritable(), "Document not writable !\n" );
-    AssertBug ( isLockedWrite(), "Document not locked write !\n" );
+        AssertBug ( isWritable(), "Document not writable !\n" );
+        AssertBug ( isLockedWrite(), "Document not locked write !\n" );
 #endif
-    AllocationProfile allocProfile = fromElement ? getDocumentAllocator().getAllocationProfile ( fromElement, keyId ) : 0;
-    ElementPtr eltPtr = getDocumentAllocator().getFreeSegmentPtr ( sizeof(ElementSegment), allocProfile );
-    ElementSegment* eltSeg = getDocumentAllocator().getSegment<ElementSegment,Write> ( eltPtr );
+        AllocationProfile allocProfile =
+                fromElement ? getDocumentAllocator().getAllocationProfile(fromElement, keyId) : 0;
+        ElementPtr eltPtr = getDocumentAllocator().getFreeSegmentPtr(sizeof(ElementSegment), allocProfile);
+        ElementSegment* eltSeg = getDocumentAllocator().getSegment<ElementSegment, Write>(eltPtr);
 
-    getDocumentAllocator().alter ( eltSeg );
-    memset ( eltSeg, 0, sizeof(ElementSegment) );
-    
-    eltSeg->keyId = keyId;
-    eltSeg->flags = ElementFlag_HasAttributesAndChildren;
-    eltSeg->id = elementId;
-    
-    getDocumentAllocator().protect ( eltSeg );
+        getDocumentAllocator().alter(eltSeg);
+        memset(eltSeg, 0, sizeof(ElementSegment));
 
-    ElementRef eltRef ( *this, eltPtr );
-    
-    indexElementById ( eltRef );
-    
-    return eltRef;
-  }
+        eltSeg->keyId = keyId;
+        eltSeg->flags = ElementFlag_HasAttributesAndChildren;
+        eltSeg->id = elementId;
 
-  ElementRef Document::createTextualNode ( ElementRef& fromElement, KeyId keyId, ElementId elementId )
-  {
-    AllocationProfile allocProfile = fromElement ? getDocumentAllocator().getAllocationProfile ( fromElement, keyId ) : 0;
-    ElementPtr eltPtr = getDocumentAllocator().getFreeSegmentPtr ( sizeof(ElementSegment), allocProfile );
-    ElementSegment* eltSeg = getDocumentAllocator().getSegment<ElementSegment,Write> ( eltPtr );
+        getDocumentAllocator().protect(eltSeg);
 
-    getDocumentAllocator().alter ( eltSeg );
-    memset ( eltSeg, 0, sizeof(ElementSegment) );
-    
-    eltSeg->keyId = keyId;
-    eltSeg->flags = ElementFlag_HasTextualContents;
-    eltSeg->id = elementId;
-    eltSeg->textualContents.size = 0;
-    getDocumentAllocator().protect ( eltSeg );
+        ElementRef eltRef(*this, eltPtr);
 
-    ElementRef eltRef ( *this, eltPtr );
-    
-    indexElementById ( eltRef );
-    
-    return eltRef;    
-  }
+        indexElementById(eltRef);
 
-  ElementRef Document::createTextNode ( ElementRef& fromElement, const char* text )
-  {
-    ElementRef newChild = createTextualNode ( fromElement, getKeyCache().getBuiltinKeys().xemint.textnode(), isIndexed ? getFreeElementId() : 0 );
-    newChild.setText ( text );
-    return newChild;
-  }
-  
-  ElementRef Document::createTextNode ( ElementRef& fromElement, const String& text )
-  {
-    return createTextNode(fromElement, text.c_str());
-  }
+        return eltRef;
+    }
 
-  ElementRef Document::createCommentNode ( ElementRef& fromElement, const char* comment )
-  {
-    ElementRef newChild = createTextualNode ( fromElement, getKeyCache().getBuiltinKeys().xemint.comment(), isIndexed ? getFreeElementId() : 0 );
-    newChild.setText ( comment );
-    return newChild;
-  }
-  
-  ElementRef Document::createPINode ( ElementRef& fromElement, const char* piName, const char* piContents )
-  {
-    KeyId keyId = KeyCache::getKeyId ( getKeyCache().getBuiltinKeys().xemint_pi.ns(),
-        getKeyCache().getKeyId ( 0, piName, true ) );
-    ElementRef newChild = createTextualNode ( fromElement, keyId, isIndexed ? getFreeElementId() : 0 );
-    newChild.setText ( piContents );
-    return newChild;
-  }
+    ElementRef
+    Document::createTextualNode (ElementRef& fromElement, KeyId keyId, ElementId elementId)
+    {
+        AllocationProfile allocProfile =
+                fromElement ? getDocumentAllocator().getAllocationProfile(fromElement, keyId) : 0;
+        ElementPtr eltPtr = getDocumentAllocator().getFreeSegmentPtr(sizeof(ElementSegment), allocProfile);
+        ElementSegment* eltSeg = getDocumentAllocator().getSegment<ElementSegment, Write>(eltPtr);
 
-  /*
-   * ******************************* Element Indexing **********************
-   */
-  inline SKMapHash elementId2SKMapHash ( ElementId elementId )
-  {
-    return ~(elementId >> 8);
-  }
+        getDocumentAllocator().alter(eltSeg);
+        memset(eltSeg, 0, sizeof(ElementSegment));
 
-  void Document::indexElementById ( ElementRef& eltRef )
-  {
-    if ( ! isIndexed ) return;
-  
-    ElementRef root = getRootElement();
+        eltSeg->keyId = keyId;
+        eltSeg->flags = ElementFlag_HasTextualContents;
+        eltSeg->id = elementId;
+        eltSeg->textualContents.size = 0;
+        getDocumentAllocator().protect(eltSeg);
 
-    AssertBug ( isLockedWrite(), "Document not locked write.\n" );
+        ElementRef eltRef(*this, eltPtr);
 
-    ElementMultiMapRef eltMap = root.findAttr ( store.getKeyCache().getBuiltinKeys().xemint.element_map(), AttributeType_SKMap );
-    if ( ! eltMap )
-      {
-        throwException ( Exception, "This context is not indexed ! getElementById() is illegal here.\n" );
-      }
-    ElementId elementId = eltRef.getElementId ();
-    AssertBug ( elementId, "Zero elementId !\n" );
-    SKMapHash hash = elementId2SKMapHash ( elementId );
-    Log_Document ( "skm : index elementId=%llx with hash=%llx\n", elementId, hash );
-    eltMap.put ( hash, eltRef );
-  }
+        indexElementById(eltRef);
 
-  void Document::unIndexElementById ( ElementRef& eltRef )
-  {
-    if ( ! isIndexed ) return;
+        return eltRef;
+    }
 
-    ElementRef root = getRootElement();
-    ElementMultiMapRef eltMap = root.findAttr ( store.getKeyCache().getBuiltinKeys().xemint.element_map(), AttributeType_SKMap );
-    AssertBug ( eltMap, "Document is not indexed !\n" );
+    ElementRef
+    Document::createTextNode (ElementRef& fromElement, const char* text)
+    {
+        ElementRef newChild = createTextualNode(fromElement, getKeyCache().getBuiltinKeys().xemint.textnode(),
+                                                isIndexed ? getFreeElementId() : 0);
+        newChild.setText(text);
+        return newChild;
+    }
 
-    SKMapHash hash = elementId2SKMapHash ( eltRef.getElementId() );
-    
-    eltMap.remove ( hash, eltRef );
-  }
+    ElementRef
+    Document::createTextNode (ElementRef& fromElement, const String& text)
+    {
+        return createTextNode(fromElement, text.c_str());
+    }
 
+    ElementRef
+    Document::createCommentNode (ElementRef& fromElement, const char* comment)
+    {
+        ElementRef newChild = createTextualNode(fromElement, getKeyCache().getBuiltinKeys().xemint.comment(),
+                                                isIndexed ? getFreeElementId() : 0);
+        newChild.setText(comment);
+        return newChild;
+    }
 
+    ElementRef
+    Document::createPINode (ElementRef& fromElement, const char* piName, const char* piContents)
+    {
+        KeyId keyId = KeyCache::getKeyId(getKeyCache().getBuiltinKeys().xemint_pi.ns(),
+                                         getKeyCache().getKeyId(0, piName, true));
+        ElementRef newChild = createTextualNode(fromElement, keyId, isIndexed ? getFreeElementId() : 0);
+        newChild.setText(piContents);
+        return newChild;
+    }
 
-  ElementRef Document::getElementById ( ElementId elementId )
-  {
-    if ( ! isIndexed )
-      {
-        throwException ( Exception, 
-            "This document (this=%p, tag='%s', role='%s') is not indexed ! getElementById(elementId=%llx) is illegal here.\n",
-            this, getDocumentTag().c_str(), getRole().c_str(), elementId );
-      }
+    /*
+     * ******************************* Element Indexing **********************
+     */
+    inline SKMapHash
+    elementId2SKMapHash (ElementId elementId)
+    {
+        return ~(elementId >> 8);
+    }
 
-    ElementRef root = getRootElement();
+    void
+    Document::indexElementById (ElementRef& eltRef)
+    {
+        if (!isIndexed)
+            return;
 
-    ElementMultiMapRef eltMap = root.findAttr ( store.getKeyCache().getBuiltinKeys().xemint.element_map(), AttributeType_SKMap );
-    AssertBug ( eltMap, "Document is not indexed !\n" );
+        ElementRef root = getRootElement();
 
-    SKMapHash hash = elementId2SKMapHash ( elementId );
-    __ui64 i = 0; (void) i;
-    Log_Document ( "elementId=%llx, hash=%llx\n", elementId, hash );
-    for ( ElementMultiMapRef::multi_iterator iter ( eltMap, hash ) ; iter ; iter++ )
-      {
-        Log_Document ( "Iterating to find elementId=%llx, hash=%llx, value=%llx, i=%llx\n",
-            elementId, hash, iter.getValue(), i++ );
-        AssertBug ( iter.getValue(), "Invalid value : '0x%llx\n", iter.getValue() );
-        ElementRef eltRef = eltMap.get ( iter );
-        if ( eltRef.getElementId() == elementId )
-            return eltRef;
-      }
+        AssertBug(isLockedWrite(), "Document not locked write.\n");
 
-    throwException ( Exception, 
-        "This document (this=%p, tag='%s', role='%s') has no elementId=%llx.\n",
-        this, getDocumentTag().c_str(), getRole().c_str(), elementId );
-    return ElementRefNull;
-  }
+        ElementMultiMapRef eltMap = root.findAttr(store.getKeyCache().getBuiltinKeys().xemint.element_map(),
+                                                  AttributeType_SKMap);
+        if (!eltMap)
+        {
+            throwException(Exception, "This context is not indexed ! getElementById() is illegal here.\n");
+        }
+        ElementId elementId = eltRef.getElementId();
+        AssertBug(elementId, "Zero elementId !\n");
+        SKMapHash hash = elementId2SKMapHash(elementId);
+        Log_Document ( "skm : index elementId=%llx with hash=%llx\n", elementId, hash );
+        eltMap.put(hash, eltRef);
+    }
 
-  ElementRef Document::getElementById ( const String& nodeIdStr )
-  {
-    return getElementById ( nodeIdStr.c_str() );
-  }
+    void
+    Document::unIndexElementById (ElementRef& eltRef)
+    {
+        if (!isIndexed)
+            return;
 
-  ElementRef Document::getElementById ( const char* nodeIdStr )
-  {
-    NotImplemented ( "Document complex getElementById(%s) not implemented.\n", nodeIdStr );
+        ElementRef root = getRootElement();
+        ElementMultiMapRef eltMap = root.findAttr(store.getKeyCache().getBuiltinKeys().xemint.element_map(),
+                                                  AttributeType_SKMap);
+        AssertBug(eltMap, "Document is not indexed !\n");
+
+        SKMapHash hash = elementId2SKMapHash(eltRef.getElementId());
+
+        eltMap.remove(hash, eltRef);
+    }
+
+    ElementRef
+    Document::getElementById (ElementId elementId)
+    {
+        if (!isIndexed)
+        {
+            throwException(
+                    Exception,
+                    "This document (this=%p, tag='%s', role='%s') is not indexed ! getElementById(elementId=%llx) is illegal here.\n",
+                    this, getDocumentTag().c_str(), getRole().c_str(), elementId);
+        }
+
+        ElementRef root = getRootElement();
+
+        ElementMultiMapRef eltMap = root.findAttr(store.getKeyCache().getBuiltinKeys().xemint.element_map(),
+                                                  AttributeType_SKMap);
+        AssertBug(eltMap, "Document is not indexed !\n");
+
+        SKMapHash hash = elementId2SKMapHash(elementId);
+        __ui64 i = 0;
+        (void) i;
+        Log_Document ( "elementId=%llx, hash=%llx\n", elementId, hash );
+        for (ElementMultiMapRef::multi_iterator iter(eltMap, hash); iter; iter++)
+        {
+            Log_Document ( "Iterating to find elementId=%llx, hash=%llx, value=%llx, i=%llx\n",
+                    elementId, hash, iter.getValue(), i++ );
+            AssertBug(iter.getValue(), "Invalid value : '0x%llx\n", iter.getValue());
+            ElementRef eltRef = eltMap.get(iter);
+            if (eltRef.getElementId() == elementId)
+                return eltRef;
+        }
+
+        throwException(Exception, "This document (this=%p, tag='%s', role='%s') has no elementId=%llx.\n", this,
+                       getDocumentTag().c_str(), getRole().c_str(), elementId);
+        return ElementRefNull;
+    }
+
+    ElementRef
+    Document::getElementById (const String& nodeIdStr)
+    {
+        return getElementById(nodeIdStr.c_str());
+    }
+
+    ElementRef
+    Document::getElementById (const char* nodeIdStr)
+    {
+        NotImplemented("Document complex getElementById(%s) not implemented.\n", nodeIdStr);
 #if 0
-    char role[128];
-    ElementId elementId;
-    if ( ! ElementRef::parseElementId ( nodeIdStr, role, elementId ) )
-      {
-        Warn ( "Invalid NodeId Format '%s'\n", nodeIdStr );
-        return NullPtr;
-      }    
-    if ( strcmp(getRole().c_str(),role) != 0 )
-      {
-        throwException ( Exception, "Invalid roles : said '%s', mine is '%s'\n", role, getRole().c_str() );    
-      }
-    return getElementById ( elementId );
+        char role[128];
+        ElementId elementId;
+        if ( ! ElementRef::parseElementId ( nodeIdStr, role, elementId ) )
+        {
+            Warn ( "Invalid NodeId Format '%s'\n", nodeIdStr );
+            return NullPtr;
+        }
+        if ( strcmp(getRole().c_str(),role) != 0 )
+        {
+            throwException ( Exception, "Invalid roles : said '%s', mine is '%s'\n", role, getRole().c_str() );
+        }
+        return getElementById ( elementId );
 #endif
-    return ElementRefNull;
-  }
+        return ElementRefNull;
+    }
 
-  ElementMultiMapRef Document::getKeyMapping ( KeyId keyNameId )
-  {
-    ElementRef root = getRootElement();
-    return ElementMultiMapRef(root.findAttr ( keyNameId, AttributeType_SKMap ));
-  }
+    ElementMultiMapRef
+    Document::getKeyMapping (KeyId keyNameId)
+    {
+        ElementRef root = getRootElement();
+        return ElementMultiMapRef(root.findAttr(keyNameId, AttributeType_SKMap));
+    }
 
-  ElementMultiMapRef Document::createKeyMapping ( KeyId keyNameId, SKMapConfig& config )
-  {
-    ElementRef root = getRootElement();
-    AttributeRef mapRef = root.addSKMap ( keyNameId, config, SKMapType_ElementMultiMap );
-    return ElementMultiMapRef ( mapRef );
-  }
-  
-  ElementMultiMapRef Document::createKeyMapping ( KeyId keyNameId )
-  {
-    SKMapConfig config;
-    SKMapRef::initDefaultSKMapConfig ( config );  
-    return createKeyMapping ( keyNameId, config );
-  }
+    ElementMultiMapRef
+    Document::createKeyMapping (KeyId keyNameId, SKMapConfig& config)
+    {
+        ElementRef root = getRootElement();
+        AttributeRef mapRef = root.addSKMap(keyNameId, config, SKMapType_ElementMultiMap);
+        return ElementMultiMapRef(mapRef);
+    }
 
-  ElementRef Document::getMetaElement ( bool create )
-  {
-    if ( ! getDocumentHead().metaElementPtr && create )
-      {
-        ElementRef root = getRootElement ();
-        ElementRef metaElement = createElement ( root, getKeyCache().getBuiltinKeys().xemint.document_meta() );
-        ElementPtr metaElementPtr = metaElement.getElementPtr ();
-        alterDocumentHead ();
-        getDocumentHead().metaElementPtr = metaElementPtr;
-        protectDocumentHead ();
-      }
-    ElementRef metaElement ( *this, getDocumentHead().metaElementPtr );
-    return metaElement;
-  }
+    ElementMultiMapRef
+    Document::createKeyMapping (KeyId keyNameId)
+    {
+        SKMapConfig config;
+        SKMapRef::initDefaultSKMapConfig(config);
+        return createKeyMapping(keyNameId, config);
+    }
 
-  DocumentMeta Document::getDocumentMeta ()
-  {
-    return getMetaElement(true);
-  }
+    ElementRef
+    Document::getMetaElement (bool create)
+    {
+        if (!getDocumentHead().metaElementPtr && create)
+        {
+            ElementRef root = getRootElement();
+            ElementRef metaElement = createElement(root, getKeyCache().getBuiltinKeys().xemint.document_meta());
+            ElementPtr metaElementPtr = metaElement.getElementPtr();
+            alterDocumentHead();
+            getDocumentHead().metaElementPtr = metaElementPtr;
+            protectDocumentHead();
+        }
+        ElementRef metaElement(*this, getDocumentHead().metaElementPtr);
+        return metaElement;
+    }
 
-  /*
-   * Misc
-   */
-  void Document::setUnparsedEntity ( const String& entityName_, const String& entityValue_ )
-  {
-    if ( unparsedEntitiesMap == NULL )
-      {
-        unparsedEntitiesMap = new UnparsedEntitiesMap();
-      }
-    String entityName = stringFromAllocedStr(strdup(entityName_.c_str()));
-    String entityValue = stringFromAllocedStr(strdup(entityValue_.c_str()));
-    (*unparsedEntitiesMap)[entityName] = entityValue;
-  }
+    DocumentMeta
+    Document::getDocumentMeta ()
+    {
+        return getMetaElement(true);
+    }
 
-  String Document::getUnparsedEntity ( const String& entityName )
-  {
-    if ( ! unparsedEntitiesMap )
-      return String ("");
-    UnparsedEntitiesMap::iterator iter = unparsedEntitiesMap->find ( entityName );
-    if ( iter == unparsedEntitiesMap->end() )
-      return String ("");
-    return iter->second;
-  }
-};
+    /*
+     * Misc
+     */
+    void
+    Document::setUnparsedEntity (const String& entityName_, const String& entityValue_)
+    {
+        if (unparsedEntitiesMap == NULL)
+        {
+            unparsedEntitiesMap = new UnparsedEntitiesMap();
+        }
+        String entityName = stringFromAllocedStr(strdup(entityName_.c_str()));
+        String entityValue = stringFromAllocedStr(strdup(entityValue_.c_str()));
+        (*unparsedEntitiesMap)[entityName] = entityValue;
+    }
+
+    String
+    Document::getUnparsedEntity (const String& entityName)
+    {
+        if (!unparsedEntitiesMap)
+            return String("");
+        UnparsedEntitiesMap::iterator iter = unparsedEntitiesMap->find(entityName);
+        if (iter == unparsedEntitiesMap->end())
+            return String("");
+        return iter->second;
+    }
+}
+;

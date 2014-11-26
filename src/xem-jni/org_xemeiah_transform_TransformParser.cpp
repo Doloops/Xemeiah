@@ -35,9 +35,8 @@ Java_org_xemeiah_transform_TransformParser_doParse (JNIEnv *ev, jobject jTransfo
     AssertBug(jElement != NULL, "Null jElement !");
 
     jobject jDocument = jNode2JDocument(ev, jElement);
-    jobject jFactory = jDocument2JDocumentFactory(ev, jDocument);
 
-    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
+    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
 
     Xem::ElementRef root = jElement2ElementRef(ev, jElement);
 

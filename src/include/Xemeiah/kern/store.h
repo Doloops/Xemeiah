@@ -103,6 +103,11 @@ namespace Xem
      */
     std::list<void*> volatileAreas;
 
+    /**
+     * Maximum size of Volatile Areaos
+     */
+    static const size_t volatileAreasCacheSize = 200;
+
     /** 
      * Lock to protect volatileDocumentAreas
      */

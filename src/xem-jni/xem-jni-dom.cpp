@@ -11,6 +11,7 @@
 #include <Xemeiah/trace.h>
 #include <Xemeiah/log.h>
 #include <Xemeiah/dom/nodeset.h>
+#include <Xemeiah/xprocessor/xprocessor.h>
 
 #include <Xemeiah/auto-inline.hpp>
 
@@ -53,10 +54,11 @@ jXPathEvaluator2JDocumentFactory (JNIEnv* ev, jobject jXPathEvaluator)
 }
 
 Xem::XProcessor*
-jDocumentFactory2XProcessor (JNIEnv* ev, jobject jDocumentFactory)
+jDocument2XProcessor (JNIEnv* ev, jobject jDocument)
 {
-    Xem::XProcessor* xprocessor = (Xem::XProcessor*) (ev->GetLongField(jDocumentFactory,
-                                                                       getXemJNI().documentFactory.__xprocessorPtr(ev)));
+    AssertBug(ev->IsInstanceOf(jDocument, getXemJNI().document.getClass(ev)), "Invalid class for jDocument !");
+    Xem::XProcessor* xprocessor = (Xem::XProcessor*) (ev->GetLongField(jDocument,
+                                                                       getXemJNI().document.__xprocessorPtr(ev)));
     return xprocessor;
 }
 
@@ -106,18 +108,44 @@ attributeRef2JAttribute (JNIEnv* ev, jobject documentObject, Xem::AttributeRef& 
 }
 
 jobject
-document2JDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document)
+createJDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document, Xem::XProcessor* xprocessor)
 {
     jobject jDocument = ev->NewObject(getXemJNI().document.getClass(ev), getXemJNI().document.constructor(ev), jFactory,
-                                      (jlong) (document));
+                                      (jlong) document, (jlong) xprocessor);
+    // ev->SetLongField(jDocument, getXemJNI().node.nodePtr(ev), (jlong) document->getRootElement().getElementPtr());
+    Info("Created JDocument at %p for document %p, xprocessor %p\n", jDocument, document, xprocessor);
     return jDocument;
 }
 
 void
-initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store, Xem::XProcessor* xprocessor)
+cleanupJDocument (JNIEnv *ev, jobject jDocument)
+{
+    Info("Cleanup JDocument at %p\n", jDocument);
+    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+    if (xprocessor != NULL)
+    {
+        Info("Delete XProcessor at %p\n", xprocessor);
+        ev->SetLongField(jDocument, getXemJNI().document.__xprocessorPtr(ev), (jlong) 0);
+        delete (xprocessor);
+    }
+
+    Xem::Document* doc = jDocument2Document(ev, jDocument);
+    if (doc != NULL)
+    {
+        Info("Document still exists ! jDocument=%p, doc=%p\n", jDocument, doc);
+        ev->SetLongField(jDocument, getXemJNI().document.__documentPtr(ev), (jlong) 0);
+
+        jobject jDocumentFactory = jDocument2JDocumentFactory(ev, jDocument);
+        Xem::Store* store = jDocumentFactory2Store(ev, jDocumentFactory);
+        store->releaseDocument(doc);
+    }
+}
+
+void
+initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store)
 {
     ev->SetLongField(jFactory, getXemJNI().documentFactory.__storePtr(ev), (jlong) store);
-    ev->SetLongField(jFactory, getXemJNI().documentFactory.__xprocessorPtr(ev), (jlong) xprocessor);
 }
 
 Xem::Store*
@@ -181,7 +209,7 @@ jElement2ElementRef (JNIEnv* ev, jobject jElement)
 
     jlong elementPtr = ev->GetLongField(jElement, getXemJNI().node.nodePtr(ev));
 
-    AssertBug(elementPtr, "Null ElementPtr !\n");
+    AssertBug(elementPtr, "Null ElementPtr for jElement=%p, jDocument=%p, doc=%p!\n", jElement, jDocument, doc);
 
     Xem::ElementRef eltRef = Xem::ElementRefConstructor(*doc, elementPtr);
     return eltRef;
@@ -242,19 +270,22 @@ jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList)
 }
 
 jobject
-xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath, jobject jFactory)
+createJXPathExpression (JNIEnv* ev, Xem::XPathParser* xpathParser, jobject jFactory)
 {
     jobject jXPathExpression = ev->NewObject(getXemJNI().xpathExpression.getClass(ev),
-                                             getXemJNI().xpathExpression.constructor(ev), (jlong) xpath, jFactory);
-    Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpath, jXPathExpression);
+                                             getXemJNI().xpathExpression.constructor(ev), (jlong) xpathParser,
+                                             jFactory);
+    Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpathParser, jXPathExpression);
     return jXPathExpression;
 }
 
-Xem::XPath*
-jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression)
+Xem::XPathParser*
+jXPathExpression2XPathParser (JNIEnv* ev, jobject jXPathExpression)
 {
     jlong ptr = ev->GetLongField(jXPathExpression, getXemJNI().xpathExpression.__xpathPtr(ev));
-    Xem::XPath* xpath = (Xem::XPath*) (ptr);
+
+    //    AssertBug(dynamic_cast<Xem::XPathParser*>((void*)ptr) != NULL, "Pointer %llx not a valid XPathParser !", ptr);
+    Xem::XPathParser* xpath = (Xem::XPathParser*) (ptr);
     Log("[ev=%p], xpath=%p, jXPath=%p\n", ev, xpath, jXPathExpression);
     return xpath;
 }
@@ -277,8 +308,8 @@ jthrowable
 exception2JDOMException (JNIEnv* ev, const char* message)
 {
     jstring msg = ev->NewStringUTF(message);
-    return (jthrowable) ev->NewObject(getXemJNI().domException.getClass(ev),
-                                      getXemJNI().domException.constructor(ev), (jshort) 0, msg);
+    return (jthrowable) ev->NewObject(getXemJNI().domException.getClass(ev), getXemJNI().domException.constructor(ev),
+                                      (jshort) 0, msg);
 }
 
 jthrowable

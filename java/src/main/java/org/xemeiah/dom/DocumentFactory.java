@@ -12,6 +12,10 @@ import org.xml.sax.SAXException;
 public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
 {
     private final XemParser xemParser = new XemParser();
+
+    private long __storePtr = 0;
+
+    public native void openVolatile();
     
     public native void format(String fileName);
     
@@ -21,10 +25,6 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
     
     public native void releaseDocument(Document document);
 
-    private long __storePtr = 0;
-
-    private long __xprocessorPtr = 0;
-    
     static
     {
         System.loadLibrary("xemeiah");
@@ -70,30 +70,26 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
     }
 
     @Override
-    public DOMImplementation getDOMImplementation()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public native boolean isNamespaceAware();
 
     @Override
     public native boolean isValidating();
 
     @Override
+    public DOMImplementation getDOMImplementation()
+    {
+        throw new RuntimeException("Not implemented : getDOMImplementation()");
+    }
+
+    @Override
     public void setEntityResolver(EntityResolver er)
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("Not implemented : setEntityResolver()");
     }
 
     @Override
     public void setErrorHandler(ErrorHandler eh)
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("Not implemented : setErrorHandler()");
     }
-
 }

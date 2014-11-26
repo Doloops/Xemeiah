@@ -21,21 +21,28 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_openVolatile
+  (JNIEnv *ev, jobject jFactory)
+{
+    Xem::Store* store = new Xem::VolatileStore();
+    initDocumentFactory(ev, jFactory, store);
+}
+
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_format (JNIEnv *ev, jobject jFactory, jstring jFilename)
 {
-    Xem::PersistentStore* pStore = new Xem::PersistentStore();
+    Xem::PersistentStore* persistentStore = new Xem::PersistentStore();
 
     jboolean isCopy = false;
     const char* cfilename = ev->GetStringUTFChars(jFilename, &isCopy);
 
-    if (!pStore->format(cfilename))
+    if (!persistentStore->format(cfilename))
     {
         Error("Could not format !\n");
         ev->ThrowNew(getXemJNI().javaLangRuntimeException.getClass(ev), "Could not format file !");
     }
     ev->ReleaseStringUTFChars(jFilename, cfilename);
-    delete (pStore);
+    delete (persistentStore);
 }
 
 JNIEXPORT void JNICALL
@@ -51,15 +58,16 @@ Java_org_xemeiah_dom_DocumentFactory_open (JNIEnv *ev, jobject jFactory, jstring
         Error("Could not open file %s\n", cfilename);
         ev->ReleaseStringUTFChars(jFilename, cfilename);
         ev->ThrowNew(getXemJNI().javaLangRuntimeException.getClass(ev), "Could not open file !");
+        delete (persistentStore);
         return;
     }
     ev->ReleaseStringUTFChars(jFilename, cfilename);
     persistentStore->dropUncommittedRevisions();
 
-    Xem::XProcessor* xprocessor = new Xem::XProcessor(*persistentStore);
-    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
+//    Xem::XProcessor* xprocessor = new Xem::XProcessor(*persistentStore);
+//    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
 
-    initDocumentFactory(ev, jFactory, persistentStore, xprocessor);
+    initDocumentFactory(ev, jFactory, persistentStore);
 }
 
 JNIEXPORT void JNICALL
@@ -73,69 +81,9 @@ Java_org_xemeiah_dom_DocumentFactory_createBranch (JNIEnv *ev, jobject jFactory,
     store->getBranchManager().createBranch(branchName, branchFlags);
 }
 
-#if 0
-JNIEXPORT void JNICALL
-Java_org_xemeiah_dom_DocumentFactory_initStore (JNIEnv* ev, jobject jFactory, jstring filename)
-{
-    XemJniInit(ev);
-
-    Info("Init Store (C++) Xemeiah Version '%s'!\n", __XEM_VERSION);
-    Info("Sizes : (void*)=%lu, jint=%lu, jlong=%lu\n", sizeof(void*), sizeof(jint), sizeof(jlong));
-
-    AssertBug(jDocumentFactory2Store(ev, jFactory) == NULL, "Already initialized !\n");
-
-    Xem::Store* store = NULL;
-    if (filename == NULL)
-    {
-        store = new Xem::VolatileStore();
-    }
-    else
-    {
-        Xem::PersistentStore* pStore = new Xem::PersistentStore();
-
-        jboolean isCopy = false;
-        const char* cfilename = ev->GetStringUTFChars(filename, &isCopy);
-
-        Info("Opening file '%s'\n", cfilename);
-        if (pStore->open(cfilename))
-        {
-            pStore->dropUncommittedRevisions();
-        }
-        else
-        {
-            Info("Could not open, trying format\n");
-            if (!pStore->format(cfilename))
-            {
-                Info("Could not format !\n");
-                return;
-            }
-            else
-            {
-                Xem::String mainBranch("main");
-                Xem::BranchFlags branchFlags = 0;
-                pStore->getBranchManager().createBranch(mainBranch, branchFlags);
-            }
-        }
-        ev->ReleaseStringUTFChars(filename, cfilename);
-
-        store = pStore;
-    }
-
-    Xem::XProcessor* xprocessor = new Xem::XProcessor(*store);
-    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
-
-    Log("jFactory=%p, Store : %p, XProcessor : %p\n", jFactory, store, xprocessor);
-    initDocumentFactory(ev, jFactory, store, xprocessor);
-}
-#endif
-
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_close (JNIEnv *ev, jobject jFactory)
 {
-#if 1
-    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
-    delete (xprocessor);
-
     Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
 
     Xem::PersistentStore* pStore = dynamic_cast<Xem::PersistentStore*>(store);
@@ -144,10 +92,9 @@ Java_org_xemeiah_dom_DocumentFactory_close (JNIEnv *ev, jobject jFactory)
         Log("Closing PersistentStore at %p\n", pStore);
         pStore->close();
     }
-    // delete (store);
-#endif
+    delete (store);
 
-    initDocumentFactory(ev, jFactory, NULL, NULL);
+    initDocumentFactory(ev, jFactory, NULL);
 }
 
 JNIEXPORT jobject JNICALL
@@ -177,7 +124,10 @@ Java_org_xemeiah_dom_DocumentFactory_newStandaloneDocument (JNIEnv *ev, jobject 
     ev->ReleaseStringUTFChars(jBranchFlags, cFlags);
     document->incrementRefCount();
 
-    jobject jDocument = document2JDocument(ev, jFactory, document);
+    Xem::XProcessor* xprocessor = new Xem::XProcessor(*store);
+    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
+
+    jobject jDocument = createJDocument(ev, jFactory, document, xprocessor);
 
     Log("DocumentFactory : jFactory=%p, new document=%p, jDocument=%p\n", jFactory, document, jDocument);
     return jDocument;
@@ -189,7 +139,12 @@ Java_org_xemeiah_dom_DocumentFactory_newVolatileDocument (JNIEnv *ev, jobject jF
     Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
     Xem::Document* document = store->createVolatileDocument();
     document->incrementRefCount();
-    jobject jDocument = document2JDocument(ev, jFactory, document);
+    Log("Root element at : %llx\n", document->getRootElement().getElementPtr());
+
+    Xem::XProcessor* xprocessor = new Xem::XProcessor(*store);
+    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
+
+    jobject jDocument = createJDocument(ev, jFactory, document, xprocessor);
     return jDocument;
 }
 
@@ -197,15 +152,8 @@ JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_releaseDocument (JNIEnv *ev, jobject jFactory, jobject jDocument)
 {
     Log("releaseDocument(%p)\n", jDocument);
-
-    Xem::Document* doc = jDocument2Document(ev, jDocument);
-
-    Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
-
-    store->releaseDocument(doc);
-    // store->housewife();
+    cleanupJDocument(ev, jDocument);
     Log("releaseDocument(%p) : done.\n", jDocument);
-
 }
 
 JNIEXPORT jboolean JNICALL
@@ -224,7 +172,9 @@ JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_process (JNIEnv *ev, jobject jFactory, jobject jElement, jobject jNodeList)
 {
     Xem::ElementRef eltRef = jElement2ElementRef(ev, jElement);
-    Xem::XProcessor * xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
+    jobject jDocument = jNode2JDocument(ev, jElement);
+
+    Xem::XProcessor * xprocessor = jDocument2XProcessor(ev, jDocument);
     Xem::NodeSet* nodeSet = jNodeList2NodeSet(ev, jNodeList);
 
     xprocessor->pushEnv();

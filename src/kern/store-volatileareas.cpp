@@ -20,78 +20,86 @@
 #include <string.h>
 #include <errno.h>
 
-#define Log_VolatileArea Debug
+#define Log_VolatileArea Info
 
 namespace Xem
 {
-  void*
-  Store::getVolatileArea()
-  {
-    Lock lock ( volatileAreasMutex  );
-    if (!volatileAreas.empty())
-      {
-        void* area = volatileAreas.front();
-        volatileAreas.pop_front();
-        Log_VolatileArea ( "Providing area=%p from volatileAreas cache, volatileAreas size=%lu.\n",
-            area, (unsigned long) volatileAreas.size() );
-        stats.numberOfVolatileAreasProvided++;
-        return area;
-      }
+    void*
+    Store::getVolatileArea ()
+    {
+        Lock lock(volatileAreasMutex);
+        if (!volatileAreas.empty())
+        {
+            void* area = volatileAreas.front();
+            volatileAreas.pop_front();
+            Log_VolatileArea ( "Providing area=%p from volatileAreas cache, volatileAreas size=%lu.\n",
+                    area, (unsigned long) volatileAreas.size() );
+            stats.numberOfVolatileAreasProvided++;
+            return area;
+        }
 #ifdef __XEM_STORE_VOLATILEAREAS_USE_MMAP
-    if (volatileAreasFD == -1)
-      {
-        static const char* tempFile = "/dev/zero";
-        volatileAreasFD = open(tempFile, O_RDWR);
         if (volatileAreasFD == -1)
-          {
-            Bug ( "Could not open volatileAreasFD ! error=%d:%s\n", errno, strerror(errno) );
-          }
-      }
-    void* area = mmap(NULL, DocumentAllocator::getAreaSize(),
+        {
+            static const char* tempFile = "/dev/zero";
+            volatileAreasFD = open(tempFile, O_RDWR);
+            if (volatileAreasFD == -1)
+            {
+                Bug ( "Could not open volatileAreasFD ! error=%d:%s\n", errno, strerror(errno) );
+            }
+        }
+        void* area = mmap(NULL, DocumentAllocator::getAreaSize(),
 #ifdef XEM_MEM_PROTECT_SYS
-        PROT_READ
+                PROT_READ
 #else
-        PROT_READ | PROT_WRITE
+                PROT_READ | PROT_WRITE
 #endif
-        , MAP_PRIVATE, volatileAreasFD, 0);
-    if (area == MAP_FAILED)
-      {
-        Bug ( "Could not map VolatileArea. error = %d:%s\n", errno, strerror(errno) );
-      }
+                , MAP_PRIVATE, volatileAreasFD, 0);
+        if (area == MAP_FAILED)
+        {
+            Bug ( "Could not map VolatileArea. error = %d:%s\n", errno, strerror(errno) );
+        }
 #else
-    void* area = malloc ( DocumentAllocator::getAreaSize() );
+        // void* area = malloc(DocumentAllocator::getAreaSize());
+        void* area = NULL;
+        int res = posix_memalign(&area, PageSize, DocumentAllocator::getAreaSize());
+        if ( res != 0 )
+        {
+            Bug ("Could not posix_memalign (PagSize=%llx, getAreaSize()=%llx, res=%d\n", PageSize,  DocumentAllocator::getAreaSize(), res);
+        }
+
 #endif
 
 #if 0 // INJECTING RANDOM STUFF HERE
-    int randomFd = open ( "/dev/urandom", O_RDONLY );
-    read ( randomFd, area, DocumentAllocator::getAreaSize() );
-    ::close ( randomFd );
+        int randomFd = open ( "/dev/urandom", O_RDONLY );
+        read ( randomFd, area, DocumentAllocator::getAreaSize() );
+        ::close ( randomFd );
 #endif
-    stats.numberOfVolatileAreasCreated++;
-    Log_VolatileArea ( "Providing area=%p from new map, stats.numberOfVolatileAreasCreated=%llu.\n",
-        area, stats.numberOfVolatileAreasCreated );
-    return area;
-  }
+        stats.numberOfVolatileAreasCreated++;
+        Log_VolatileArea ( "Providing area=%p, stats.numberOfVolatileAreasCreated=%llu, stats.numberOfVolatileAreasDeleted=%llu\n",
+                area, stats.numberOfVolatileAreasCreated, stats.numberOfVolatileAreasDeleted );
+        return area;
+    }
 
-  void
-  Store::releaseVolatileArea(void* area)
-  {
-    size_t volatileAreasBufferSize = 20;
-    Lock lock ( volatileAreasMutex );
-    if (volatileAreas.size() < volatileAreasBufferSize)
-      {
-        volatileAreas.push_back(area);
-        Log_VolatileArea ( "Releasing area=%p to volatileAreas cache.\n", area );
-      }
-    else
-      {
-        Log_VolatileArea ( "Unmapping area=%p.\n", area );
+    void
+    Store::releaseVolatileArea (void* area)
+    {
+        Lock lock(volatileAreasMutex);
+        if (volatileAreas.size() < volatileAreasCacheSize)
+        {
+            volatileAreas.push_back(area);
+            Log_VolatileArea ( "Releasing area=%p to volatileAreas cache.\n", area );
+        }
+        else
+        {
+            Log_VolatileArea ( "Unmapping area=%p, stats.numberOfVolatileAreasCreated=%llu, stats.numberOfVolatileAreasDeleted=%llu\n",
+                    area, stats.numberOfVolatileAreasCreated, stats.numberOfVolatileAreasDeleted );
 #ifdef __XEM_STORE_VOLATILEAREAS_USE_MMAP
-        munmap(area, DocumentAllocator::getAreaSize());
+            munmap(area, DocumentAllocator::getAreaSize());
 #else
-        free ( area );
+            free(area);
 #endif
-        stats.numberOfVolatileAreasDeleted++;
-      }
-  }
-};
+            stats.numberOfVolatileAreasDeleted++;
+        }
+    }
+}
+;

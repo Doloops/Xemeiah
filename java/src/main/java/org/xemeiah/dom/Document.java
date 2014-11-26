@@ -19,67 +19,73 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(Document.class);
 
-    private Document(DocumentFactory documentFactory, long __documentPtr)
-    {
-        super(null, 0);
-        
-        // LOGGER.info("New " + Document.class.getName() + " with documentFactory=" + documentFactory + ", __documentPtr=0x" + Long.toHexString(__documentPtr));
-        
-        this.document = this;
-        this.documentFactory = documentFactory;
-        this.__documentPtr = __documentPtr;
-    }
+    private final DocumentFactory documentFactory;
 
     private final long __documentPtr;
 
-    private final DocumentFactory documentFactory;
+    private final long __xprocessorPtr;
+
+    private Document(DocumentFactory documentFactory, long __documentPtr, long __xprocessorPtr)
+    {
+        super(null, 0);
+
+        this.document = this;
+        this.documentFactory = documentFactory;
+        this.__documentPtr = __documentPtr;
+        this.__xprocessorPtr = __xprocessorPtr;
+    }
+
+    private native void cleanUp();
+
+    protected void finalize()
+    {
+        cleanUp();
+    }
 
     public final DocumentFactory getDocumentFactory()
     {
         return documentFactory;
     }
 
-    private long getDocumentPtr()
-    {
-        return this.__documentPtr;
-    }
-
     public native void commit();
 
     public native void reopen();
 
+    @Override
     public short getNodeType()
     {
         return org.w3c.dom.Node.DOCUMENT_NODE;
     }
 
+    @Override
     public native String toString();
 
+    @Override
     public native String getBaseURI();
 
-    // public native void serializeTo ( OutputStream out );
+    @Override
     public void serializeTo(java.io.OutputStream out) throws TransformerException
     {
         getDocumentElement().serializeTo(out);
     }
 
     @Override
-    public Node adoptNode(Node source) throws DOMException
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     public org.xemeiah.dom.Attr createAttribute(String name) throws DOMException
     {
         return createAttributeNS(null, name);
     }
 
+    @Override
     public native org.xemeiah.dom.Attr createAttributeNS(String namespaceURI, String qualifiedName) throws DOMException;
 
+    @Override
     public native org.xemeiah.dom.CDATASection createCDATASection(String data) throws DOMException;
 
+    @Override
     public native org.xemeiah.dom.Comment createComment(String data);
+
+    @Override
+    public native Text createTextNode(String data) throws DOMException;
 
     @Override
     public DocumentFragment createDocumentFragment()
@@ -97,27 +103,35 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public native Element createElementNS(String namespaceURI, String qualifiedName) throws DOMException;
 
+    /*
+     * **************************************************************************
+     * ********* Everything beyond this point is just NOT IMPLEMENTED ! ********* 
+     * **************************************************************************
+     */
+    
+    @Override
+    public Node adoptNode(Node source) throws DOMException
+    {
+        throw new RuntimeException("NOT IMPLEMENTED !");
+    }
+    
+    
     @Override
     public EntityReference createEntityReference(String name) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public ProcessingInstruction createProcessingInstruction(String target, String data) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
-
-    @Override
-    public native Text createTextNode(String data) throws DOMException;
 
     @Override
     public DocumentType getDoctype()
     {
-        throw new RuntimeException ("NOT IMPLEMENTED !");
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
@@ -126,13 +140,13 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public String getDocumentURI()
     {
-        throw new RuntimeException ("NOT IMPLEMENTED !");
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public DOMConfiguration getDomConfig()
     {
-        throw new RuntimeException ("NOT IMPLEMENTED !");
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
@@ -141,90 +155,78 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public DOMImplementation getImplementation()
     {
-        throw new RuntimeException ("NOT IMPLEMENTED !");
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String getInputEncoding()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean getStrictErrorChecking()
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String getXmlEncoding()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public boolean getXmlStandalone()
     {
-        // TODO Auto-generated method stub
-        return false;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public String getXmlVersion()
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public Node importNode(Node importedNode, boolean deep) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void normalizeDocument()
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public Node renameNode(Node n, String namespaceURI, String qualifiedName) throws DOMException
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void setDocumentURI(String documentURI)
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void setStrictErrorChecking(boolean strictErrorChecking)
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void setXmlStandalone(boolean xmlStandalone) throws DOMException
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
     @Override
     public void setXmlVersion(String xmlVersion) throws DOMException
     {
-        // TODO Auto-generated method stub
-
+        throw new RuntimeException("NOT IMPLEMENTED !");
     }
 }

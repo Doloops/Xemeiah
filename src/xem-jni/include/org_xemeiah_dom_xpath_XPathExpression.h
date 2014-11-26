@@ -17,35 +17,11 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_cleanUp
 
 /*
  * Class:     org_xemeiah_dom_xpath_XPathExpression
- * Method:    evaluate
- * Signature: (Lorg/w3c/dom/Node;SLjava/lang/Object;)Ljava/lang/Object;
+ * Method:    doEvaluateExpression
+ * Signature: (Lorg/w3c/dom/Node;Ljava/util/Map;)Ljava/lang/Object;
  */
-JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_evaluate
-  (JNIEnv *, jobject, jobject, jshort, jobject);
-
-/*
- * Class:     org_xemeiah_dom_xpath_XPathExpression
- * Method:    pushEnv
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_pushEnv
-  (JNIEnv *, jobject);
-
-/*
- * Class:     org_xemeiah_dom_xpath_XPathExpression
- * Method:    popEnv
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_popEnv
-  (JNIEnv *, jobject);
-
-/*
- * Class:     org_xemeiah_dom_xpath_XPathExpression
- * Method:    setVariable
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)V
- */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_setVariable
-  (JNIEnv *, jobject, jstring, jobject);
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_xpath_XPathExpression_doEvaluateExpression
+  (JNIEnv *, jobject, jobject, jobject);
 
 #ifdef __cplusplus
 }

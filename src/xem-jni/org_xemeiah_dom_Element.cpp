@@ -190,8 +190,7 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_Element_triggerElementEnd
     Xem::ElementRef me = jElement2ElementRef(ev, jElement);
 
     jobject jDocument = jNode2JDocument(ev, jElement);
-    jobject jDocumentFactory = jDocument2JDocumentFactory(ev, jDocument);
-    Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jDocumentFactory);
+    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
 
     Log("Trigger event : %s\n", me.generateVersatileXPath().c_str());
 

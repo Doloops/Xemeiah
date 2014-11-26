@@ -1,5 +1,9 @@
 package org.xemeiah.test;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +24,13 @@ public class TestXPath
     public void setUp()
     {
         documentFactory = new DocumentFactory();
+        documentFactory.openVolatile();
+    }
+
+    @After
+    public void tearDown()
+    {
+        System.gc();
     }
     
     @Test
@@ -95,10 +106,13 @@ public class TestXPath
         Text text = doc.createTextNode("Hello");
         elt2.appendChild(text);
         
-        expression.pushEnv();
-        expression.setVariable("arg", "MyValue");
-        NodeList nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
-        expression.popEnv();
+//        expression.pushEnv();
+//        expression.setVariable("arg", "MyValue");
+//        NodeList nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
+//        expression.popEnv();
+        Map<String, Object> variableMap = new HashMap<>();
+        variableMap.put("arg", "MyValue");
+        NodeList nodeList = (NodeList) expression.evaluate(elt, variableMap);
         
         Assert.assertEquals(1, nodeList.getLength());
         
@@ -108,10 +122,14 @@ public class TestXPath
         
         expression = evaluator.createExpression("/*/*[local-name()=$arg]", nsResolver);
         
-        expression.pushEnv();
-        expression.setVariable("arg", "key2");
-        nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
-        expression.popEnv();
+//        expression.pushEnv();
+//        expression.setVariable("arg", "key2");
+//        nodeList = (NodeList) expression.evaluate(elt, (short)0, null);
+//        expression.popEnv();
+
+        variableMap = new HashMap<>();
+        variableMap.put("arg", "key2");
+        nodeList = (NodeList) expression.evaluate(elt, variableMap);
         
         Assert.assertEquals(1, nodeList.getLength());
         

@@ -23,13 +23,15 @@ namespace Xem
         JNIEnv* ev;
         jobject resolver;
     public:
-        JNamespaceAlias (KeyCache& keyCache, JNIEnv* ev, jobject resolver) : NamespaceAlias(keyCache)
+        JNamespaceAlias (KeyCache& keyCache, JNIEnv* ev, jobject resolver) :
+                NamespaceAlias(keyCache)
         {
             this->ev = ev;
             this->resolver = resolver;
         }
 
-        NamespaceId getNamespaceIdFromPrefix ( LocalKeyId prefixId )
+        NamespaceId
+        getNamespaceIdFromPrefix (LocalKeyId prefixId)
         {
             Xem::String prefix = keyCache.getLocalKey(prefixId);
 
@@ -42,8 +44,8 @@ namespace Xem
 }
 
 JNIEXPORT jobject JNICALL
-Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression (JNIEnv *ev, jobject jXPathEvaluator,
-                                                            jstring jExpression, jobject resolverObject)
+Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression (JNIEnv *ev, jobject jXPathEvaluator, jstring jExpression,
+                                                            jobject resolverObject)
 {
     Xem::String expression = jstring2XemString(ev, jExpression);
 
@@ -53,33 +55,34 @@ Java_org_xemeiah_dom_xpath_XPathEvaluator_createExpression (JNIEnv *ev, jobject 
         Xem::XPathParser* xPathParser;
         jobject jFactory;
 
-
         if (isJElement(ev, resolverObject))
         {
             Xem::ElementRef resolver = jElement2ElementRef(ev, resolverObject);
             xPathParser = new Xem::XPathParser(resolver, expression);
 
             jobject jDocument = jNode2JDocument(ev, resolverObject);
-            jFactory =  jDocument2JDocumentFactory(ev, jDocument);
+            jFactory = jDocument2JDocumentFactory(ev, jDocument);
         }
         else
         {
             jFactory = jXPathEvaluator2JDocumentFactory(ev, jXPathEvaluator);
 
-            AssertBug ( jFactory != NULL, "Null documentFactory provided !");
+            AssertBug(jFactory != NULL, "Null documentFactory provided !");
 
             Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
+
+            AssertBug(store != NULL, "Invalid Null Store (not initialized ?)");
 
             Xem::KeyCache& keyCache = store->getKeyCache();
             Xem::JNamespaceAlias nsAlias(keyCache, ev, resolverObject);
             xPathParser = new Xem::XPathParser(keyCache, nsAlias, expression);
         }
 
-        Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
+//        Xem::XProcessor* xprocessor = jDocumentFactory2XProcessor(ev, jFactory);
+//
+//        Xem::XPath* xpath = new Xem::XPath(*xprocessor, xPathParser, true);
 
-        Xem::XPath* xpath = new Xem::XPath(*xprocessor, xPathParser, true);
-
-        return xpath2JXPathExpression(ev, xpath, jFactory);
+        return createJXPathExpression(ev, xPathParser, jFactory);
     }
     catch (Xem::XPathException * e)
     {

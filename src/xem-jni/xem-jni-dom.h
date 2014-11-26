@@ -31,7 +31,7 @@ jobject
 jXPathEvaluator2JDocumentFactory (JNIEnv* ev, jobject jXPathEvaluator);
 
 Xem::XProcessor*
-jDocumentFactory2XProcessor (JNIEnv* ev, jobject jDocumentFactory);
+jDocument2XProcessor (JNIEnv* ev, jobject jDocument);
 
 jobject
 elementRef2JElement (JNIEnv* ev, jobject documentObject, Xem::ElementRef& eltRef);
@@ -44,13 +44,16 @@ jobject
 jNodeList2JDocument (JNIEnv* ev, jobject nodeObject);
 
 jobject
-document2JDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document);
+createJDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document, Xem::XProcessor* xprocessor);
+
+void
+cleanupJDocument (JNIEnv *ev, jobject jDocument);
 
 Xem::Store*
 jDocumentFactory2Store (JNIEnv* ev, jobject jFactory);
 
 void
-initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store, Xem::XProcessor* xprocessor);
+initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store);
 
 Xem::Document*
 jDocument2Document (JNIEnv* ev, jobject documentObject);
@@ -76,10 +79,10 @@ Xem::NodeSet*
 jNodeList2NodeSet (JNIEnv* ev, jobject jNodeList);
 
 jobject
-xpath2JXPathExpression (JNIEnv* ev, Xem::XPath* xpath, jobject jFactory);
+createJXPathExpression (JNIEnv* ev, Xem::XPathParser* xpathParser, jobject jFactory);
 
-Xem::XPath*
-jXPathExpression2XPath (JNIEnv* ev, jobject jXPathExpression);
+Xem::XPathParser*
+jXPathExpression2XPathParser (JNIEnv* ev, jobject jXPathExpression);
 
 jobject
 jXPathExpression2JDocumentFactory (JNIEnv* ev, jobject jXPathExpression);

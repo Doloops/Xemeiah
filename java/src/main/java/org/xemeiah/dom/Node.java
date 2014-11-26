@@ -8,13 +8,30 @@ public abstract class Node implements org.w3c.dom.Node
 {
     protected org.xemeiah.dom.Document document;
 
-    protected long __nodePtr;
+    protected final org.xemeiah.dom.Document getDocument()
+    {
+        return document;
+    }
+
+    protected final long __nodePtr;
 
     protected Node(org.xemeiah.dom.Document document, long __nodePtr)
     {
         this.document = document;
         this.__nodePtr = __nodePtr;
     }
+
+    @Override
+    public Document getOwnerDocument()
+    {
+        return getDocument();
+    }
+
+    @Override
+    public native org.w3c.dom.Node getParentNode();
+
+    @Override
+    public native String getPrefix();
 
     @Override
     public org.w3c.dom.Node cloneNode(boolean deep)
@@ -32,7 +49,7 @@ public abstract class Node implements org.w3c.dom.Node
 
     public String getBaseURI()
     {
-        return document.getBaseURI();
+        return getDocument().getBaseURI();
     }
 
     @Override
@@ -72,17 +89,6 @@ public abstract class Node implements org.w3c.dom.Node
         throw new RuntimeException("NOT IMPLEMENTED !");
     }
 
-    public Document getOwnerDocument()
-    {
-        return document;
-    }
-
-    @Override
-    public native org.w3c.dom.Node getParentNode();
-
-    @Override
-    public native String getPrefix();
-    
     @Override
     public org.w3c.dom.Node getPreviousSibling()
     {
@@ -193,5 +199,4 @@ public abstract class Node implements org.w3c.dom.Node
     {
         throw new RuntimeException("NOT IMPLEMENTED !");
     }
-
 }
