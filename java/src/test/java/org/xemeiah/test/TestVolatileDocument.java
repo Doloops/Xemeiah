@@ -31,7 +31,7 @@ public class TestVolatileDocument
     @Test
     public void testMassiveVolatileDocumentCreation()
     {
-        for (int nbTest = 0; nbTest < 1000 * 1000; nbTest++)
+        for (int nbTest = 0; nbTest < 10 * 1000; nbTest++)
         {
             LOGGER.info("At test=#" + nbTest);
             Document document = documentFactory.newVolatileDocument();
@@ -39,7 +39,7 @@ public class TestVolatileDocument
             Element node = document.createElement("myElement");
             document.getDocumentElement().appendChild(node);
 
-            for (int nbNode = 0; nbNode < 1000; nbNode++)
+            for (int nbNode = 0; nbNode < 100; nbNode++)
             {
                 Element subNode = document.createElement("child_" + nbNode);
                 node.appendChild(subNode);

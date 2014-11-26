@@ -20,7 +20,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define Log_VolatileArea Info
+#define Log_VolatileArea Debug
 
 namespace Xem
 {

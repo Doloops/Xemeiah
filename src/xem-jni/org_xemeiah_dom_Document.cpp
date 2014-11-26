@@ -18,7 +18,7 @@
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_Document_cleanUp (JNIEnv *ev, jobject jDocument)
 {
-    Info("At jDocument=%p, cleanUp\n", jDocument);
+    Log("At jDocument=%p, cleanUp\n", jDocument);
     cleanupJDocument(ev, jDocument);
 }
 

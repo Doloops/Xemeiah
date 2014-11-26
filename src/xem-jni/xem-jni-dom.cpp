@@ -112,20 +112,19 @@ createJDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document, Xem::XPr
 {
     jobject jDocument = ev->NewObject(getXemJNI().document.getClass(ev), getXemJNI().document.constructor(ev), jFactory,
                                       (jlong) document, (jlong) xprocessor);
-    // ev->SetLongField(jDocument, getXemJNI().node.nodePtr(ev), (jlong) document->getRootElement().getElementPtr());
-    Info("Created JDocument at %p for document %p, xprocessor %p\n", jDocument, document, xprocessor);
+    Log("Created JDocument at %p for document %p, xprocessor %p\n", jDocument, document, xprocessor);
     return jDocument;
 }
 
 void
 cleanupJDocument (JNIEnv *ev, jobject jDocument)
 {
-    Info("Cleanup JDocument at %p\n", jDocument);
+    Log("Cleanup JDocument at %p\n", jDocument);
     Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
 
     if (xprocessor != NULL)
     {
-        Info("Delete XProcessor at %p\n", xprocessor);
+        Log("Delete XProcessor at %p\n", xprocessor);
         ev->SetLongField(jDocument, getXemJNI().document.__xprocessorPtr(ev), (jlong) 0);
         delete (xprocessor);
     }
@@ -133,7 +132,7 @@ cleanupJDocument (JNIEnv *ev, jobject jDocument)
     Xem::Document* doc = jDocument2Document(ev, jDocument);
     if (doc != NULL)
     {
-        Info("Document still exists ! jDocument=%p, doc=%p\n", jDocument, doc);
+        Log("Delete document : jDocument=%p, doc=%p\n", jDocument, doc);
         ev->SetLongField(jDocument, getXemJNI().document.__documentPtr(ev), (jlong) 0);
 
         jobject jDocumentFactory = jDocument2JDocumentFactory(ev, jDocument);
