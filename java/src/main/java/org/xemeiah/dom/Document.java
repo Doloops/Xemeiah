@@ -103,6 +103,12 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public native Element createElementNS(String namespaceURI, String qualifiedName) throws DOMException;
 
+    @Override
+    public Node appendChild(Node newChild) throws DOMException
+    {
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+    }
+
     /*
      * **************************************************************************
      * ********* Everything beyond this point is just NOT IMPLEMENTED ! ********* 

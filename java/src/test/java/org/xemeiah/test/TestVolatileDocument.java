@@ -1,32 +1,14 @@
 package org.xemeiah.test;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xemeiah.dom.DocumentFactory;
 
-public class TestVolatileDocument
+public class TestVolatileDocument extends AbstractVolatileDocumentTest
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestVolatileDocument.class);
-
-    private DocumentFactory documentFactory;
-
-    @Before
-    public void init()
-    {
-        documentFactory = new DocumentFactory();
-        documentFactory.openVolatile();
-    }
-
-    @After
-    public void tearDown()
-    {
-        System.gc();
-    }
 
     @Test
     public void testMassiveVolatileDocumentCreation()
