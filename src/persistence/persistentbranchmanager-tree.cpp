@@ -39,28 +39,28 @@ namespace Xem
 
     evd.eventAttrEnd ();
     
-    for ( BranchPage* branchPage = getPersistentStore().getAbsolutePage<BranchPage>(getPersistentStore().getSB()->lastBranch) ; branchPage ; 
-  	  branchPage = getPersistentStore().getAbsolutePage<BranchPage>(branchPage->lastBranch) )
+    for ( AbsolutePageRef<BranchPage> branchPageRef = getPersistentStore().getAbsolutePage<BranchPage>(getPersistentStore().getSB()->lastBranch) ; branchPageRef.getPage() ;
+  	  branchPageRef = getPersistentStore().getAbsolutePage<BranchPage>(branchPageRef.getPage()->lastBranch) )
       {   
         evd.eventElement ( "xem-pers", "branch" );
-        __formatAttr ( "xem-pers", "name", "%s", branchPage->name );
-        __formatAttr ( "xem-pers", "id", "%llu", branchPage->branchId );
+        __formatAttr ( "xem-pers", "name", "%s", branchPageRef.getPage()->name );
+        __formatAttr ( "xem-pers", "id", "%llu", branchPageRef.getPage()->branchId );
         
-        if ( branchPage->forkedFrom.branchId )
+        if ( branchPageRef.getPage()->forkedFrom.branchId )
           {
-            AssertBug ( branchPage->forkedFrom.revisionId, "Forked from a null revisionId !\n" );
-            __formatAttr ( "xem-pers", "forked-from", "%llu:%llu", _brid ( branchPage->forkedFrom ) );
+            AssertBug ( branchPageRef.getPage()->forkedFrom.revisionId, "Forked from a null revisionId !\n" );
+            __formatAttr ( "xem-pers", "forked-from", "%llu:%llu", _brid ( branchPageRef.getPage()->forkedFrom ) );
           }
 
         evd.eventAttrEnd ();
 
 #define __onBranchFlag(__flag, __attrName) \
- if ( branchPage->branchFlags & __flag ) \
+ if ( branchPageRef.getPage()->branchFlags & __flag ) \
  { evd.eventElement ( "xem-pers", "flag" ); __formatAttr ( "xem-pers", "name", "%s", __attrName ); \
    evd.eventAttrEnd(); evd.eventElementEnd ( "xem-pers", "flag" ); }
  
  // __formatAttr ( "xem-pers", __attrName, "%s", "true" )
-        if ( branchPage->branchFlags )
+        if ( branchPageRef.getPage()->branchFlags )
           {
             evd.eventElement ( "xem-pers", "flags" );
             evd.eventAttrEnd ();
@@ -73,17 +73,17 @@ namespace Xem
             evd.eventElementEnd ( "xem-pers", "flags" );
           }
         
-        for ( RevisionPage* revPage = getPersistentStore().getAbsolutePage<RevisionPage> ( branchPage->lastRevisionPage ) ;
-          revPage ; revPage = getPersistentStore().getAbsolutePage<RevisionPage> ( revPage->lastRevisionPage ) )
+        for ( AbsolutePageRef<RevisionPage> revPageRef = getPersistentStore().getAbsolutePage<RevisionPage> ( branchPageRef.getPage()->lastRevisionPage ) ;
+          revPageRef.getPage() ; revPageRef = getPersistentStore().getAbsolutePage<RevisionPage> ( revPageRef.getPage()->lastRevisionPage ) )
           {
             evd.eventElement ( "xem-pers", "revision" );
-            time_t creationTime = (time_t) revPage->creationTime;
-            time_t commitTime = (time_t) revPage->commitTime;
-            __formatAttr ( "xem-pers", "branchRevId", "%llu:%llu", _brid ( revPage->branchRevId ) );
-            __formatAttr ( "xem-pers", "writable", "%s", revPage->documentAllocationHeader.writable ? "true" : "false" );
+            time_t creationTime = (time_t) revPageRef.getPage()->creationTime;
+            time_t commitTime = (time_t) revPageRef.getPage()->commitTime;
+            __formatAttr ( "xem-pers", "branchRevId", "%llu:%llu", _brid ( revPageRef.getPage()->branchRevId ) );
+            __formatAttr ( "xem-pers", "writable", "%s", revPageRef.getPage()->documentAllocationHeader.writable ? "true" : "false" );
             __formatAttr ( "xem-pers", "creationTime", "%s", asctime(localtime(&(creationTime))) );
             __formatAttr ( "xem-pers", "commitTime", "%s", 
-                revPage->commitTime ? asctime(localtime(&(commitTime))) : "(not committed)" );
+                revPageRef.getPage()->commitTime ? asctime(localtime(&(commitTime))) : "(not committed)" );
           
 #define __prettyPrintBytesNumber_DCEP(__buff,__bytes,__i,__suff) \
   else if ( __bytes >= 1 << __i ) { sprintf ( __buff, "%llu.%03llu " __suff, __bytes >> __i, (__bytes >> (__i-10)) % (1<<10) ); }
@@ -101,15 +101,15 @@ namespace Xem
             evd.eventAttrEnd ();
 
             evd.eventElement ( "xem-pers", "owned-pages" );
-            __formatAttr ( "xem-pers", "total", "%llu", revPage->ownedPages );
+            __formatAttr ( "xem-pers", "total", "%llu", revPageRef.getPage()->ownedPages );
             evd.eventAttrEnd ();
             for ( __ui64 type = 0 ; type < PageType_Mask ; type++ )		\
               { 
-                if ( revPage->ownedTypedPages[type] )
+                if ( revPageRef.getPage()->ownedTypedPages[type] )
                   {
                     evd.eventElement ( "xem-pers", "page-type" );
                     __formatAttr ( "xem-pers", "name", "%s", PersistencePageTypeName[type] );
-                    __formatAttr ( "xem-pers", "total", "%llu", revPage->ownedTypedPages[type] );
+                    __formatAttr ( "xem-pers", "total", "%llu", revPageRef.getPage()->ownedTypedPages[type] );
                     evd.eventAttrEnd ();
                     evd.eventElementEnd ( "xem-pers", "page-type" );
                   }

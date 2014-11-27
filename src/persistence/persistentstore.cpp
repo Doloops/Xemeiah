@@ -45,9 +45,8 @@ namespace Xem
     PersistentStore::initPersistentStore ()
     {
         readOnly = false;
-        superBlock = NULL;
         fd = -1;
-
+        superBlock = NULL;
         branchManager = NULL;
     }
 
@@ -284,11 +283,7 @@ namespace Xem
             if ( msync ( page, PageSize, MS_SYNC ) == -1 )
             {   Bug ( "Could not sync whole file. Error %d:%s !\n", errno, strerror(errno) );}
 #endif
-            if (munmap(page, ChunkInfo::PageChunk_Size) == -1)
-            {
-                Fatal("Could not unmap file. Error %d:%s\n", errno, strerror(errno));
-                return false;
-            }
+            unmapArea(page, ChunkInfo::PageChunk_Size);
             totalPages++;
         }
         chunkMap.clear();
@@ -362,10 +357,10 @@ namespace Xem
          * Preliminary work is done, so protect functions are accessible.
          * Create the freePageHeader now.
          */
-        FreePageHeader* freePageHeader = getAbsolutePage<FreePageHeader>(sb->freePageHeader);
-        alterPage(freePageHeader);
-        memset(freePageHeader, 0, PageSize);
-        protectPage(freePageHeader);
+        AbsolutePageRef<FreePageHeader> freePageHeaderRef = getAbsolutePage<FreePageHeader>(sb->freePageHeader);
+        alterPage(freePageHeaderRef.getPage());
+        memset(freePageHeaderRef.getPage(), 0, PageSize);
+        protectPage(freePageHeaderRef.getPage());
 
         Info("Format ok, loading keys...\n");
 

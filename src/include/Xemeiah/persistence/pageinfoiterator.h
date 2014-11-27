@@ -13,24 +13,21 @@ namespace Xem
     protected:
         PersistentDocumentAllocator& allocator;
         RelativePagePtr relPagePtr;
-        PageInfoPage* pageInfoPage;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef;
         __ui64 idx;
         bool write;
 
     public:
         PageInfoIterator (PersistentDocumentAllocator& _allocator, RelativePagePtr _relPagePtr = 0, bool _write = false) :
-                allocator(_allocator)
+            allocator(_allocator), pageInfoPageRef(_allocator.getPersistentStore())
         {
             relPagePtr = _relPagePtr;
             write = _write;
 
-            pageInfoPage = NULL;
             idx = 0;
 
-            if (!allocator.doGetPageInfoPage(relPagePtr, pageInfoPage, idx, write))
-            {
-                Bug("Could not get page info !\n");
-            }
+            pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
+            AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
         }
 
         PageInfoIterator&
@@ -40,10 +37,8 @@ namespace Xem
             relPagePtr += PageSize;
             if (idx == PageInfo_pointerNumber && relPagePtr < allocator.getNextRelativePagePtr())
             {
-                if (!allocator.doGetPageInfoPage(relPagePtr, pageInfoPage, idx, write))
-                {
-                    Bug("Could not get page info !\n");
-                }
+                pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
+                AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
             }
             return *this;
         }
@@ -54,12 +49,12 @@ namespace Xem
             return relPagePtr;
         }
 
-        PageInfo&
+        PageInfo
         second ()
         {
             AssertBug(relPagePtr < allocator.getNextRelativePagePtr(), "OOB !\n");
-            AssertBug(pageInfoPage, "NULL pageInfoPage !\n");
-            return pageInfoPage->pageInfo[idx];
+            AssertBug(pageInfoPageRef.getPage(), "NULL pageInfoPage !\n");
+            return pageInfoPageRef.getPage()->pageInfo[idx];
         }
 
         operator bool ()

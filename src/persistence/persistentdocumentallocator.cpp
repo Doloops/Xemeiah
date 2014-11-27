@@ -21,7 +21,7 @@
 namespace Xem
 {
     PersistentDocumentAllocator::PersistentDocumentAllocator (PersistentStore& store, AbsolutePagePtr revisionPagePtr) :
-            DocumentAllocator(store), persistentStore(store), mapMutex("Map Mutex", this), allocMutex("Alloc Mutex",
+            DocumentAllocator(store), persistentStore(store), revisionPageRef(store, revisionPagePtr), mapMutex("Map Mutex", this), allocMutex("Alloc Mutex",
                                                                                                       this)
     {
 #ifdef __XEM_PERSISTENTDOCUMENT_HAS_PAGEINFOPAGECACHE
@@ -29,15 +29,15 @@ namespace Xem
         pageInfoPageCacheSz = 0;
 #endif // __XEM_PERSISTENTDOCUMENT_HAS_PAGEINFOPAGECACHE
 
-        doInitialize(revisionPagePtr);
+        doInitialize();
     }
 
     PersistentDocumentAllocator::~PersistentDocumentAllocator ()
     {
         Log_PDA ( "At PersistentDocumentAllocator destructor !\n" );
-        if (revisionPage)
+        if (revisionPageRef.getPage())
         {
-            Log_PDA ( "Deleting PersistentDocumentAllocator brId=[%llx:%llx]\n", _brid(revisionPage->branchRevId) );
+            Log_PDA ( "Deleting PersistentDocumentAllocator brId=[%llx:%llx]\n", _brid(revisionPageRef.getPage()->branchRevId) );
         }
         else
         {
@@ -80,13 +80,14 @@ namespace Xem
     void
     PersistentDocumentAllocator::releaseAllAbsolutePages ()
     {
+#if 0
         Lock lock(mapMutex);
         Log_PDA_Housewife ( "releaseAllAbsolutePages : releasing %lu pages.\n", (unsigned long) absolutePages.size() );
         for (AbsolutePages::iterator iter = absolutePages.begin(); iter != absolutePages.end(); iter++)
         {
             AssertBug(iter->first && iter->second, "Null Absolute page %llx -> %p provided !\n", iter->first,
                       iter->second);
-            if (iter->second == revisionPage)
+            if (iter->second == revisionPageRef.getPage())
             {
                 Log_PDA ( "Skipping %llx => %p as it is the revisionPage !\n", iter->first, iter->second );
                 continue;
@@ -96,6 +97,7 @@ namespace Xem
             getPersistentStore().releasePage(iter->first);
         }
         absolutePages.clear();
+#endif
     }
 
     void
@@ -111,12 +113,8 @@ namespace Xem
                     continue;
                 areasUnmapped++;
                 Log_PDA ( "[PERSDOC-UNMAP] idx=0x%llx, area=%p\n", idx, area );
-                int result = munmap(area, AreaSize);
 
-                if (result == -1)
-                {
-                    Bug("Could not munmap idx=%llu, area=%p, err=%d:%s\n", idx, area, errno, strerror(errno));
-                }
+                getPersistentStore().unmapArea(area, AreaSize);
             }
             free(areas);
             areas = NULL;
@@ -125,7 +123,7 @@ namespace Xem
                     areasAlloced, areasMapped, areasUnmapped );
             areasAlloced = 0;
             areasMapped = 0;
-            revisionPage = NULL;
+            revisionPageRef = AbsolutePageRef<RevisionPage>(getPersistentStore(), (RevisionPagePtr) NullPage);
             documentAllocationHeader = NULL;
         }
     }
@@ -150,14 +148,14 @@ namespace Xem
 
         mapMutex.lock();
 
-        PageInfo& pageInfo = getPageInfo(relPagePtr, true);
+        PageInfo pageInfo = getPageInfo(relPagePtr, true);
         BranchRevId& segPageBranchRevId = pageInfo.branchRevId;
 
         AssertBug(segPageBranchRevId.branchId && segPageBranchRevId.revisionId,
                   "Null branchRevId=%llx:%llx for page %llx, from revision %llx:%llx\n", _brid(segPageBranchRevId),
-                  relPagePtr, _brid(revisionPage->branchRevId));
+                  relPagePtr, _brid(revisionPageRef.getPage()->branchRevId));
 
-        if ( bridcmp(segPageBranchRevId, revisionPage->branchRevId) != 0)
+        if ( bridcmp(segPageBranchRevId, revisionPageRef.getPage()->branchRevId) != 0)
         {
             /**
              * BranchRevId differs between this page and the RevisionPage, so we must copy this page.
@@ -167,17 +165,17 @@ namespace Xem
             SegmentPage* segPage = getRelativePage(relPagePtr);
 
             Log_APW ( "Steal segmentPage (rev brid=%llx:%llx, page brid=%llx:%llx) : rel=0x%llx, pageFlags=0x%llx, pageType=0x%llx, segPage=%p\n",
-                    _brid(revisionPage->branchRevId),
+                    _brid(revisionPageRef.getPage()->branchRevId),
                     _brid(segPageBranchRevId),
                     relPagePtr, pageFlags, __getPageType(pageFlags), segPage );
 
             AbsolutePagePtr newAbsPagePtr = stealSegmentPage(segPage, __getPageType(pageFlags));
             AssertBug(__getPageType(newAbsPagePtr) == PageType_Segment, "Invalid type !\n");
 
-            alterPageInfo(pageInfo);
+            // alterPageInfo(pageInfo);
             pageInfo.absolutePagePtr = newAbsPagePtr | pageFlags;
-            pageInfo.branchRevId = revisionPage->branchRevId;
-            protectPageInfo(pageInfo);
+            pageInfo.branchRevId = revisionPageRef.getPage()->branchRevId;
+            setPageInfo(relPagePtr, pageInfo);
 
             __ui64 areaIdx = relPagePtr >> InAreaBits;
             AssertBug(areaIdx < areasAlloced && areas[areaIdx], "Area not allocated !\n");
@@ -246,7 +244,7 @@ namespace Xem
         RelativePagePtr relPagePtr = (segmentPtr & PagePtr_Mask);
         Log_PDA ( "Getting allocation profile for seg=%llx, page=%llx\n", segmentPtr, relPagePtr );
         Lock lock(mapMutex);
-        PageInfo& pageInfo = getPageInfo(relPagePtr);
+        PageInfo pageInfo = getPageInfo(relPagePtr);
         return pageInfo.allocationProfile;
     }
 
@@ -254,7 +252,7 @@ namespace Xem
     PersistentDocumentAllocator::getFirstFreeSegmentOffset (RelativePagePtr relPagePtr)
     {
         Lock lock(mapMutex);
-        PageInfo& pageInfo = getPageInfo(relPagePtr);
+        PageInfo pageInfo = getPageInfo(relPagePtr);
         Log_PDA ( "getFirstFreeSegmentOffset : page=%llx -> offset=%x (ptr=%llx)\n",
                 relPagePtr, pageInfo.firstFreeSegmentInPage, relPagePtr + pageInfo.firstFreeSegmentInPage );
         return pageInfo.firstFreeSegmentInPage;
@@ -265,10 +263,11 @@ namespace Xem
     {
         Lock lock(mapMutex);
 
-        PageInfo& pageInfo = getPageInfo(relPagePtr, true);
-        alterPageInfo(pageInfo);
+        PageInfo pageInfo = getPageInfo(relPagePtr, true);
+        // alterPageInfo(pageInfo);
         pageInfo.firstFreeSegmentInPage = offset;
-        protectPageInfo(pageInfo);
+        setPageInfo(relPagePtr, pageInfo);
+        // protectPageInfo(pageInfo);
 
         Log_PDA ( "setFirstFreeSegmentOffset : page=%llx -> offset=%x (ptr=%llx)\n",
                 relPagePtr, offset, relPagePtr + offset );
@@ -282,35 +281,35 @@ namespace Xem
         {
             Bug("Invalid pageType : 0x%llx\n", pageType);
         }
-        Log_PDA( "Getting freePage for revisionPage %llx:%llx, own=%llx, pageType=%llx\n",
-                _brid(revisionPage->branchRevId),
-                revisionPage->freePageList, pageType );
+        Log_PDA( "Getting freePage for revisionPage %llx:%llx, ownRef=%llx, pageType=%llx\n",
+                _brid(revisionPageRef.getPage()->branchRevId),
+                revisionPageRef.getPage()->freePageList, pageType );
 
-        if (!revisionPage->freePageList)
+        if (!revisionPageRef.getPage()->freePageList)
         {
             AbsolutePagePtr freePageListPtr = getPersistentStore().getFreePageList();
             alterRevisionPage();
-            revisionPage->freePageList = freePageListPtr;
+            revisionPageRef.getPage()->freePageList = freePageListPtr;
             protectRevisionPage();
 
 #if PARANOID
-            PageList* own_ = getPageList ( revisionPage->freePageList );
-            AssertBug ( own_->number == PageList::maxNumber, "Non full page !\n" );
+            AbsolutePageRef<PageList> ownRef_ = getPageList ( revisionPageRef.getPage()->freePageList );
+            AssertBug ( ownRef_.getPage()->number == PageList::maxNumber, "Non full page !\n" );
 #endif
 
 #ifdef __XEM_COUNT_FREEPAGES
             getPersistentStore().decrementFreePagesCount(PageList::maxNumber + 1);
 #endif
         }
-        PageList* own = getPageList(revisionPage->freePageList);
+        AbsolutePageRef<PageList> ownRef = getPageList(revisionPageRef.getPage()->freePageList);
 
         AbsolutePagePtr newFreePagePtr;
-        if (own->number)
+        if (ownRef.getPage()->number)
         {
-            getPersistentStore().alterPage(own);
-            own->number--;
-            getPersistentStore().protectPage(own);
-            newFreePagePtr = own->pages[own->number];
+            getPersistentStore().alterPage(ownRef.getPage());
+            ownRef.getPage()->number--;
+            getPersistentStore().protectPage(ownRef.getPage());
+            newFreePagePtr = ownRef.getPage()->pages[ownRef.getPage()->number];
         }
         else
         {
@@ -319,11 +318,10 @@ namespace Xem
             forAllRevisionOwnedPages ( revisionPage, &Xem::Store::syncRevOwnedPage,
                     (void*) PageType_Indirection, nbPages );
 #endif
-            newFreePagePtr = revisionPage->freePageList;
+            newFreePagePtr = revisionPageRef.getPage()->freePageList;
             alterRevisionPage();
-            revisionPage->freePageList = NullPage;
+            revisionPageRef.getPage()->freePageList = NullPage;
             protectRevisionPage();
-            releasePage(newFreePagePtr);
         }
         alterRevisionPage();
         getRevisionPage()->ownedPages++;
@@ -422,18 +420,19 @@ namespace Xem
             AbsolutePagePtr absPtr = __getFreePagePtr ( pageType );
             Log_PDA ( "New SegmentPage absolute=%llx, relative=%llx\n", absPtr, iter.first() );
 
-            PageInfo& pageInfo = iter.second();
+            PageInfo pageInfo = iter.second();
 
-            alterPageInfo(pageInfo);
+            // alterPageInfo(pageInfo);
             /*
              * Initialize the PageInfo
              */
-            pageInfo.branchRevId = revisionPage->branchRevId;
+            pageInfo.branchRevId = revisionPageRef.getPage()->branchRevId;
             pageInfo.absolutePagePtr = absPtr | pageType;
             pageInfo.allocationProfile = allocProfile;
             pageInfo.firstFreeSegmentInPage = PageSize * 2;
 
-            protectPageInfo(pageInfo);
+            // protectPageInfo(pageInfo);
+            setPageInfo(iter.first(), pageInfo);
 
             /*
              * If the area containing this page is allocated, we have to remap it to the
@@ -505,11 +504,11 @@ namespace Xem
             return;
         }
 
-        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : %llu MBytes mapped, %llu KBytes for absolute pages"
+        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : %llu MBytes mapped, " // "%llu KBytes for absolute pages"
                 "(refCount=%llx, areasAlloced = '%llu', areasMapped = '%llu' -> %llu%% mapped)\n",
                 _brid(getBranchRevId()),
                 ((areasMapped << InAreaBits)>>20),
-                ((((unsigned long long)absolutePages.size()) << InPageBits)>>10),
+                // ((((unsigned long long)absolutePages.size()) << InPageBits)>>10),
                 refCount, areasAlloced, areasMapped, (100* areasMapped)/areasAlloced );
 
         flushInMemCaches();
@@ -527,11 +526,8 @@ namespace Xem
             }
             Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
 
-            int result = munmap(area, AreaSize);
-            if (result == -1)
-            {
-                Bug("Could not munmap idx=%llu, area=%p, err=%d:%s\n", idx, area, errno, strerror(errno));
-            }
+            getPersistentStore().unmapArea(area, AreaSize);
+
             areas[idx] = NULL;
             areasMapped--;
             if (areasMapped <= minAreasMapped)

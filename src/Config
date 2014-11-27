@@ -29,8 +29,8 @@ endif
 
     Profile = Debug
 #    Profile = DebugPerf
-#    Profile = ProfilePerf
-    Profile = Perf
+    Profile = ProfilePerf
+#    Profile = Perf
 #    Profile = HighPerfSpace
 #    Profile = HighPerf
 
@@ -86,7 +86,7 @@ ifeq ($(Profile),Debug)
 	CFLAGS += -DPARANOID=1
 	CFLAGS += -DXEM_SYNC
 	CFLAGS += -D__XEM_PROVIDE_INLINE
-#	CFLAGS += -D__XEM_ENABLE_DEBUG_MESSAGES
+	CFLAGS += -D__XEM_ENABLE_DEBUG_MESSAGES
 
 # Xem Memory Protection (XMPC) : See <Xemeiah/kern/store.h> and <Xemeiah/kern/document.h> for Details 
 	CFLAGS += -DXEM_MEM_PROTECT

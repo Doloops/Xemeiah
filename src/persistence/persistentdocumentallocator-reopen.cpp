@@ -12,7 +12,7 @@ namespace Xem
     getPersistentStore().getPersistentBranchManager().assertIsUnlocked();
     getPersistentStore().getPersistentBranchManager().assertBranchUnlockedForWrite(getBranchRevId().branchId);
 
-    AssertBug ( revisionPage, "Null RevsionPage !\n" );
+    AssertBug ( revisionPageRef.getPage(), "Null RevsionPage !\n" );
     AssertBug ( getDocumentAllocationHeader().writable == false, "Previous RevisionPage is writable ! commit first !\n" );
 
     if ( branchFlags & BranchFlags_MustForkBeforeUpdate )
@@ -64,24 +64,25 @@ namespace Xem
     AssertBug ( newRevisionPagePtr, "Invalid NULL newRevisionPagePtr.\n" );
 
     mapMutex.lock();
-    RevisionPage* revPage = getRevisionPage ( newRevisionPagePtr );
-    AssertBug ( revPage, "Could not create revision.\n" );
-    AssertBug ( revPage->branchRevId.branchId == revisionPage->branchRevId.branchId,
+    AbsolutePageRef<RevisionPage> newRevPageRef = getRevisionPage ( newRevisionPagePtr );
+    AssertBug ( newRevPageRef.getPage(), "Could not create revision.\n" );
+    AssertBug ( newRevPageRef.getPage()->branchRevId.branchId == revisionPageRef.getPage()->branchRevId.branchId,
         "New revision brid differs : mine=[%llx:%llx], new=[%llx:%llx]\n",
-        _brid(revisionPage->branchRevId),
-        _brid(revPage->branchRevId) );
-    if ( revPage->branchRevId.revisionId != revisionPage->branchRevId.revisionId + 1 )
+        _brid(revisionPageRef.getPage()->branchRevId),
+        _brid(newRevPageRef.getPage()->branchRevId) );
+    if ( newRevPageRef.getPage()->branchRevId.revisionId != revisionPageRef.getPage()->branchRevId.revisionId + 1 )
       {
         NotImplemented ( "reopen() : we MUST clear all and remap !\n" );
       }
 
     Info ( "Reopened doc=%p : rev [%llx:%llx]->[%llx:%llx]\n",
-        this, _brid(revisionPage->branchRevId), _brid(revPage->branchRevId) );
+        this, _brid(revisionPageRef.getPage()->branchRevId), _brid(newRevPageRef.getPage()->branchRevId) );
 
     /*
      * Ok, now switch revision pages 
      */
-    revisionPage = revPage;
+    // revisionPageRef = AbsolutePageRef<RevisionPage>(getPersistentStore(), newRevisionPagePtr);
+    revisionPageRef = newRevPageRef;
 
     mapMutex.unlock();
 
@@ -97,7 +98,7 @@ namespace Xem
     // documentHead = &(revisionPage->documentHead);
     // freeSegmentsHeader = &(revisionPage->freeSegmentsHeader);
     // setJournalHead ( &(revisionPage->journalHead) );
-    documentAllocationHeader = &(revisionPage->documentAllocationHeader);
+    documentAllocationHeader = &(revisionPageRef.getPage()->documentAllocationHeader);
   }
 
 };

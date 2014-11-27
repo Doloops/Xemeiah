@@ -114,7 +114,7 @@ namespace Xem
     // PersistentDocument& targetDocument = *((PersistentDocument*)arg);
     PersistentDocumentAllocator& targetDocumentAllocator = *((PersistentDocumentAllocator*) ( arg ));
     
-    BranchRevId& myBranchRevId = revisionPage->branchRevId;
+    BranchRevId& myBranchRevId = revisionPageRef.getPage()->branchRevId;
     // Info ( "quickMerge : at rel=0x%llx, abs=0x%llx, pageType=0x%llx\n", relPagePtr, absPagePtr, pageType );
     if ( bridcmp(pageInfo.branchRevId, myBranchRevId ) ) return true;
     AssertBug ( !isStolen, "Page supposed to be my rev, but was said stolen !\n" );

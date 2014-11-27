@@ -8,12 +8,21 @@
 #include <errno.h>
 #include <string.h>
 
-#define Log_MapPage Debug
+#if 1
+#define Log_MapPage_Area Log
+#define Log_MapPage(...) do{} while(0)
+#else
+#define Log_MapPage_Area(...) Info("[MAP_AREA]" __VA_ARGS__)
+#define Log_MapPage(...) Info("[MAP_PAGE]" __VA_ARGS__)
+#endif
+#define Log_MapPage_Debug Debug
 #define Log_ChunkMap Debug
 #define Log_GetFreePage Debug
 
 namespace Xem
 {
+    static __ui64 totalMapped = 0;
+
     void*
     PersistentStore::mapArea (__ui64 offset, __ui64 length)
     {
@@ -37,17 +46,31 @@ namespace Xem
         }
         if (((__ui64 ) ptr) % PageSize)
         {
-            Log_MapPage ( "MMap pointer is not aligned to PageSize. That may not hurt much...\n" );
+            Log_MapPage("MMap pointer is not aligned to PageSize. That may not hurt much...\n");
             Bug(".");
             return NULL;
         }
-        Log_MapPage ( "mapArea : offset=%llx, length=%llx, ptr=%p\n", offset, length, ptr );
+        totalMapped++;
+        Log_MapPage_Area("mapArea : offset=%llx, length=%llx, ptr=%p, totalMapped=%llu\n", offset, length, ptr,
+                         totalMapped);
 
         if (madvise(ptr, length, MADV_RANDOM) == -1)
         {
             Warn("Could not madvise() : error=%d:%s\n", errno, strerror(errno));
         }
         return ptr;
+    }
+
+    void
+    PersistentStore::unmapArea (void* area, __ui64 length)
+    {
+        totalMapped--;
+        Log_MapPage_Area("unmapArea : at %p, length=%llx, totalMapped=%llu\n", area, length, totalMapped);
+        int result = munmap(area, length);
+        if (result == -1)
+        {
+            Bug("Could not munmap area=%p, size=0x%llx, err=%d:%s\n", area, length, errno, strerror(errno));
+        }
     }
 
     void*
@@ -74,15 +97,36 @@ namespace Xem
         {
             chunk = iter->second.page;
             iter->second.refCount++;
+
         }
-        Log_MapPage ( "Referenced : pagePtr=0x%llx, chunkIdx=0x%llx, page=%p, refCount=0x%llx\n",
-                absPagePtr, chunkIdx, iter->second.page, iter->second.refCount );
+        Log_MapPage("CHUNK REF : pagePtr=0x%llx, chunkIdx=0x%llx, page=%p, refCount=0x%llx\n", absPagePtr, chunkIdx,
+                    iter->second.page, iter->second.refCount);
+
+        if (iter->second.refCount > 60)
+        {
+            Bug("Very large number of refCounts for this page !");
+        }
 
         return (void*) (((__ui64 ) chunk) + (absPagePtr & ChunkInfo::PageChunk_Mask));
     }
 
+    void*
+    PersistentStore::__getAbsolutePage (AbsolutePagePtr pagePtr)
+    {
+        if (!pagePtr)
+        {
+            return NULL;
+        }
+        Log_MapPage_Debug("Get page for pagePtr at index %llx\n", pagePtr);
+#if 1 // PARANOID
+        AssertBug(pagePtr % PageSize == 0, "Page not aligned to page size !\n");
+        AssertBug(pagePtr < fileLength, "Page is after file length !\n");
+#endif
+        return mapPage(pagePtr);
+    }
+
     void
-    PersistentStore::releasePage (AbsolutePagePtr absPagePtr)
+    PersistentStore::__releasePage (AbsolutePagePtr absPagePtr)
     {
         AbsolutePagePtr chunkIdx = absPagePtr >> ChunkInfo::PageChunk_Bits;
 
@@ -108,6 +152,10 @@ namespace Xem
 
         AssertBug(chunkInfo.refCount, "Null chunkInfo refCount !\n");
         chunkInfo.refCount--;
+
+        Log_MapPage("CHUNK UNREF : pagePtr=0x%llx, chunkIdx=0x%llx, page=%p, refCount=0x%llx\n", absPagePtr, chunkIdx,
+                    chunkInfo.page, chunkInfo.refCount);
+
         if (chunkInfo.refCount)
         {
             return;
@@ -116,26 +164,16 @@ namespace Xem
         void* page = chunkInfo.page;
         chunkMap.erase(iter);
 
+        unmapArea(page, ChunkInfo::PageChunk_Size);
+#if 0
         if (munmap(page, ChunkInfo::PageChunk_Size) == -1)
         {
             Bug("Could not unmap page %llx : %p. Error %d:%s\n", absPagePtr, page, errno, strerror(errno));
         }
+#endif
 
         Log_ChunkMap ( "[CHUNK] Released chunk %llx for absPagePtr=%llx => %p. Nb chunks=%lu\n",
                 chunkIdx, absPagePtr, page, (unsigned long) chunkMap.size() );
-    }
-
-    void*
-    PersistentStore::__getAbsolutePage (AbsolutePagePtr pagePtr)
-    {
-        if (!pagePtr)
-            return NULL;
-        Log_MapPage ( "Get page for pagePtr at index %llx\n", pagePtr );
-#if 1 // PARANOID
-        AssertBug(pagePtr % PageSize == 0, "Page not aligned to page size !\n");
-        AssertBug(pagePtr < fileLength, "Page is after file length !\n");
-#endif
-        return mapPage(pagePtr);
     }
 
     AbsolutePagePtr
@@ -143,37 +181,37 @@ namespace Xem
     {
         Lock lock(freePageHeaderMutex);
 
-        AssertBug(getFreePageHeader(), "No freePageHeader !\n");
-        FreePageHeader* fpHeader = getFreePageHeader();
-        if (!fpHeader->ownFreePageList)
+        AbsolutePageRef<FreePageHeader> fpHeaderRef = getFreePageHeader();
+        AssertBug(fpHeaderRef.getPage(), "No freePageHeader !\n");
+        if (!fpHeaderRef.getPage()->ownFreePageList)
         {
             AbsolutePagePtr pageListPtr = getFreePageList(false);
             //	PageList* pageList = getAbsolutePage<PageList> ( pageListPtr );
-            alterPage(fpHeader);
-            fpHeader->ownFreePageList = pageListPtr; // getAbsolutePagePtr ( pageList );
-            protectPage(fpHeader);
-            Log_GetFreePage( "New own freePageList=%llx\n", fpHeader->ownFreePageList );
+            alterPage(fpHeaderRef.getPage());
+            fpHeaderRef.getPage()->ownFreePageList = pageListPtr; // getAbsolutePagePtr ( pageList );
+            protectPage(fpHeaderRef.getPage());
+            Log_GetFreePage( "New own freePageList=%llx\n", fpHeaderRef.getPage()->ownFreePageList );
         }
-        AssertBug(fpHeader->ownFreePageList, "No ownFreePageList !\n");
-        PageList* own = getAbsolutePage<PageList>(fpHeader->ownFreePageList);
+        AssertBug(fpHeaderRef.getPage()->ownFreePageList, "No ownFreePageList !\n");
+        AbsolutePageRef<PageList> ownRef = getAbsolutePage<PageList>(fpHeaderRef.getPage()->ownFreePageList);
         AbsolutePagePtr newFreePagePtr;
-        AssertBug(own->number <= PageList::maxNumber, "Own number out of range !\n");
-        if (own->number)
+        AssertBug(ownRef.getPage()->number <= PageList::maxNumber, "Own number out of range !\n");
+        if (ownRef.getPage()->number)
         {
-            alterPage(own);
-            own->number--;
-            protectPage(own);
-            newFreePagePtr = own->pages[own->number];
+            alterPage(ownRef.getPage());
+            ownRef.getPage()->number--;
+            protectPage(ownRef.getPage());
+            newFreePagePtr = ownRef.getPage()->pages[ownRef.getPage()->number];
         }
         else
         {
-            newFreePagePtr = fpHeader->ownFreePageList;
-            alterPage(fpHeader);
-            fpHeader->ownFreePageList = NullPage;
-            protectPage(fpHeader);
+            newFreePagePtr = fpHeaderRef.getPage()->ownFreePageList;
+            alterPage(fpHeaderRef.getPage());
+            fpHeaderRef.getPage()->ownFreePageList = NullPage;
+            protectPage(fpHeaderRef.getPage());
         }
         Log_GetFreePage( "Got freePage %llx from own=%p / %llx\n",
-                newFreePagePtr, own, fpHeader->ownFreePageList );
+                newFreePagePtr, ownRef.getPage(), fpHeaderRef.getPage()->ownFreePageList );
 #ifdef __XEM_COUNT_FREEPAGES
         lockSB();
         AssertBug(getSB()->nbFreePages, "No free pages !\n");
@@ -206,46 +244,48 @@ namespace Xem
 #endif
 
         Lock lock(freePageHeaderMutex);
-        PageList* currentFreedPageList = getAbsolutePage<PageList>(getFreePageHeader()->currentFreedPageList);
-        if (!currentFreedPageList)
+        AbsolutePageRef<FreePageHeader> freePageHeaderRef = getFreePageHeader();
+        AbsolutePageRef<PageList> currentFreedPageList = getAbsolutePage<PageList>(
+                freePageHeaderRef.getPage()->currentFreedPageList);
+        if (!currentFreedPageList.getPage())
         {
             // Make this page the new currentFreedPageList !
             currentFreedPageList = getAbsolutePage<PageList>(pageList[0]);
-            alterPage(currentFreedPageList);
-            currentFreedPageList->number = number - 1;
-            currentFreedPageList->nextPage = NullPage;
-            memcpy(currentFreedPageList->pages, &(pageList[1]), (number - 1) * sizeof(AbsolutePagePtr));
-            protectPage(currentFreedPageList);
-            alterPage(getFreePageHeader());
-            getFreePageHeader()->currentFreedPageList = pageList[0];
-            protectPage(getFreePageHeader());
+            alterPage(currentFreedPageList.getPage());
+            currentFreedPageList.getPage()->number = number - 1;
+            currentFreedPageList.getPage()->nextPage = NullPage;
+            memcpy(currentFreedPageList.getPage()->pages, &(pageList[1]), (number - 1) * sizeof(AbsolutePagePtr));
+            protectPage(currentFreedPageList.getPage());
+            alterPage(freePageHeaderRef.getPage());
+            freePageHeaderRef.getPage()->currentFreedPageList = pageList[0];
+            protectPage(freePageHeaderRef.getPage());
             return true;
         }
-        AssertBug(currentFreedPageList->number < PageList::maxNumber, "Out of bounds !\n");
+        AssertBug(currentFreedPageList.getPage()->number < PageList::maxNumber, "Out of bounds !\n");
         /*
          * Ok, now we know we have a currentFreedPageList
          * We first must compute the number of pages we can include
          * in the existing currentFreedPageList
          */
         __ui64 toCopy = number;
-        if (currentFreedPageList->number + number > PageList::maxNumber)
-            toCopy = PageList::maxNumber - currentFreedPageList->number;
+        if (currentFreedPageList.getPage()->number + number > PageList::maxNumber)
+            toCopy = PageList::maxNumber - currentFreedPageList.getPage()->number;
 
-        alterPage(currentFreedPageList);
-        memcpy(&(currentFreedPageList->pages[currentFreedPageList->number]), pageList,
+        alterPage(currentFreedPageList.getPage());
+        memcpy(&(currentFreedPageList.getPage()->pages[currentFreedPageList.getPage()->number]), pageList,
                toCopy * sizeof(AbsolutePagePtr));
-        currentFreedPageList->number += toCopy;
-        protectPage(currentFreedPageList);
+        currentFreedPageList.getPage()->number += toCopy;
+        protectPage(currentFreedPageList.getPage());
 
-        if (currentFreedPageList->number == PageList::maxNumber)
+        if (currentFreedPageList.getPage()->number == PageList::maxNumber)
         {
             /*
              * If it is full, push our currentFreedPageList to firstFreePageList.
              */
-            putFreePageListPtr(getFreePageHeader()->currentFreedPageList); // currentFreedPageList );
-            alterPage(getFreePageHeader());
-            getFreePageHeader()->currentFreedPageList = NullPage;
-            protectPage(getFreePageHeader());
+            putFreePageListPtr(freePageHeaderRef.getPage()->currentFreedPageList); // currentFreedPageList );
+            alterPage(freePageHeaderRef.getPage());
+            freePageHeaderRef.getPage()->currentFreedPageList = NullPage;
+            protectPage(freePageHeaderRef.getPage());
 
             if (toCopy < number)
             {
@@ -256,15 +296,15 @@ namespace Xem
                  */
 
                 currentFreedPageList = getAbsolutePage<PageList>(pageList[toCopy]);
-                alterPage(currentFreedPageList);
-                currentFreedPageList->number = number - toCopy - 1;
-                currentFreedPageList->nextPage = NullPage;
-                memcpy(currentFreedPageList->pages, &(pageList[toCopy + 1]),
+                alterPage(currentFreedPageList.getPage());
+                currentFreedPageList.getPage()->number = number - toCopy - 1;
+                currentFreedPageList.getPage()->nextPage = NullPage;
+                memcpy(currentFreedPageList.getPage()->pages, &(pageList[toCopy + 1]),
                        (number - toCopy - 1) * sizeof(AbsolutePagePtr));
-                protectPage(currentFreedPageList);
-                alterPage(getFreePageHeader());
-                getFreePageHeader()->currentFreedPageList = pageList[toCopy];
-                protectPage(getFreePageHeader());
+                protectPage(currentFreedPageList.getPage());
+                alterPage(freePageHeaderRef.getPage());
+                freePageHeaderRef.getPage()->currentFreedPageList = pageList[toCopy];
+                protectPage(freePageHeaderRef.getPage());
             }
         }
         return true;
@@ -276,10 +316,12 @@ namespace Xem
      * \todo (PARANOID) : When freeing a PageList, we shall take care that the page is not already in the free list.
      */
     {
-        PageList* freePageList = getAbsolutePage<PageList>(freePageListPtr);
-        freePages(freePageList->pages, freePageList->number);
+        {
+            AbsolutePageRef<PageList> freePageList = getAbsolutePage<PageList>(freePageListPtr);
+            freePages(freePageList.getPage()->pages, freePageList.getPage()->number);
+        }
         freePage(freePageListPtr);
-        releasePage(freePageListPtr);
+        // releasePage(freePageListPtr);
         return true;
     }
 
@@ -293,9 +335,12 @@ namespace Xem
         Log_GetFreePage( "getFreePageList mustLock=%s\n", mustLock ? "yes" : "no" );
 
         if (mustLock)
+        {
             freePageHeaderMutex.lock();
+        }
 
-        if (!getFreePageHeader()->firstFreePageList)
+        AbsolutePageRef<FreePageHeader> fpHeaderRef = getFreePageHeader();
+        if (!fpHeaderRef.getPage()->firstFreePageList)
         {
             /*
              * We dont have a pageList at hand, so we must allocate a new one
@@ -319,22 +364,24 @@ namespace Xem
             getSB()->nbFreePages += (PageList::maxNumber + 1);
 #endif
             unlockSB();
-            PageList* freePageList = getAbsolutePage<PageList>(newPageListPtr);
+            AbsolutePageRef<PageList> freePageList = getAbsolutePage<PageList>(newPageListPtr);
 #ifdef XEM_MADVISE
-            madvise ( freePageList, PageSize, MADV_WILLNEED );
+            madvise ( freePageList.getPage(), PageSize, MADV_WILLNEED );
 #endif
             /*
              * Build the freePageList contents, with the first index at end.
              * The freePageList is used backwards (last index first).
              */
-            alterPage(freePageList);
-            freePageList->nextPage = NullPage;
+            alterPage(freePageList.getPage());
+            freePageList.getPage()->nextPage = NullPage;
             for (__ui64 index = 0; index < PageList::maxNumber; index++)
-                freePageList->pages[index] = newPageListPtr + (PageSize * ((PageList::maxNumber - index)));
-            freePageList->number = PageList::maxNumber;
-            protectPage(freePageList);
+            {
+                freePageList.getPage()->pages[index] = newPageListPtr + (PageSize * ((PageList::maxNumber - index)));
+            }
+            freePageList.getPage()->number = PageList::maxNumber;
+            protectPage(freePageList.getPage());
 #if PARANOID
-            AssertBug ( freePageList->pages[PageList::maxNumber-1] < getSB()->noMansLand,
+            AssertBug ( freePageList.getPage()->pages[PageList::maxNumber-1] < getSB()->noMansLand,
                     "Gone too far.\n" );
 #endif
             Log_GetFreePage( "New freePageList from noMansLand at %llx\n", newPageListPtr );
@@ -349,11 +396,11 @@ namespace Xem
          * Ok, we have a freePageList at hand.
          * Put the next one at head of the SuperBlock list.
          */
-        AbsolutePagePtr freePageListPtr = getFreePageHeader()->firstFreePageList;
-        PageList* freePageList = getAbsolutePage<PageList>(freePageListPtr);
-        alterPage(getFreePageHeader());
-        getFreePageHeader()->firstFreePageList = freePageList->nextPage;
-        protectPage(getFreePageHeader());
+        AbsolutePagePtr freePageListPtr = fpHeaderRef.getPage()->firstFreePageList;
+        AbsolutePageRef<PageList> freePageList = getAbsolutePage<PageList>(freePageListPtr);
+        alterPage(fpHeaderRef.getPage());
+        fpHeaderRef.getPage()->firstFreePageList = freePageList.getPage()->nextPage;
+        protectPage(fpHeaderRef.getPage());
         Log_GetFreePage( "Found freePageList %llx\n", freePageListPtr );
 
 #ifdef XEM_MADVISE
@@ -368,22 +415,25 @@ namespace Xem
 
 #endif
         if (mustLock)
+        {
             freePageHeaderMutex.unlock();
+        }
         return freePageListPtr;
     }
 
     bool
     PersistentStore::putFreePageListPtr (AbsolutePagePtr freePageListPtr)
     {
-        PageList* freePageList = getAbsolutePage<PageList>(freePageListPtr);
+        AbsolutePageRef<PageList> freePageList = getAbsolutePage<PageList>(freePageListPtr);
         Log_GetFreePage ( "Full currentFreePageList, putting it at disposal, next=%llx.\n",
-                getFreePageHeader()->firstFreePageList );
-        alterPage(freePageList);
-        freePageList->nextPage = getFreePageHeader()->firstFreePageList;
-        protectPage(freePageList);
-        alterPage(getFreePageHeader());
-        getFreePageHeader()->firstFreePageList = freePageListPtr;
-        protectPage(getFreePageHeader());
+                getFreePageHeader().getPage()->firstFreePageList );
+        AbsolutePageRef<FreePageHeader> fpHeaderRef = getFreePageHeader();
+        alterPage(freePageList.getPage());
+        freePageList.getPage()->nextPage = fpHeaderRef.getPage()->firstFreePageList;
+        protectPage(freePageList.getPage());
+        alterPage(fpHeaderRef.getPage());
+        fpHeaderRef.getPage()->firstFreePageList = freePageListPtr;
+        protectPage(fpHeaderRef.getPage());
 
         if (0)
         {

@@ -13,397 +13,593 @@
 // #define __XEM_PERSISTENTDOCUMENT_CHECK_DUMP_ALL_PAGES //< Option : Dump all chunk at PersistentDocument::checkContents()
 #define __XEM_PERSISTENCE_CHECK_BUILD_BRANCHPAGETABLE //< Option : build branchPageTable
 
+#define Log_APR(...) Log("[APR]" __VA_ARGS__)
 
 namespace Xem
 {
-  extern const char* PersistencePageTypeName[];
+    extern const char* PersistencePageTypeName[];
 
-  class PersistentDocument;
-  class BranchManager;
-  class PersistentBranchManager;
+    class PersistentDocument;
+    class BranchManager;
+    class PersistentBranchManager;
+    class PersistentStore;
+    class PageInfoIterator;
+    class PersistentDocumentAllocator;
 
-  XemStdException ( PersistenceBranchLastRevisionAlreadyWritable );
+    XemStdException(PersistenceBranchLastRevisionAlreadyWritable);
 
-  class PersistentStore : public Store
-  {
-    friend class PersistentDocument;
-    friend class PersistentDocumentAllocator;
-    friend class PersistentBranchManager;
-  protected:  
-    /**
-     * Internal constructor (for derivates)
-     */
-    void initPersistentStore ();
-    
-    /**
-     * PersistentBranchManager
-     */
-    PersistentBranchManager* branchManager;
-    
-    /**
-     * The FD corresponding to the Store file
-     */
-    int fd;
+    template<typename T>
+        class AbsolutePageRef
+        {
+            friend class PersistentStore;
+            friend class PersistentBranchManager;
+            friend class PersistentDocumentAllocator;
+            friend class PageInfoIterator;
+        private:
+            PersistentStore* persistentStore;
+            AbsolutePagePtr pagePtr;
+            T* page;
+        protected:
+            AbsolutePageRef (const PersistentStore& persistentStore)
+            {
+                this->persistentStore = (PersistentStore*) &persistentStore;
+                this->pagePtr = NullPage;
+                this->page = NULL;
+            }
+            AbsolutePageRef (PersistentStore* persistentStore, const AbsolutePagePtr pagePtr)
+            {
+                this->persistentStore = persistentStore;
+                this->pagePtr = pagePtr;
+                this->page = NULL;
+            }
+            AbsolutePageRef (const PersistentStore& persistentStore, const AbsolutePagePtr pagePtr)
+            {
+                this->persistentStore = (PersistentStore*) &persistentStore;
+                this->pagePtr = pagePtr;
+                this->page = NULL;
+            }
+        public:
+            INLINE
+            AbsolutePageRef (const AbsolutePageRef& pageRef)
+            {
+                this->persistentStore = pageRef.persistentStore;
+                this->pagePtr = pageRef.pagePtr;
+                this->page = NULL;
+                Log_APR("Ref by constructor(const&)  : pagePtr=%llx\n", pageRef.pagePtr);
+            }
 
-    /**
-     * Read-only flag for the whole Store.
-     */
-    bool readOnly;
+            INLINE
+            ~AbsolutePageRef ();
 
-    /**
-     * Total file length of the Store file.
-     */
-    __ui64 fileLength;
+            INLINE
+            AbsolutePagePtr
+            getPagePtr () const
+            {
+                return pagePtr;
+            }
 
-    /**
-     * Determines if we can extend file after fileLength (only for regular files)
-     */
-    bool fileLengthIsAHardLimit;
+            INLINE
+            T*
+            getPage ();
 
-    /**
-     * SuperBlock pointer
-     */
-    SuperBlock *superBlock;
+            INLINE
+            AbsolutePageRef&
+            operator= (const AbsolutePageRef& pageRef);
 
-    /**
-     * Store file partial mapping mechanism
-     * The mapping is quite similar to the Document one for Areas
-     * This mapping is based on the *absolute* page pointer.
-     */
-    class ChunkInfo
+            // INLINE ElementRef& operator= ( const ElementRef& eRef );
+        };
+
+    class PersistentStore : public Store
     {
+        friend class PersistentDocument;
+        friend class PersistentDocumentAllocator;
+        friend class PersistentBranchManager;
+
+    protected:
+        /**
+         * Internal constructor (for derivates)
+         */
+        void
+        initPersistentStore ();
+
+        /**
+         * PersistentBranchManager
+         */
+        PersistentBranchManager* branchManager;
+
+        /**
+         * The FD corresponding to the Store file
+         */
+        int fd;
+
+        /**
+         * Read-only flag for the whole Store.
+         */
+        bool readOnly;
+
+        /**
+         * Total file length of the Store file.
+         */
+        __ui64 fileLength;
+
+        /**
+         * Determines if we can extend file after fileLength (only for regular files)
+         */
+        bool fileLengthIsAHardLimit;
+
+        /**
+         * SuperBlock pointer
+         */
+        SuperBlock* superBlock;
+
+        /**
+         * Store file partial mapping mechanism
+         * The mapping is quite similar to the Document one for Areas
+         * This mapping is based on the *absolute* page pointer.
+         */
+        class ChunkInfo
+        {
+        public:
+            void* page;
+            __ui64 refCount;
+
+            static const __ui64 PageChunk_Bits = 0; // 5;
+            static const __ui64 PageChunk_Size = (PageSize << PageChunk_Bits);
+            static const __ui64 PageChunk_Mask = (PageChunk_Size) - 1;
+            static const __ui64 PageChunk_ChunkMask = ~((PageChunk_Size) - 1);
+
+            ChunkInfo ()
+            {
+                page = NULL, refCount = 0;
+            }
+            ~ChunkInfo ()
+            {
+            }
+        };
+
+        /**
+         * The ChunkMap, alias the list of pages allocated
+         */
+        typedef std::map<AbsolutePagePtr, ChunkInfo> ChunkMap;
+        ChunkMap chunkMap;
+
+        Mutex chunkMapMutex;
+
+        /**
+         *  Map a page, and give a pointer to it.
+         */
+        void*
+        mapPage (AbsolutePagePtr absPagePtr);
+
     public:
-      void* page;
-      __ui64 refCount;
+        /**
+         * getAbsolutePage(), getAbsolutePagePtr()maps an AbsolutePagePtr to a in-mem T* page.
+         * alterPage, protectPage, syncPage,
+         * alterSegment, protectSegment and syncSegment are defined as macros
+         */
+        void*
+        __getAbsolutePage (AbsolutePagePtr pagePtr);
 
-      static const __ui64 PageChunk_Bits = 4; // 5;
-      static const __ui64 PageChunk_Size = (PageSize << PageChunk_Bits);
-      static const __ui64 PageChunk_Mask = (PageChunk_Size) - 1;
-      static const __ui64 PageChunk_ChunkMask = ~((PageChunk_Size) - 1);
-      
-      ChunkInfo() { page = NULL, refCount = 0; }
-      ~ChunkInfo() {}
-    };
-    
-    /**
-     * The ChunkMap, alias the list of pages allocated
-     */
-    typedef std::map<AbsolutePagePtr,ChunkInfo> ChunkMap;
-    ChunkMap chunkMap;
-    
-    Mutex chunkMapMutex;
+        /**
+         * Release a page (give the opportunity to unmap it)
+         * This is just a hint, may not crash if the page is not in the page cache
+         */
+        void
+        __releasePage (AbsolutePagePtr absPagePtr);
 
-    /**
-     *  Map a page, and give a pointer to it.
-     */
-    void* mapPage ( AbsolutePagePtr absPagePtr );
-    
-    /**
-     * Release a page (give the opportunity to unmap it)
-     * This is just a hint, may not crash if the page is not in the page cache
-     */
-    void releasePage ( AbsolutePagePtr absPagePtr );
-
-    /*
-     * Locking stuff
-     */
-    Mutex superblockMutex;
-    Mutex freePageHeaderMutex;
+    protected:
+        /*
+         * Locking stuff
+         */
+        Mutex superblockMutex;
+        Mutex freePageHeaderMutex;
 
 #ifdef XEM_MEM_PROTECT_TABLE
-    unsigned char *mem_pages_table;
-    __ui64 mem_pages_table_size;
-    static const __ui64 mem_pages_table_max_refCount = 128;
+        unsigned char *mem_pages_table;
+        __ui64 mem_pages_table_size;
+        static const __ui64 mem_pages_table_max_refCount = 128;
 #endif
 
-    /**
-     * Maps an area of the Store file.
-     * @param offset the offset in the file
-     * @param length the length of the area
-     * @return the in-mem mmapped area, NULL upon failure.
-     * \deprecated function ?
-     */
-    void* mapArea ( __ui64 offset, __ui64 length );
+        /**
+         * Maps an area of the Store file.
+         * @param offset the offset in the file
+         * @param length the length of the area
+         * @return the in-mem mmapped area, NULL upon failure.
+         */
+        void*
+        mapArea (__ui64 offset, __ui64 length);
 
-    /**
-     * Low-level open
-     * @param filename the filename of the database
-     * @param mayCreate set to true to create filename (needs to be formatted, so needs to be called by format())
-     * @return true upon success, false otherwise
-     */
-    bool openFile ( const char* filename, bool mayCreate );
-    
-    /**
-     * Lowl-level close
-     * @return true on success, false on failure
-     */
-    bool closeFile ( );
+        /**
+         * Unmaps an area from the Store file
+         */
+        void
+        unmapArea (void* area, __ui64 length);
 
-    /**
-     * Extends the store file to the expectedFileLength, called under lockSB()
-     * @param expectedFileLength the desired file length
-     * @return true upon success, false otherwise, but way Bug() or Fatal() on error.
-     */
-    bool extendFile ( __ui64 expectedFileLength );
+        /**
+         * Low-level open
+         * @param filename the filename of the database
+         * @param mayCreate set to true to create filename (needs to be formatted, so needs to be called by format())
+         * @return true upon success, false otherwise
+         */
+        bool
+        openFile (const char* filename, bool mayCreate);
 
-    bool checkFormat ();
+        /**
+         * Lowl-level close
+         * @return true on success, false on failure
+         */
+        bool
+        closeFile ();
 
-    int __getFD() const { return fd; }
+        /**
+         * Extends the store file to the expectedFileLength, called under lockSB()
+         * @param expectedFileLength the desired file length
+         * @return true upon success, false otherwise, but way Bug() or Fatal() on error.
+         */
+        bool
+        extendFile (__ui64 expectedFileLength);
 
-    INLINE SuperBlock* getSB () ;
-    INLINE FreePageHeader* getFreePageHeader() ;
+        bool
+        checkFormat ();
 
-    /*
-     * SuperBlock locking mechanism
-     * lockSB() locks write, lockSB_Read() locks read only.
-     */
-    INLINE void lockSB();
-    INLINE void lockSB_Read();
-    INLINE void unlockSB();
-    INLINE void unlockSB_Read();
+        int
+        __getFD () const
+        {
+            return fd;
+        }
 
-    /**
-     * Key persistence : loadKeysFromStore
-     * Loads all keys stored in the store file.
-     * 
-     */
-    bool loadKeysFromStore ();
+        INLINE
+        SuperBlock*
+        getSB ();
 
-    LocalKeyId addKeyInStore ( const char* keyName );
-    NamespaceId addNamespaceInStore ( const char* namespaceURL );
-    
-     
-    /**
-     * getAbsolutePage(), getAbsolutePagePtr()maps an AbsolutePagePtr to a in-mem T* page.
-     * alterPage, protectPage, syncPage,
-     * alterSegment, protectSegment and syncSegment are defined as macros
-     */
-    void* __getAbsolutePage ( AbsolutePagePtr pagePtr );
-    template<typename T> 
-      INLINE T* getAbsolutePage ( AbsolutePagePtr pagePtr )
-      { return (T*)__getAbsolutePage ( pagePtr ); }
+        INLINE
+        AbsolutePageRef<FreePageHeader>
+        getFreePageHeader ();
 
-    void __alterPage ( void* page );
-    void __protectPage ( void* page );
-    template<typename T> INLINE void alterPage ( T* page ) { __alterPage ( (void*) page ); }
-    template<typename T> INLINE void protectPage ( T* page ) { __protectPage ( (void*) page ); }
+        /*
+         * SuperBlock locking mechanism
+         * lockSB() locks write, lockSB_Read() locks read only.
+         */
+        INLINE
+        void
+        lockSB ();INLINE
+        void
+        lockSB_Read ();INLINE
+        void
+        unlockSB ();INLINE
+        void
+        unlockSB_Read ();
 
-    void __syncPage ( void*& page, bool sync );
-    template<typename T> INLINE void syncPage ( T*& page, bool sync )
-      { __syncPage ( (void*&) page, sync ); }
-    template<typename T> INLINE void syncPage ( T*& page )
-      { syncPage<T> ( page, false ); }
+        /**
+         * Key persistence : loadKeysFromStore
+         * Loads all keys stored in the store file.
+         *
+         */
+        bool
+        loadKeysFromStore ();
 
-    /*
-     * getFreePage(AbsolutePagePtr) is strictly for non-revision pages
-     * Use getFreePage(RevisionPage*,AbsolutePagePtr) when in Document
-     */
-    AbsolutePagePtr getFreePageList ( bool mustLock );
-    AbsolutePagePtr getFreePageList ( );
+        LocalKeyId
+        addKeyInStore (const char* keyName);
+        NamespaceId
+        addNamespaceInStore (const char* namespaceURL);
 
-    bool putFreePageListPtr ( AbsolutePagePtr freePageListPtr );
+        template<typename T>
+            INLINE AbsolutePageRef<T>
+            getAbsolutePage (AbsolutePagePtr pagePtr)
+            {
+                AbsolutePageRef<T> pageRef(this, pagePtr);
+                return pageRef;
+            }
 
-    AbsolutePagePtr getFreePagePtr ();
+        void
+        __alterPage (void* page);
+        void
+        __protectPage (void* page);
 
-    bool freePage ( AbsolutePagePtr pagePtr );
-    bool freePages ( AbsolutePagePtr* pageList, __ui64 number );
-    bool freePageList ( AbsolutePagePtr freePageListPtr );
+        template<typename T>
+            INLINE void
+            alterPage (T* page)
+            {
+                __alterPage((void*) page);
+            }
+        template<typename T>
+            INLINE void
+            protectPage (T* page)
+            {
+                __protectPage((void*) page);
+            }
+
+        void
+        __syncPage (void*& page, bool sync);
+        template<typename T>
+            INLINE void
+            syncPage (T*& page, bool sync)
+            {
+                __syncPage((void*&) page, sync);
+            }
+        template<typename T>
+            INLINE void
+            syncPage (T* page)
+            {
+                syncPage<T>(page, false);
+            }
+
+        /*
+         * getFreePage(AbsolutePagePtr) is strictly for non-revision pages
+         * Use getFreePage(RevisionPage*,AbsolutePagePtr) when in Document
+         */
+        AbsolutePagePtr
+        getFreePageList (bool mustLock);
+        AbsolutePagePtr
+        getFreePageList ();
+
+        bool
+        putFreePageListPtr (AbsolutePagePtr freePageListPtr);
+
+        AbsolutePagePtr
+        getFreePagePtr ();
+
+        bool
+        freePage (AbsolutePagePtr pagePtr);
+        bool
+        freePages (AbsolutePagePtr* pageList, __ui64 number);
+        bool
+        freePageList (AbsolutePagePtr freePageListPtr);
 
 #ifdef __XEM_COUNT_FREEPAGES
-    void decrementFreePagesCount ( __ui64 count );
+        void
+        decrementFreePagesCount (__ui64 count);
 #endif // __XEM_COUNT_FREEPAGES
 
-    /**
-     * Reserve element ids
-     */
-    bool reserveElementIds ( ElementId& nextId, ElementId& lastId );
+        /**
+         * Reserve element ids
+         */
+        bool
+        reserveElementIds (ElementId& nextId, ElementId& lastId);
 
-  public:
-    /**
-     * Default Constructor 
-     */
-    PersistentStore ();
-    
-    /**
-     * Default Destructor
-     */
-    ~PersistentStore ();
-
-    /**
-     * Convert myself to PersisentStore
-     */
-    PersistentStore& asPersistentStore() { return *this; }
-
-    /**
-     * Access to the BranchManager
-     */
-    BranchManager& getBranchManager();
-
-    /**
-     * Convert my branchManager to PersistentBranchManager
-     */
-    PersistentBranchManager& getPersistentBranchManager();
-
-    /**
-     * Formats file with default branch flags
-     */
-    bool format ( const char* filename );
-
-    
-    /**
-     * Drop all revisions of all branches that are marked writable (uncommitted).
-     */
-    bool dropUncommittedRevisions ();
-
-    /**
-     * Set the PersistentStore readonly (must be done before open() and is incompatible with format() )
-     * @param readOnly set to true to set the PersistentStore readonly 
-     * @return true upon success, false otherwise
-     */
-    bool setReadOnly ( bool readOnly );
-    
-    /**
-     * @return true if the document is readonly
-     */
-    bool isReadOnly () const;
-
-    /**
-     * Open an existing file
-     */
-    bool open ( const char* filename );
-
-    /**
-     * Closes the current file
-     */
-    bool close ();
-
-    /**
-     * Try to shrink a bit of memory
-     */
-    virtual void housewife ();
-    
-    /**
-     * Get the current size of the page map
-     */
-    __ui64 getChunkMapSize () const { return (__ui64) chunkMap.size(); }
-
-    /**
-     * Allocation information
-     */
-    bool isFileLengthIsAHardLimit() const { return fileLengthIsAHardLimit; }
-
-    __ui64 getFileLength() const { return fileLength; }
-
-    /*
-     * ***************************************************************
-     * Check functions, sorted from finest to most global structures.
-     * *************************************************************** 
-     *
-     * checkKeys() is implemented in keys.cpp, the others in check.cpp
-     */ 
-    void checkElement ( RevisionPage* revPage, ElementSegment* element );
-    // void checkFreeList ( RevisionPage* revisionPage, FreeListHeader* freeListHeader );
-
-    class AllocationStats
-    {
-    protected:
     public:
+        /**
+         * Default Constructor
+         */
+        PersistentStore ();
+
+        /**
+         * Default Destructor
+         */
+        ~PersistentStore ();
+
+        /**
+         * Convert myself to PersisentStore
+         */
+        PersistentStore&
+        asPersistentStore ()
+        {
+            return *this;
+        }
+
+        /**
+         * Access to the BranchManager
+         */
+        BranchManager&
+        getBranchManager ();
+
+        /**
+         * Convert my branchManager to PersistentBranchManager
+         */
+        PersistentBranchManager&
+        getPersistentBranchManager ();
+
+        /**
+         * Formats file with default branch flags
+         */
+        bool
+        format (const char* filename);
+
+        /**
+         * Drop all revisions of all branches that are marked writable (uncommitted).
+         */
+        bool
+        dropUncommittedRevisions ();
+
+        /**
+         * Set the PersistentStore readonly (must be done before open() and is incompatible with format() )
+         * @param readOnly set to true to set the PersistentStore readonly
+         * @return true upon success, false otherwise
+         */
+        bool
+        setReadOnly (bool readOnly);
+
+        /**
+         * @return true if the document is readonly
+         */
+        bool
+        isReadOnly () const;
+
+        /**
+         * Open an existing file
+         */
+        bool
+        open (const char* filename);
+
+        /**
+         * Closes the current file
+         */
+        bool
+        close ();
+
+        /**
+         * Try to shrink a bit of memory
+         */
+        virtual void
+        housewife ();
+
+        /**
+         * Get the current size of the page map
+         */
+        __ui64
+        getChunkMapSize () const
+        {
+            return (__ui64) chunkMap.size();}
+
+        /**
+         * Allocation information
+         */
+        bool isFileLengthIsAHardLimit() const
+        {   return fileLengthIsAHardLimit;}
+
+        __ui64 getFileLength() const
+        {   return fileLength;}
+
+        /*
+         * ***************************************************************
+         * Check functions, sorted from finest to most global structures.
+         * ***************************************************************
+         *
+         * checkKeys() is implemented in keys.cpp, the others in check.cpp
+         */
+        void checkElement ( RevisionPage* revPage, ElementSegment* element );
+        // void checkFreeList ( RevisionPage* revisionPage, FreeListHeader* freeListHeader );
+
+        class AllocationStats
+        {
+        protected:
+        public:
 #ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
-      struct PageReferenceCtxt
-      {
-        const char* ctxt;
-        BranchRevId brId;
-        bool stolen;
-        PageType pageType;
-        RelativePagePtr relPagePtr;
-        PageReferenceCtxt* previous;
-      };
+            struct PageReferenceCtxt
+            {
+                const char* ctxt;
+                BranchRevId brId;
+                bool stolen;
+                PageType pageType;
+                RelativePagePtr relPagePtr;
+                PageReferenceCtxt* previous;
+            };
 #endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
-      struct PageStats
-      {
-        AbsolutePagePtr absPagePtr;
-        RelativePagePtr relPagePtr;
+            struct PageStats
+            {
+                AbsolutePagePtr absPagePtr;
+                RelativePagePtr relPagePtr;
 #ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
-        PageReferenceCtxt* pageReferenceCtxt;
+                PageReferenceCtxt* pageReferenceCtxt;
 #endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
+            };
+
+            struct RelativePageRevInfos
+            {
+                BranchRevId brId;
+                bool stolen;
+                AbsolutePagePtr absPagePtr;
+            };
+
+            class RelativePageInfos
+            {
+            public:
+                RelativePageInfos()
+                {}
+                ~RelativePageInfos();
+                std::list<RelativePageRevInfos*> revInfos;
+            };
+            AllocationStats* father;
+            typedef std::map<RelativePagePtr, RelativePageInfos*> BranchPageTable;
+            BranchPageTable* branchPageTable;
+            PageStats* pageTable;
+            __ui64 pageTableSize;
+            __ui64 pageReferenceCtxtNb;
+            bool ownsPageTable;
+            AllocationStats();
+            AllocationStats(AllocationStats& father);
+            ~AllocationStats();
+
+            bool initPageTable ( __ui64 noMansLand );
+            bool initBranchPageTable ();
+
+            BranchPageTable* getBranchPageTable ();
+
+            __ui64 pages[PageType_Mask];
+            __ui64 stolenPages[PageType_Mask];
+
+            typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
+
+            bool appendPageReference ( PageStats* pStats, const char* ctxt, BranchRevId brId,
+                    RelativePagePtr relPagePtr, PageType pageType, bool stolen );
+            bool dumpPageReferences ( PageStats* pStats );
+            bool referencePage ( const char* ctxt, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
+            bool referencePage ( const char* ctxt, BranchRevId brId,
+                    RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
+
+            __ui64 getTotalPages () const;
+            __ui64 getTotalStolenPages () const;
+
+            __ui64 elements;
+
+            bool checkUnsetPages ( AbsolutePagePtrList& unsetPages );
         };
-      
-      struct RelativePageRevInfos
-      {
-        BranchRevId brId;
-        bool stolen;
-        AbsolutePagePtr absPagePtr;
-      };
-      
-      class RelativePageInfos
-      {
-      public:
-        RelativePageInfos() {}
-        ~RelativePageInfos();
-        std::list<RelativePageRevInfos*> revInfos;
-      };
-      AllocationStats* father;
-      typedef std::map<RelativePagePtr, RelativePageInfos*> BranchPageTable;
-      BranchPageTable* branchPageTable;
-      PageStats* pageTable;
-      __ui64 pageTableSize;
-      __ui64 pageReferenceCtxtNb;
-      bool ownsPageTable;
-      AllocationStats();
-      AllocationStats(AllocationStats& father);
-      ~AllocationStats();
+        void checkAllContents ();
+        void checkKeys ( AllocationStats& stats );
+        void checkFreePageHeader ( AllocationStats& stats );
+        void putPagesInAttic ( AllocationStats::AbsolutePagePtrList& atticPageList );
+        void checkBranch ( AbsolutePagePtr branchePagePtr, BranchPage* branchPage, AllocationStats& stats );
+        void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, AllocationStats& stats );
 
-      bool initPageTable ( __ui64 noMansLand );
-      bool initBranchPageTable ();
+        /**
+         * Main Check Function for Storage
+         */
+        enum CheckFlag
+        {
+            Check_Internals,
+            Check_Clean,
+            Check_AllContents
+        };
+        bool check ( CheckFlag flag );
 
-      BranchPageTable* getBranchPageTable ();
-      
-      __ui64 pages[PageType_Mask];
-      __ui64 stolenPages[PageType_Mask];
-
-      
-      typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
-
-      bool appendPageReference ( PageStats* pStats, const char* ctxt, BranchRevId brId, 
-          RelativePagePtr relPagePtr, PageType pageType, bool stolen );
-      bool dumpPageReferences ( PageStats* pStats );
-      bool referencePage ( const char* ctxt, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-      bool referencePage ( const char* ctxt, BranchRevId brId, 
-          RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-
-      __ui64 getTotalPages () const;
-      __ui64 getTotalStolenPages () const;
-
-      __ui64 elements;
-
-      bool checkUnsetPages ( AbsolutePagePtrList& unsetPages );
+        /**
+         * Testing stuff
+         */
+        bool isFreePageCacheFull ();
     };
-    void checkAllContents ();
-    void checkKeys ( AllocationStats& stats ); 
-    void checkFreePageHeader ( AllocationStats& stats );
-    void putPagesInAttic ( AllocationStats::AbsolutePagePtrList& atticPageList );
-    void checkBranch ( AbsolutePagePtr branchePagePtr, BranchPage* branchPage, AllocationStats& stats );
-    void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, AllocationStats& stats );
 
-    /**
-     * Main Check Function for Storage
-     */
-    enum CheckFlag
-      {
-        Check_Internals,
-        Check_Clean,
-        Check_AllContents
-      };
-    bool check ( CheckFlag flag );
+    template<typename T>
+        INLINE
+        AbsolutePageRef<T>::~AbsolutePageRef ()
+        {
+            if (page != NULL)
+            {
+                Log_APR("Release page : pagePtr=%llx\n", pagePtr);
+                persistentStore->__releasePage(pagePtr);
+            }
+        }
 
-    /**
-     * Testing stuff
-     */
-    bool isFreePageCacheFull ();
-  };
+    template<typename T>
+        INLINE
+        T*
+        AbsolutePageRef<T>::getPage ()
+        {
+            if (page == NULL)
+            {
+                Log_APR("Access to page : pagePtr=%llx\n", pagePtr);
+                page = (T*) persistentStore->__getAbsolutePage(pagePtr);
+            }
+            return page;
+        }
 
+    template<typename T>
+        INLINE
+        AbsolutePageRef<T>&
+        AbsolutePageRef<T>::operator= (const AbsolutePageRef& pageRef)
+        {
+            if( page != NULL )
+            {
+                Log_APR("Because ref by copy : Release page : pagePtr=%llx\n", pagePtr);
+                persistentStore->__releasePage(pagePtr);
+            }
+            this->persistentStore = pageRef.persistentStore;
+            this->pagePtr = pageRef.pagePtr;
+            this->page = NULL;
+            Log_APR("Ref by copy : pagePtr=%llx\n", pageRef.pagePtr);
+            return *this;
+        }
 
-};
+}
 
 #endif //  __XEM_PERSISTENCE_PERSISTENTSTORE_H
 

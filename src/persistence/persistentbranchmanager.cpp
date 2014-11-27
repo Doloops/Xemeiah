@@ -38,7 +38,7 @@ namespace Xem
                   branchPage->branchId);
         BranchInfo* branchInfo = new PersistentBranchInfo(*this, branchPagePtr, branchPage);
         branchMap[branchPage->branchId] = branchInfo;
-        branchLookup.put(branchPage->branchId, branchPage->name);
+        branchLookup.put(branchPage->branchId, strdup(branchPage->name));
         return branchInfo;
     }
 
@@ -48,31 +48,31 @@ namespace Xem
         /*
          * Step one : create all branchInfos
          */
-        BranchPage* branchPage = NULL;
+        AbsolutePageRef<BranchPage> branchPageRef(&getPersistentStore(), (AbsolutePagePtr) 0);
         for (BranchPagePtr branchPagePtr = getPersistentStore().getSB()->lastBranch; branchPagePtr; branchPagePtr =
-                branchPage->lastBranch)
+                branchPageRef.getPage()->lastBranch)
         {
-            branchPage = getPersistentStore().getAbsolutePage<BranchPage>(branchPagePtr);
+            branchPageRef = getPersistentStore().getAbsolutePage<BranchPage>(branchPagePtr);
 
             Log_PBM ( "BranchInfo : branchId=%llx, branchPagePtr=%llx, branchName='%s'\n",
-                    branchPage->branchId, branchPagePtr, branchPage->name );
+                    branchPageRef.getPage()->branchId, branchPagePtr, branchPageRef.getPage()->name );
 
-            referenceBranch(branchPagePtr, branchPage);
+            referenceBranch(branchPagePtr, branchPageRef.getPage());
 
-            RevisionPagePtr revisionPagePtr = branchPage->lastRevisionPage;
-            RevisionPage* revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
+            RevisionPagePtr revisionPagePtr = branchPageRef.getPage()->lastRevisionPage;
+            AbsolutePageRef<RevisionPage> revisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
 
-            if ( revisionPage == NULL )
+            if ( revisionPageRef.getPage() == NULL )
             {
                 Warn("At branch='%s' (branchId=%llx), revisionPagePtr=%llx has no absolutePage !\n",
-                     branchPage->name, branchPage->branchId, revisionPagePtr);
+                     branchPageRef.getPage()->name, branchPageRef.getPage()->branchId, revisionPagePtr);
                 continue;
             }
 
-            if (revisionPage->documentAllocationHeader.writable)
+            if (revisionPageRef.getPage()->documentAllocationHeader.writable)
             {
                 Warn("At branch='%s' (branchId=%llx), revisionId=%llx, last revision is marked writable !\n",
-                     branchPage->name, branchPage->branchId, revisionPage->branchRevId.revisionId);
+                     branchPageRef.getPage()->name, branchPageRef.getPage()->branchId, revisionPageRef.getPage()->branchRevId.revisionId);
 
             }
         }
@@ -135,30 +135,30 @@ namespace Xem
         }
         SuperBlock *sb = getPersistentStore().getSB();
         AbsolutePagePtr branchPagePtr = getPersistentStore().getFreePagePtr();
-        BranchPage* branchPage = getPersistentStore().getAbsolutePage<BranchPage>(branchPagePtr);
-        Log_PBM ( "New branch for '%s' at page=%p\n", branchName, branchPage );
-        getPersistentStore().alterPage(branchPage);
+        AbsolutePageRef<BranchPage> branchPageRef = getPersistentStore().getAbsolutePage<BranchPage>(branchPagePtr);
+        Log_PBM ( "New branch for '%s' at page=%p\n", branchName, branchPageRef.getPage() );
+        getPersistentStore().alterPage(branchPageRef.getPage());
 
-        strncpy(branchPage->name, branchName, branchPage->name_length);
-        branchPage->forkedFrom = forkedFrom;
-        branchPage->lastRevisionPage = NullPage;
+        strncpy(branchPageRef.getPage()->name, branchName, branchPageRef.getPage()->name_length);
+        branchPageRef.getPage()->forkedFrom = forkedFrom;
+        branchPageRef.getPage()->lastRevisionPage = NullPage;
 
-        branchPage->branchFlags = branchFlags;
+        branchPageRef.getPage()->branchFlags = branchFlags;
 
         getPersistentStore().lockSB();
-        branchPage->branchId = sb->nextBranchId;
+        branchPageRef.getPage()->branchId = sb->nextBranchId;
         sb->nextBranchId++;
 
-        branchPage->lastBranch = sb->lastBranch;
+        branchPageRef.getPage()->lastBranch = sb->lastBranch;
         sb->lastBranch = branchPagePtr;
 
-        getPersistentStore().syncPage(branchPage);
+        getPersistentStore().syncPage(branchPageRef.getPage());
 
-        getPersistentStore().protectPage(branchPage);
+        getPersistentStore().protectPage(branchPageRef.getPage());
 
         getPersistentStore().unlockSB();
 
-        BranchInfo* branchInfo = referenceBranch(branchPagePtr, branchPage);
+        BranchInfo* branchInfo = referenceBranch(branchPagePtr, branchPageRef.getPage());
 
         if (forkedFrom.branchId)
         {
@@ -178,12 +178,14 @@ namespace Xem
         }
 
         Log_PBM ( "New branch '%s' branchId=%llx, branchPagePtr=%llx, forkedFrom=%llx:%llx\n",
-                branchName, branchPage->branchId, branchPagePtr, _brid(forkedFrom) );
+                branchName, branchPageRef.getPage()->branchId, branchPagePtr, _brid(forkedFrom) );
 
         if (duplicatedBranchName)
+        {
             free(duplicatedBranchName);
+        }
 
-        return branchPage->branchId;
+        return branchPageRef.getPage()->branchId;
     }
 
     void
@@ -277,20 +279,20 @@ namespace Xem
             AbsolutePagePtr previousBranchPagePtr = getPersistentStore().getSB()->lastBranch;
             while (previousBranchPagePtr)
             {
-                BranchPage* previousBranchPage = getPersistentStore().getAbsolutePage<BranchPage>(
+                AbsolutePageRef<BranchPage> previousBranchPageRef = getPersistentStore().getAbsolutePage<BranchPage>(
                         previousBranchPagePtr);
 
-                if (previousBranchPage->lastBranch == branchPagePtr)
+                if (previousBranchPageRef.getPage()->lastBranch == branchPagePtr)
                 {
-                    getPersistentStore().alterPage(previousBranchPage);
-                    previousBranchPage->lastBranch = branchPage->lastBranch;
-                    getPersistentStore().protectPage(previousBranchPage);
+                    getPersistentStore().alterPage(previousBranchPageRef.getPage());
+                    previousBranchPageRef.getPage()->lastBranch = branchPage->lastBranch;
+                    getPersistentStore().protectPage(previousBranchPageRef.getPage());
 
-                    getPersistentStore().syncPage(previousBranchPage);
+                    getPersistentStore().syncPage(previousBranchPageRef.getPage());
 
                     break;
                 }
-                AbsolutePagePtr nextBranchPtr = previousBranchPage->lastBranch;
+                AbsolutePagePtr nextBranchPtr = previousBranchPageRef.getPage()->lastBranch;
                 previousBranchPagePtr = nextBranchPtr;
             }
         }
@@ -339,7 +341,7 @@ namespace Xem
     RevisionPagePtr
     PersistentBranchManager::lookupRevision (BranchPage* branchPage, RevisionId& revisionId)
     {
-        RevisionPage* revisionPage = NULL;
+        AbsolutePageRef<RevisionPage> revisionPageRef(getPersistentStore());
         if (revisionId == 0)
         {
             if (branchPage->lastRevisionPage == NullPage)
@@ -347,17 +349,17 @@ namespace Xem
                 throwException(Exception, "Branch '%s' (branchId=%llx) has no revision !\n", branchPage->name,
                                branchPage->branchId);
             }
-            revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(branchPage->lastRevisionPage);
-            AssertBug(revisionPage, "No Revision Page ! branchPage->lastRevisionPage=%llx\n",
+            revisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(branchPage->lastRevisionPage);
+            AssertBug(revisionPageRef.getPage(), "No Revision Page ! branchPage->lastRevisionPage=%llx\n",
                       branchPage->lastRevisionPage);
-            revisionId = revisionPage->branchRevId.revisionId;
+            revisionId = revisionPageRef.getPage()->branchRevId.revisionId;
             return branchPage->lastRevisionPage;
         }
         for (RevisionPagePtr revisionPagePtr = branchPage->lastRevisionPage; revisionPagePtr; revisionPagePtr =
-                revisionPage->lastRevisionPage)
+                revisionPageRef.getPage()->lastRevisionPage)
         {
-            revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
-            if (revisionPage->branchRevId.revisionId == revisionId)
+            revisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
+            if (revisionPageRef.getPage()->branchRevId.revisionId == revisionId)
                 return revisionPagePtr;
         }
         throwException(Exception, "Could not lookup revision %llx\n", revisionId);
@@ -372,8 +374,8 @@ namespace Xem
         RevisionPagePtr revisionPagePtr = lookupRevision(branchPage, revisionId);
         (void) revisionPagePtr;
 #if PARANOID
-        RevisionPage* revisionPage = getPersistentStore().getAbsolutePage<RevisionPage> ( revisionPagePtr );
-        AssertBug ( revisionPage->branchRevId.revisionId == revisionId, "Failed propagating revisionId !\n" );
+        AbsolutePageRef<RevisionPage> revisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage> ( revisionPagePtr );
+        AssertBug ( revisionPageRef.getPage()->branchRevId.revisionId == revisionId, "Failed propagating revisionId !\n" );
 #endif
         // return revisionPage->branchRevId.revisionId;
         return revisionId;
@@ -432,14 +434,14 @@ namespace Xem
         /**
          * We have found a revisionPagePtr matching for this revisionId
          */
-        RevisionPage* revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
+        AbsolutePageRef<RevisionPage> revisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
         Log_PBM ( "After lookup, revision is [%llx:%llx] (writable=%llx)\n",
-                _brid(revisionPage->branchRevId), revisionPage->documentAllocationHeader.writable );
+                _brid(revisionPageRef.getPage()->branchRevId), revisionPageRef.getPage()->documentAllocationHeader.writable );
 
         /**
          * Check if the document we got was writable
          */
-        if (revisionPage->documentAllocationHeader.writable)
+        if (revisionPageRef.getPage()->documentAllocationHeader.writable)
         {
             /**
              * The revisionPage we have is writable
@@ -448,15 +450,12 @@ namespace Xem
                     || flags == DocumentOpeningFlags_Write)
             {
                 Log_PBM ( "Revision is writable, but we wished not to have one.\n" );
-                RevisionPagePtr lastRevisionPagePtr = revisionPage->lastRevisionPage;
-                revisionPage = NULL;
-                getPersistentStore().releasePage(revisionPagePtr);
+                RevisionPagePtr lastRevisionPagePtr = revisionPageRef.getPage()->lastRevisionPage;
 
                 if ( lastRevisionPagePtr )
                 {
-                    RevisionPage* lastRevisionPage = getPersistentStore().getAbsolutePage<RevisionPage> (lastRevisionPagePtr);
-                    revisionId = lastRevisionPage->branchRevId.revisionId;
-                    getPersistentStore().releasePage(lastRevisionPagePtr);
+                    AbsolutePageRef<RevisionPage> lastRevisionPageRef = getPersistentStore().getAbsolutePage<RevisionPage> (lastRevisionPagePtr);
+                    revisionId = lastRevisionPageRef.getPage()->branchRevId.revisionId;
                 }
                 else
                 {
@@ -495,7 +494,7 @@ namespace Xem
         }
 
         Log_PBM ( "Lookup revision %llx:%llx->%llx for flag %x gave page %llx\n",
-                branchInfo.getBranchId(), revisionId, revisionPage->branchRevId.revisionId, flags, revisionPagePtr );
+                branchInfo.getBranchId(), revisionId, revisionPageRef.getPage()->branchRevId.revisionId, flags, revisionPagePtr );
         return revisionPagePtr;
     }
 

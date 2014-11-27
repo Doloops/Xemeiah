@@ -48,20 +48,16 @@ namespace Xem
     class PersistentBranchInfo : public BranchInfo
     {
     protected:
-      /**
-       * The BranchPage ptr
-       */
-      BranchPagePtr branchPagePtr;
       
       /**
        * The branchPage
        */
-      BranchPage* branchPage;
+      AbsolutePageRef<BranchPage> branchPageRef;
     public:
-      PersistentBranchInfo ( PersistentBranchManager& _persistentBranchManager, BranchPagePtr _branchPagePtr, BranchPage* _branchPage );
+      PersistentBranchInfo ( PersistentBranchManager& _persistentBranchManager, BranchPagePtr _branchPagePtr, BranchPage* _branchPage);
     
-      BranchPage* getBranchPage () { return branchPage; }
-      BranchPagePtr getBranchPagePtr () { return branchPagePtr; }
+      BranchPage* getBranchPage () { return branchPageRef.getPage(); }
+      BranchPagePtr getBranchPagePtr () { return branchPageRef.getPagePtr(); }
 
       virtual const char* getName();
 

@@ -49,19 +49,18 @@ namespace Xem
       {
     case PageType_Indirection:
       {
-        IndirectionPage* page = getIndirectionPage(absPagePtr);
-        Log_SyncPage ( "Syncing Indirection page abs=%llx, page=%p\n", absPagePtr, page );
-        syncPage(page);
-        releasePage(absPagePtr);
+        AbsolutePageRef<IndirectionPage> pageRef = getIndirectionPage(absPagePtr);
+        Log_SyncPage ( "Syncing Indirection page abs=%llx, page=%p\n", absPagePtr, pageRef.getPage() );
+        syncPage(pageRef.getPage());
         break;
       }
     case PageType_PageInfo:
       {
-        PageInfoPage* page = getPageInfoPage(absPagePtr);
-        Log_SyncPage ( "Syncing PageInfo page abs=%llx, page=%p\n", absPagePtr, page );
-        syncPage(page);
+        AbsolutePageRef<PageInfoPage> pageRef = getPageInfoPage(absPagePtr);
+        Log_SyncPage ( "Syncing PageInfo page abs=%llx, page=%p\n", absPagePtr, pageRef.getPage() );
+        syncPage(pageRef.getPage());
 #ifndef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-        releasePage(absPagePtr);
+        // releasePage(absPagePtr);
 #endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         break;
       }
@@ -100,9 +99,9 @@ namespace Xem
     /*
      * Flush the freePageList.
      */
-    if (revisionPage->freePageList)
+    if (revisionPageRef.getPage()->freePageList)
       {
-        getPersistentStore().freePageList(revisionPage->freePageList);
+        getPersistentStore().freePageList(revisionPageRef.getPage()->freePageList);
       }
     else
       {
@@ -114,14 +113,14 @@ namespace Xem
   void
   PersistentDocumentAllocator::commit()
   {
-    AssertBug ( revisionPage, "Null RevsionPage !\n" );
+    AssertBug ( revisionPageRef.getPage(), "Null RevsionPage !\n" );
 
-    Log_PDACommit ( "Committing %llx:%llx\n", _brid(revisionPage->branchRevId) );
+    Log_PDACommit ( "Committing %llx:%llx\n", _brid(revisionPageRef.getPage()->branchRevId) );
 
-    if (revisionPage->ownedTypedPages[PageType_Segment] == 0)
+    if (revisionPageRef.getPage()->ownedTypedPages[PageType_Segment] == 0)
       {
         Warn ( "Committing %llx:%llx is worthless : no segment page altered !\n",
-            _brid(revisionPage->branchRevId) );
+            _brid(revisionPageRef.getPage()->branchRevId) );
       }
 
     if (!isWritable())
@@ -137,7 +136,7 @@ namespace Xem
     /*
      * Very ugly hack : we have to clear reserved element ids
      */
-    DocumentHead* documentHead = getSegment<DocumentHead, Read> ( revisionPage->documentHeadPtr, sizeof(DocumentHead) );
+    DocumentHead* documentHead = getSegment<DocumentHead, Read> ( revisionPageRef.getPage()->documentHeadPtr, sizeof(DocumentHead) );
     alter ( documentHead );
     documentHead->firstReservedElementId = 0;
     documentHead->lastReservedElementId = 0;
@@ -166,7 +165,7 @@ namespace Xem
         Bug ( "Synced %llu pages, but Revision %llx:%llx has %llu owned pages.\n",
             nbPages,
             _brid(revisionPage->branchRevId),
-            revisionPage->ownedPages );
+            revisionPageRef.getPage()->ownedPages );
 
       }
 #endif
@@ -186,26 +185,26 @@ namespace Xem
     /**
      * Delete the freePageList header.
      */
-    revisionPage->freePageList = NullPage;
+    revisionPageRef.getPage()->freePageList = NullPage;
 
     /**
      * Mark the revision as non writable (committed)
      */
-    revisionPage->commitTime = time(NULL);
+    revisionPageRef.getPage()->commitTime = time(NULL);
     protectRevisionPage();
 
     alterDocumentAllocationHeader();
     getDocumentAllocationHeader().writable = false;
     protectDocumentAllocationHeader();
 
-    __forceSyncPage(revisionPage);
+    __forceSyncPage(revisionPageRef.getPage());
 
     struct timeb postsync;
     ftime(&postsync);
     __ui64 syncms = ((__ui64 ) postsync.time * 1000 + postsync.millitm)
         - ((__ui64 ) presync.time * 1000 + presync.millitm);
     Info_PDACommit ( "Committed %llx:%llx in %llu ms\n",
-        _brid(revisionPage->branchRevId), syncms );
+        _brid(revisionPageRef.getPage()->branchRevId), syncms );
 
     getPersistentStore().getPersistentBranchManager().unlockBranchForWrite(
         getBranchRevId().branchId);
@@ -213,8 +212,8 @@ namespace Xem
 
   bool PersistentDocumentAllocator::mayCommit()
   {
-    AssertBug ( revisionPage, "Null revisionPage !\n" );
-    if ( revisionPage->ownedTypedPages[PageType_Segment] == 0 )
+    AssertBug ( revisionPageRef.getPage(), "Null revisionPage !\n" );
+    if ( revisionPageRef.getPage()->ownedTypedPages[PageType_Segment] == 0 )
       {
         return false;
       }

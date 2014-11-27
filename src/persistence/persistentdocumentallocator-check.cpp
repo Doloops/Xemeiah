@@ -35,7 +35,7 @@ namespace Xem
                                                        PageType pageType, bool isStolen, void* arg)
     {
         PersistentStore::AllocationStats* pStats = (PersistentStore::AllocationStats*) arg;
-        pStats->referencePage("In Revision/Indirection", revisionPage->branchRevId, relPagePtr,
+        pStats->referencePage("In Revision/Indirection", revisionPageRef.getPage()->branchRevId, relPagePtr,
                               absPagePtr & PagePtr_Mask, pageType, __isStolen(absPagePtr) | isStolen);
         return true;
     }
@@ -54,7 +54,7 @@ namespace Xem
         {
             return true;
         }
-        pStats->referencePage("In Revision", revisionPage->branchRevId, relPagePtr, absPagePtr & PagePtr_Mask, pageType,
+        pStats->referencePage("In Revision", revisionPageRef.getPage()->branchRevId, relPagePtr, absPagePtr & PagePtr_Mask, pageType,
                               __isStolen(absPagePtr));
         return true;
     }
@@ -181,7 +181,7 @@ namespace Xem
                 CheckInfo("rel:%8llx : ", relPagePtr);
             }
 
-            PageInfo& pageInfo = iter.second();
+            PageInfo pageInfo = iter.second();
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
             PageInfoPagePtr cachePtr = 0;
@@ -215,6 +215,7 @@ namespace Xem
     bool
     PersistentDocumentAllocator::checkContents ()
     {
+        RevisionPage* revisionPage = revisionPageRef.getPage();
         CheckInfo(
                 "Checking revision contents for revisionPage=%p, revision=[%llx:%llx], nextRelativePagePtr=%llx, documentHeadPtr=%llx, " "indirection[firstPage=%llx, level=%x]\n",
                 revisionPage, _brid(getBranchRevId()), getNextRelativePagePtr(), revisionPage->documentHeadPtr,
@@ -344,7 +345,7 @@ namespace Xem
   do { __ui64 index = __relPagePtr / chunkSize;  \
     /* PageInfo pageInfo; getPageInfo ( __relPagePtr, pageInfo ); */ \
     Lock __lock(mapMutex); \
-    PageInfo& pageInfo = getPageInfo ( __relPagePtr ); \
+    PageInfo pageInfo = getPageInfo ( __relPagePtr ); \
     CheckLog ( "--> Dumping page contents - rel=%llx (abs=%llx, brid=[%llx:%llx], allocProfile=%x, firstFreeInPage=%x)", \
       __relPagePtr, pageInfo.absolutePagePtr, _brid(pageInfo.branchRevId), pageInfo.allocationProfile, pageInfo.firstFreeSegmentInPage ); \
     for ( __ui64 i = 0 ; i < PageSize/chunkSize ; i++ ) \
@@ -865,7 +866,7 @@ namespace Xem
 
                 try
                 {
-                    PageInfo& pageInfo = getPageInfo(relPagePtr);
+                    PageInfo pageInfo = getPageInfo(relPagePtr);
                     AbsolutePagePtr absPagePtr = pageInfo.absolutePagePtr & PagePtr_Mask;
                     PageFlags pageFlags = pageInfo.absolutePagePtr & PageFlags_Mask;
                     CheckError("\tErroneous page %llx, absPagePtr=%llx, pageFlags=%llx\n", relPagePtr, absPagePtr,

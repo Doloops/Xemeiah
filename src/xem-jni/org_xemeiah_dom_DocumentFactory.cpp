@@ -157,7 +157,7 @@ Java_org_xemeiah_dom_DocumentFactory_releaseDocument (JNIEnv *ev, jobject jFacto
      */
     Log("releaseDocument(%p)\n", jDocument);
 
-    Xem::Document* document = jDocument2Document(ev, jDocument);
+    // Xem::Document* document = jDocument2Document(ev, jDocument);
     // document->housewife();
 }
 

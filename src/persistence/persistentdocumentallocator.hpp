@@ -19,10 +19,10 @@ namespace Xem
 #undef KnownFixedSegmentSize
 
     __INLINE RevisionPage*
-    PersistentDocumentAllocator::getRevisionPage () const
+    PersistentDocumentAllocator::getRevisionPage ()
     {
-        AssertBug(revisionPage, "NULL RevisionPage !!!\n");
-        return revisionPage;
+        AssertBug(revisionPageRef.getPage(), "NULL RevisionPage !!!\n");
+        return revisionPageRef.getPage();
     }
 
     __INLINE BranchRevId
@@ -30,20 +30,19 @@ namespace Xem
     {
         static const BranchRevId NullBranchRevId =
             { 0, 0 };
-        if (!revisionPage)
+        if (!revisionPageRef.getPage())
             return NullBranchRevId;
-        AssertBug(revisionPage, "NULL RevisionPage !!!\n");
-        return revisionPage->branchRevId;
+        return revisionPageRef.getPage()->branchRevId;
     }
 
     __INLINE void
     PersistentDocumentAllocator::alterRevisionPage ()
     {
 #if PARANOID
-        AssertBug ( revisionPage, "NULL revisionPage !\n" );
+        AssertBug ( revisionPageRef.getPage(), "NULL revisionPage !\n" );
 #endif
 #ifdef XEM_MEM_PROTECT_SYS
-        getPersistentStore().alterPage ( revisionPage );
+        getPersistentStore().alterPage ( revisionPageRef.getPage() );
 #endif  
     }
 
@@ -51,13 +50,14 @@ namespace Xem
     PersistentDocumentAllocator::protectRevisionPage ()
     {
 #if PARANOID
-        AssertBug ( revisionPage, "NULL revisionPage !\n" );
+        AssertBug ( revisionPageRef.getPage(), "NULL revisionPage !\n" );
 #endif
 #ifdef XEM_MEM_PROTECT_SYS
-        getPersistentStore().protectPage ( revisionPage );
+        getPersistentStore().protectPage ( revisionPageRef.getPage());
 #endif  
     }
 
+#if 0
     __INLINE void
     PersistentDocumentAllocator::alterPageInfo (PageInfo& pageInfo)
     {
@@ -77,6 +77,7 @@ namespace Xem
         getPersistentStore().protectPage(pageInfoPage);
 #endif
     }
+#endif
 
     __INLINE PageInfoPagePtr
     PersistentDocumentAllocator::getPageInfoPagePtr (__ui64 indirectionOffset, bool write)
@@ -85,8 +86,8 @@ namespace Xem
         return pageInfoPagePtr;
     }
 
-    __INLINE bool
-    PersistentDocumentAllocator::doGetPageInfoPage (RelativePagePtr relativePagePtr, PageInfoPage*& pageInfoPage, __ui64& index, bool write )
+    __INLINE AbsolutePageRef<PageInfoPage>
+    PersistentDocumentAllocator::doGetPageInfoPage (RelativePagePtr relativePagePtr, __ui64& index, bool write )
     {
         mapMutex.assertLocked();
         AssertBug ( relativePagePtr % PageSize == 0, "Relative page pointer not aligned !\n" );
@@ -143,9 +144,8 @@ namespace Xem
 
         AssertBug ( pageInfoPagePtr, "Null pageInfoPagePtr !\n" );
 
-        pageInfoPage = getPageInfoPage(pageInfoPagePtr);
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = getPageInfoPage(pageInfoPagePtr);
 
-        if ( ! pageInfoPage ) return false;
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         Log_PDAHPP ( "PIPT [%llx] CACHE SET (indirectionOffset=%llx, pageIndex=%llx, pageInfoPage=%p, write=%d)\n",
@@ -155,32 +155,35 @@ namespace Xem
 #endif
 
 #if PARANOID
-        AssertBug ( pageInfoPage, "Null PageInfoPage !!!\n" );
-        if ( pageInfoPage->pageInfo[index].branchRevId.branchId == 0 && ! write )
+        AssertBug ( pageInfoPageRef.getPage(), "Null PageInfoPage !!!\n" );
+        if ( pageInfoPageRef.getPage()->pageInfo[index].branchRevId.branchId == 0 && ! write )
         {
             Bug ( "Invalid zero branchId on relPageIdx=%llx, pageInfoPage=%p, index=%llx, brid=%llx:%llx, abs=%llx\n",
-            relativePagePtr, pageInfoPage, index,
-            _brid(pageInfoPage->pageInfo[index].branchRevId), pageInfoPage->pageInfo[index].absolutePagePtr );
+            relativePagePtr, pageInfoPageRef.getPage(), index,
+            _brid(pageInfoPageRef.getPage()->pageInfo[index].branchRevId), pageInfoPageRef.getPage()->pageInfo[index].absolutePagePtr );
         }
 #endif
-
-        return true;
+        return pageInfoPageRef;
     }
 
-    __INLINE PageInfo&
+    __INLINE PageInfo
     PersistentDocumentAllocator::getPageInfo (RelativePagePtr relativePagePtr, bool write)
     {
         mapMutex.assertLocked();
-        PageInfoPage* pageInfoPage;
         __ui64 index;
-        if (!doGetPageInfoPage(relativePagePtr, pageInfoPage, index, write))
-        {
-            throwException(PageInfoException, "Could not getPageInfo(relativPagePtr=%llx, write=%d)\n", relativePagePtr, write);
-        }
-        PageInfo& pageInfo = pageInfoPage->pageInfo[index];
-        return pageInfo;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relativePagePtr, index, write);
+        AssertBug(pageInfoPageRef.getPage(), "Null page !");
+//        if (!doGetPageInfoPage(relativePagePtr, pageInfoPage, index, write))
+//        {
+//            throwException(PageInfoException, "Could not getPageInfo(relativPagePtr=%llx, write=%d)\n", relativePagePtr,
+//                           write);
+//        }
+//        PageInfo& pageInfo = pageInfoPage->pageInfo[index];
+//        return pageInfo;
+        return pageInfoPageRef.getPage()->pageInfo[index];
     }
 
+#if 0
     template<typename PageClass>
         __INLINE PageClass*
         PersistentDocumentAllocator::getAbsolutePage (AbsolutePagePtr absPagePtr)
@@ -199,7 +202,9 @@ namespace Xem
             Log_PDA_AbsolutePage ( "Absolute page %llx set to %p !\n", absPagePtr, page );
             return page;
         }
+#endif
 
+#if 0
     __INLINE void
     PersistentDocumentAllocator::releasePage (AbsolutePagePtr absPagePtr)
     {
@@ -227,38 +232,39 @@ namespace Xem
         getPersistentStore().releasePage(absPagePtr);
         Log_PDA_AbsolutePage ( "releasePage %llx : absPagePtr : Ok from store\n", absPagePtr );
     }
+#endif
 
-    __INLINE IndirectionPage*
+    __INLINE AbsolutePageRef<IndirectionPage>
     PersistentDocumentAllocator::getIndirectionPage (IndirectionPagePtr indirectionPagePtr)
     {
         AssertBug(__getPageType(indirectionPagePtr) == PageType_Indirection, "Invalid page type !\n");
-        return getAbsolutePage<IndirectionPage>(indirectionPagePtr & PagePtr_Mask);
+        return getPersistentStore().getAbsolutePage<IndirectionPage>(indirectionPagePtr & PagePtr_Mask);
     }
 
-    __INLINE PageInfoPage*
+    __INLINE AbsolutePageRef<PageInfoPage>
     PersistentDocumentAllocator::getPageInfoPage (AbsolutePagePtr pageInfoPagePtr)
     {
         AssertBug(__getPageType(pageInfoPagePtr) == PageType_PageInfo, "Invalid page type !\n");
-        return getAbsolutePage<PageInfoPage>(pageInfoPagePtr & PagePtr_Mask);
+        return getPersistentStore().getAbsolutePage<PageInfoPage>(pageInfoPagePtr & PagePtr_Mask);
     }
 
-    __INLINE PageList*
+    __INLINE AbsolutePageRef<PageList>
     PersistentDocumentAllocator::getPageList (AbsolutePagePtr pageListPtr)
     {
-        return getAbsolutePage<PageList>(pageListPtr & PagePtr_Mask);
+        return getPersistentStore().getAbsolutePage<PageList>(pageListPtr & PagePtr_Mask);
     }
 
-    __INLINE RevisionPage*
+    __INLINE AbsolutePageRef<RevisionPage>
     PersistentDocumentAllocator::getRevisionPage (AbsolutePagePtr revisionPagePtr)
     {
-        return getAbsolutePage<RevisionPage>(revisionPagePtr & PagePtr_Mask);
+        return getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr & PagePtr_Mask);
     }
 
-    __INLINE SegmentPage*
+    __INLINE AbsolutePageRef<SegmentPage>
     PersistentDocumentAllocator::getSegmentPage (AbsolutePagePtr absPagePtr)
     {
         AssertBug(__getPageType(absPagePtr) == PageType_Segment, "Invalid page type !\n");
-        return getAbsolutePage<SegmentPage>(absPagePtr & PagePtr_Mask);
+        return getPersistentStore().getAbsolutePage<SegmentPage>(absPagePtr & PagePtr_Mask);
     }
 
 }

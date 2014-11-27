@@ -15,21 +15,21 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define Log_PDAMap_Area Info
-#define Log_PDAMap Debug
-#define Log_PDAMap_V Log
+#define Log_PDAMap_V Debug
+#define Log_PDAMap Log
+#define Log_PDAMap_Area Log
 
 namespace Xem
 {
     void
-    PersistentDocumentAllocator::doInitialize (AbsolutePagePtr revisionPagePtr)
+    PersistentDocumentAllocator::doInitialize ()
     {
-        Log_PDAMap ( "Initial area alloc with revisionpage at %llx\n", revisionPagePtr );
+        Log_PDAMap ( "Initial area alloc with revisionpage at %llx\n", revisionPageRef.getPagePtr() );
 
         /*
          * Get the revisionPage.
          */
-        revisionPage = getPersistentStore().getAbsolutePage<RevisionPage>(revisionPagePtr);
+        RevisionPage* revisionPage = revisionPageRef.getPage();
 
         AssertBug(revisionPage, "Could not get revisionPage !\n");
 
@@ -39,7 +39,7 @@ namespace Xem
         documentAllocationHeader = &(revisionPage->documentAllocationHeader);
 
         Log_PDAMap ( "revisionPagePtr=%llx, revisionPage=%p, documentAllocationHeader=%p\n",
-                (unsigned long long) revisionPagePtr, revisionPage, documentAllocationHeader );
+                revisionPageRef.getPagePtr(), revisionPage, documentAllocationHeader );
 
         /**
          * Ok, now we have to allocate some areas.
@@ -51,7 +51,9 @@ namespace Xem
         Log_PDAMap_Area ( "Initial alloc : alloced %llu areas\n", areasAlloced );
         areas = (void**) realloc(areas, sizeof(void*) * (areasAlloced));
         for (__ui64 areaIdx = 0; areaIdx < areasAlloced; areaIdx++)
+        {
             areas[areaIdx] = NULL;
+        }
 #endif
     }
 
@@ -192,7 +194,7 @@ namespace Xem
         for (PageInfoIterator iter(*this, beginRelPagePtr); iter.first() <= endRelPagePtr; iter++)
         {
             RelativePagePtr relPagePtr = iter.first();
-            PageInfo& pageInfo = iter.second();
+            PageInfo pageInfo = iter.second();
 
             AbsolutePagePtr absPagePtr;
             PageFlags pageFlags;
@@ -233,12 +235,13 @@ namespace Xem
             nbPages++;
         }
         areas[areaIdx] = area;
-        static __ui64 totalAreasMappedNumber = 0;
-        totalAreasMappedNumber++;
 
         Log_PDAMap_Area ( "Mapped area=%llx (at %p) [%llx:%llx], %llu pages, %llu maps\n",
                 areaIdx, area, beginRelPagePtr, endRelPagePtr,
                 nbPages, nbMaps);
+
+        static __ui64 totalAreasMappedNumber = 0;
+        totalAreasMappedNumber++;
         Log_PDAMap_Area ( "=> Current status : areasMapped=%llu, totalAreasMappedNumber=%llu\n", areasMapped,
                 totalAreasMappedNumber );
     }

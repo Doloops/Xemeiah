@@ -15,196 +15,211 @@
 
 namespace Xem
 {
-  /*
-   * Load namespaces and keys from an (already formatted) Persistence file.
-   * Namespaces and Keys are inserted manually in the keyCache.
-   */
-  bool PersistentStore::loadKeysFromStore ()
-  {
-    if ( getSB()->keyPage == 0 )
-      {
-        Log_Keys ( "No keys pages !\n" );
-      }
-    Log_Keys ( "------------------------ Loading Keys ---------------------------\n" );
-    for ( KeyPage* keyPage = getAbsolutePage<KeyPage> ( getSB()->keyPage ) ; 
-        keyPage ; keyPage = getAbsolutePage<KeyPage> ( keyPage->nextPage ) )
-      {
-        for ( __ui64 idx = 0 ; 
-              idx < KeyPage_keyNumber && keyPage->keys[idx].id ; 
-              idx++ )
-          {
-            Log_Keys ( "Load key %x : %s\n", keyPage->keys[idx].id, keyPage->keys[idx].name );
-            char* name = strdup ( keyPage->keys[idx].name );
-            keyCache.localKeyMap.put ( keyPage->keys[idx].id, name );
-            keyCache.keysBucket.put ( keyPage->keys[idx].id, name );
-          }
-      }
-    Log_Keys ( "------------------------ Loading Namespaces ---------------------------\n" );
-    for ( NamespacePage* namespacePage = getAbsolutePage<NamespacePage> ( getSB()->namespacePage ) ; 
-        namespacePage ; namespacePage = getAbsolutePage<NamespacePage> ( namespacePage->nextPage ) )
-      {
-        for ( __ui64 idx = 0 ; 
-              idx < NamespacePage_namespaceNumber && namespacePage->namespaces[idx].namespaceId ; 
-              idx++ )
-          {
-            Log_Keys ( "Load namespace %x : %s\n",
-                   namespacePage->namespaces[idx].namespaceId, namespacePage->namespaces[idx].url );
-            char* url = strdup ( namespacePage->namespaces[idx].url );
-            keyCache.namespaceBucket.put ( namespacePage->namespaces[idx].namespaceId, url );
-            keyCache.namespaceMap.put ( namespacePage->namespaces[idx].namespaceId, url );
-          }
-      }
-    Log_Keys ( "------------------------ End of Namespaces Loading ---------------------------\n" );
-    return buildKeyCacheBuiltinKeys ();
-  }
-
-
-  LocalKeyId PersistentStore::addKeyInStore ( const char* keyName )
-  /*
-   * Called with the KeyStore key_lock held, and returns with the key_lock held...
-   */
-  {
-    if ( strlen ( keyName ) >= KeySegment::nameLength )
-      {
-        Bug ( "KeyName too long : '%s'\n", keyName );
-        return 0;
-      }
-    KeyPage* keyPage = NULL;
-    if ( getSB()->keyPage == 0 )
-      {
-        /*
-         * No key page, shall create one before
-         */
-        AbsolutePagePtr keyPagePtr = getFreePagePtr ();
-        keyPage = getAbsolutePage<KeyPage> ( keyPagePtr );
-        alterPage ( keyPage );
-        memset ( keyPage, 0, PageSize );
-        protectPage ( keyPage );
-        lockSB ();
-        getSB()->keyPage = keyPagePtr;
-        unlockSB ();
-      }
-    else
-      keyPage = getAbsolutePage<KeyPage> ( getSB()->keyPage );
-    LocalKeyId nextKeyId = 0;
-    for ( ; keyPage ; )
-      {
-        /*
-         * It is asserted that keyPages have no hole, because keys are created continuously, 
-         * and never deleted.
-         */
-        for ( __ui64 idx = 0; idx < KeyPage_keyNumber ; idx++ )
-          if ( keyPage->keys[idx].id == 0 )
+    /*
+     * Load namespaces and keys from an (already formatted) Persistence file.
+     * Namespaces and Keys are inserted manually in the keyCache.
+     */
+    bool
+    PersistentStore::loadKeysFromStore ()
+    {
+        if (getSB()->keyPage == 0)
+        {
+            Log_Keys ( "No keys pages !\n" );
+        }
+        Log_Keys ( "------------------------ Loading Keys ---------------------------\n" );
+        for (AbsolutePageRef<KeyPage> keyPageRef = getAbsolutePage<KeyPage>(getSB()->keyPage); keyPageRef.getPage();
+                keyPageRef = getAbsolutePage<KeyPage>(keyPageRef.getPage()->nextPage))
+        {
+            for (__ui64 idx = 0; idx < KeyPage_keyNumber && keyPageRef.getPage()->keys[idx].id; idx++)
             {
-              Log_Keys ( "Empty slot %llx at page %p\n", idx, keyPage );
-              nextKeyId++;
-
-              alterPage ( keyPage );
-              keyPage->keys[idx].id = nextKeyId;
-              strcpy ( keyPage->keys[idx].name, keyName );
-              protectPage ( keyPage );
-
-              return nextKeyId;
+                Log_Keys ( "Load key %x : %s\n", keyPageRef.getPage()->keys[idx].id, keyPageRef.getPage()->keys[idx].name );
+                char* name = strdup(keyPageRef.getPage()->keys[idx].name);
+                keyCache.localKeyMap.put(keyPageRef.getPage()->keys[idx].id, name);
+                keyCache.keysBucket.put(keyPageRef.getPage()->keys[idx].id, name);
             }
-          else
-            nextKeyId = keyPage->keys[idx].id;
-        if ( keyPage->nextPage )
-          {
-            keyPage = getAbsolutePage<KeyPage> ( keyPage->nextPage );
-            continue;
-          }
-        else if ( ! keyPage->nextPage )
-          {
-            Log_Keys ( "Creating keyPage..\n" );
-            AbsolutePagePtr nextPagePtr = getFreePagePtr ();
-            KeyPage* nextPage = getAbsolutePage<KeyPage> ( nextPagePtr );
+        }
+        Log_Keys ( "------------------------ Loading Namespaces ---------------------------\n" );
+        for (AbsolutePageRef<NamespacePage> namespacePageRef = getAbsolutePage<NamespacePage>(getSB()->namespacePage); namespacePageRef.getPage();
+                namespacePageRef = getAbsolutePage<NamespacePage>(namespacePageRef.getPage()->nextPage))
+        {
+            for (__ui64 idx = 0; idx < NamespacePage_namespaceNumber && namespacePageRef.getPage()->namespaces[idx].namespaceId;
+                    idx++)
+            {
+                Log_Keys ( "Load namespace %x : %s\n",
+                        namespacePageRef.getPage()->namespaces[idx].namespaceId, namespacePageRef.getPage()->namespaces[idx].url );
+                char* url = strdup(namespacePageRef.getPage()->namespaces[idx].url);
+                keyCache.namespaceBucket.put(namespacePageRef.getPage()->namespaces[idx].namespaceId, url);
+                keyCache.namespaceMap.put(namespacePageRef.getPage()->namespaces[idx].namespaceId, url);
+            }
+        }
+        Log_Keys ( "------------------------ End of Namespaces Loading ---------------------------\n" );
+        return buildKeyCacheBuiltinKeys();
+    }
 
-            Log_Keys ( "Created new keyPage=%llx/%p, continuation of %p\n", nextPagePtr, nextPage, keyPage );
-            alterPage ( nextPage );
-            memset ( nextPage, 0, PageSize );
-            protectPage ( nextPage );
-            alterPage ( keyPage );
-            keyPage->nextPage = nextPagePtr;
-            protectPage ( keyPage );
-            keyPage = nextPage;
-            continue;
-          }
-        Bug ( "Shall not be here !!!\n" );
-      }
-    Bug ( "Shall not be here.\n" );
-    return 0;
-  }
-  
-  
-  NamespaceId PersistentStore::addNamespaceInStore ( const char* namespaceURL )
-  /*
-   * Called with the KeyStore key_lock held, and returns with the key_lock held...
-   */
-  {
-    NamespacePage* namespacePage = NULL;
-    __ui32 len = strlen(namespaceURL) + 1;
-    if ( len > NamespaceSegment::urlLength )
-      {
-        Bug ( "Namespace too large : '%s'\n", namespaceURL );
-      }
-    if ( getSB()->namespacePage == 0 )
-      {
-        /*
-         *  No namespace page, shall create the first one
-         */
-        AbsolutePagePtr namespacePagePtr = getFreePagePtr ();
-        namespacePage = getAbsolutePage<NamespacePage> ( namespacePagePtr );
-        alterPage ( namespacePage );
-        memset ( namespacePage, 0, PageSize );
-        protectPage ( namespacePage );
-        lockSB ();
-        getSB()->namespacePage = namespacePagePtr;
-        unlockSB ();
-      }
-    else
-      namespacePage = getAbsolutePage<NamespacePage> ( getSB()->namespacePage );
+    LocalKeyId
+    PersistentStore::addKeyInStore (const char* keyName)
+    /*
+     * Called with the KeyStore key_lock held, and returns with the key_lock held...
+     */
+    {
+        if (strlen(keyName) >= KeySegment::nameLength)
+        {
+            Bug("KeyName too long : '%s'\n", keyName);
+            return 0;
+        }
+        AbsolutePageRef<KeyPage> keyPageRef(*this);
+        if (getSB()->keyPage == NullPage)
+        {
+            /*
+             * No key page, shall create one before
+             */
+            AbsolutePagePtr keyPagePtr = getFreePagePtr();
 
-    NamespaceId nextNamespaceId = 1;
-    for ( ; namespacePage ; )
-      {
-        /*
-         * It is asserted that namespace pages have no hole, because all namespaces are created
-         * continuously, and never deleted.
-         */
-        if ( namespacePage->nextPage )
-          {
-            nextNamespaceId = namespacePage->namespaces[NamespacePage_namespaceNumber-1].namespaceId + 1;
-            namespacePage = getAbsolutePage<NamespacePage> ( namespacePage->nextPage );
-            continue;
-          }
-        for ( __ui64 idx = 0; idx < NamespacePage_namespaceNumber ; idx++ )
-          {
-            if ( namespacePage->namespaces[idx].namespaceId == 0 )
-              {
-                Log_Keys ( "Empty slot %llx at page %p\n", idx, namespacePage );
-                alterPage ( namespacePage );
-                namespacePage->namespaces[idx].namespaceId = nextNamespaceId;
-                strcpy ( namespacePage->namespaces[idx].url, namespaceURL );
-                protectPage ( namespacePage );
-                return nextNamespaceId;
-              }
-            nextNamespaceId = namespacePage->namespaces[idx].namespaceId + 1;
-          }
-          
-        Log_Keys ( "Creating new namespacePage..\n" );
-        AbsolutePagePtr nextPagePtr = getFreePagePtr ();
-        NamespacePage* nextPage = getAbsolutePage<NamespacePage> ( nextPagePtr );
-        Log_Keys ( "Created new namespacePage=%llx/%p, continuation of %p\n", nextPagePtr, nextPage, namespacePage );
-        alterPage ( nextPage );
-        memset ( nextPage, 0, PageSize );
-        protectPage ( nextPage );
-        alterPage ( namespacePage );
-        namespacePage->nextPage = nextPagePtr;
-        protectPage ( namespacePage );
-        namespacePage = nextPage;
-      }
-    Bug ( "Shall not be here.\n" );
-    return 0;
-  }
-};
+            keyPageRef = getAbsolutePage<KeyPage>(keyPagePtr);
+            Log_Keys("New keyPage %llx\n", keyPagePtr);
+            alterPage(keyPageRef.getPage());
+            memset(keyPageRef.getPage(), 0, PageSize);
+            protectPage(keyPageRef.getPage());
+            lockSB();
+            getSB()->keyPage = keyPagePtr;
+            unlockSB();
+        }
+        else
+        {
+            keyPageRef = getAbsolutePage<KeyPage>(getSB()->keyPage);
+            Log_Keys("Use keyPage from SB %llx\n", getSB()->keyPage);
+        }
+
+        LocalKeyId nextKeyId = 0;
+        for (; keyPageRef.getPage();)
+        {
+            AssertBug(keyPageRef.getPage(), "Null page for ref %llx\n", keyPageRef.getPagePtr());
+            Log_Keys("At page %llx\n", keyPageRef.getPagePtr());
+
+            /*
+             * It is asserted that keyPages have no hole, because keys are created continuously,
+             * and never deleted.
+             */
+            for (__ui64 idx = 0; idx < KeyPage_keyNumber; idx++)
+            {
+                Log_Keys("keyPagePtr=%llx, Page %p, idx=%llx\n", keyPageRef.getPagePtr(), keyPageRef.getPage(), idx);
+                if (keyPageRef.getPage()->keys[idx].id == 0)
+                {
+                    Log_Keys ( "Empty slot %llx at page %p\n", idx, keyPageRef.getPage() );
+                    nextKeyId++;
+
+                    alterPage(keyPageRef.getPage());
+                    keyPageRef.getPage()->keys[idx].id = nextKeyId;
+                    strcpy(keyPageRef.getPage()->keys[idx].name, keyName);
+                    protectPage(keyPageRef.getPage());
+
+                    return nextKeyId;
+                }
+                else
+                {
+                    nextKeyId = keyPageRef.getPage()->keys[idx].id;
+                }
+            }
+            if (keyPageRef.getPage()->nextPage)
+            {
+                keyPageRef =getAbsolutePage<KeyPage>(keyPageRef.getPage()->nextPage);
+                continue;
+            }
+            else if (!keyPageRef.getPage()->nextPage)
+            {
+                Log_Keys ( "Creating keyPage..\n" );
+                AbsolutePagePtr nextPagePtr = getFreePagePtr();
+                AbsolutePageRef<KeyPage> nextPageRef = getAbsolutePage<KeyPage>(nextPagePtr);
+
+                Log_Keys ( "Created new keyPage=%llx/%p, continuation of %p\n", nextPagePtr, nextPageRef.getPage(), keyPageRef.getPage() );
+                alterPage(nextPageRef.getPage());
+                memset(nextPageRef.getPage(), 0, PageSize);
+                protectPage(nextPageRef.getPage());
+                alterPage(keyPageRef.getPage());
+                keyPageRef.getPage()->nextPage = nextPagePtr;
+                protectPage(keyPageRef.getPage());
+                keyPageRef = nextPageRef;
+                continue;
+            }
+            Bug("Shall not be here !!!\n");
+        }
+        Bug("Shall not be here.\n");
+        return 0;
+    }
+
+    NamespaceId
+    PersistentStore::addNamespaceInStore (const char* namespaceURL)
+    /*
+     * Called with the KeyStore key_lock held, and returns with the key_lock held...
+     */
+    {
+        AbsolutePageRef<NamespacePage> namespacePageRef(*this);
+        __ui32 len = strlen(namespaceURL) + 1;
+        if (len > NamespaceSegment::urlLength)
+        {
+            Bug("Namespace too large : '%s'\n", namespaceURL);
+        }
+        if (getSB()->namespacePage == 0)
+        {
+            /*
+             *  No namespace page, shall create the first one
+             */
+            AbsolutePagePtr namespacePagePtr = getFreePagePtr();
+            namespacePageRef = getAbsolutePage<NamespacePage>(namespacePagePtr);
+            alterPage(namespacePageRef.getPage());
+            memset(namespacePageRef.getPage(), 0, PageSize);
+            protectPage(namespacePageRef.getPage());
+            lockSB();
+            getSB()->namespacePage = namespacePagePtr;
+            unlockSB();
+        }
+        else
+        {
+            namespacePageRef = getAbsolutePage<NamespacePage>(getSB()->namespacePage);
+        }
+
+        NamespaceId nextNamespaceId = 1;
+        for (; namespacePageRef.getPage();)
+        {
+            /*
+             * It is asserted that namespace pages have no hole, because all namespaces are created
+             * continuously, and never deleted.
+             */
+            if (namespacePageRef.getPage()->nextPage)
+            {
+                nextNamespaceId = namespacePageRef.getPage()->namespaces[NamespacePage_namespaceNumber - 1].namespaceId + 1;
+                namespacePageRef = getAbsolutePage<NamespacePage>(namespacePageRef.getPage()->nextPage);
+                continue;
+            }
+            for (__ui64 idx = 0; idx < NamespacePage_namespaceNumber; idx++)
+            {
+                if (namespacePageRef.getPage()->namespaces[idx].namespaceId == 0)
+                {
+                    Log_Keys ( "Empty slot %llx at page %p\n", idx, namespacePageRef.getPage() );
+                    alterPage(namespacePageRef.getPage());
+                    namespacePageRef.getPage()->namespaces[idx].namespaceId = nextNamespaceId;
+                    strcpy(namespacePageRef.getPage()->namespaces[idx].url, namespaceURL);
+                    protectPage(namespacePageRef.getPage());
+                    return nextNamespaceId;
+                }
+                nextNamespaceId = namespacePageRef.getPage()->namespaces[idx].namespaceId + 1;
+            }
+
+            Log_Keys ( "Creating new namespacePage..\n" );
+            AbsolutePagePtr nextPagePtr = getFreePagePtr();
+            AbsolutePageRef<NamespacePage> nextPageRef = getAbsolutePage<NamespacePage>(nextPagePtr);
+            Log_Keys ( "Created new namespacePage=%llx/%p, continuation of %p\n", nextPagePtr, nextPageRef.getPage(), namespacePageRef.getPage() );
+            alterPage(nextPageRef.getPage());
+            memset(nextPageRef.getPage(), 0, PageSize);
+            protectPage(nextPageRef.getPage());
+            alterPage(namespacePageRef.getPage());
+            namespacePageRef.getPage()->nextPage = nextPagePtr;
+            protectPage(namespacePageRef.getPage());
+            namespacePageRef = nextPageRef;
+        }
+        Bug("Shall not be here.\n");
+        return 0;
+    }
+}
+;
 

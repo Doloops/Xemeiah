@@ -70,14 +70,14 @@ namespace Xem
         if ( level == 2 )
           {
             AssertBug ( __getPageType(absPagePtr) == PageType_PageInfo, "Invalid page type !\n" );
-            PageInfoPage* page = getPageInfoPage ( absPagePtr );
-            forPageInfoPage ( page, offset, isStolen || ( __isStolen(absPagePtr) ), segmentAction, arg, ownedSegmentOnly );
+            AbsolutePageRef<PageInfoPage> pageRef = getPageInfoPage ( absPagePtr );
+            forPageInfoPage ( pageRef.getPage(), offset, isStolen || ( __isStolen(absPagePtr) ), segmentAction, arg, ownedSegmentOnly );
           }
         else
           {
             AssertBug ( __getPageType(absPagePtr) == PageType_Indirection, "Invalid page type !\n" );
-            IndirectionPage* page = getIndirectionPage ( absPagePtr );
-            forIndirectionPages ( page, level-1, offset,
+            AbsolutePageRef<IndirectionPage> pageRef = getIndirectionPage ( absPagePtr );
+            forIndirectionPages ( pageRef.getPage(), level-1, offset,
               isStolen || ( __isStolen(absPagePtr) ),
               indirAction, segmentAction, arg, ownedIndirOnly, ownedSegmentOnly );
           }
@@ -110,16 +110,16 @@ namespace Xem
       {
         if ( getRevisionPage()->indirection.level > 1 )
           {
-            IndirectionPage* firstPage = getIndirectionPage ( getRevisionPage()->indirection.firstPage );
-            forIndirectionPages ( firstPage, getRevisionPage()->indirection.level, NullPtr,
+            AbsolutePageRef<IndirectionPage> firstPageRef = getIndirectionPage ( getRevisionPage()->indirection.firstPage );
+            forIndirectionPages ( firstPageRef.getPage(), getRevisionPage()->indirection.level, NullPtr,
               __isStolen ( getRevisionPage()->indirection.firstPage ),
               indirAction, segmentAction, arg, 
               ownedIndirOnly, ownedSegmentOnly );
           }
         else if ( getRevisionPage()->indirection.level == 1 )
           {
-            PageInfoPage* firstPage = getPageInfoPage ( getRevisionPage()->indirection.firstPage );
-            forPageInfoPage ( firstPage, NullPtr,
+            AbsolutePageRef<PageInfoPage> firstPageRef = getPageInfoPage ( getRevisionPage()->indirection.firstPage );
+            forPageInfoPage ( firstPageRef.getPage(), NullPtr,
               __isStolen ( getRevisionPage()->indirection.firstPage ),
               segmentAction, arg, ownedSegmentOnly );
           }

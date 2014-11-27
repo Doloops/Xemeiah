@@ -7,7 +7,7 @@
 #include <Xemeiah/persistence/persistentstore.h>
 #include <Xemeiah/persistence/writablepagecache.h>
 
-#define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
+// #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
 #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
 
@@ -51,14 +51,14 @@ namespace Xem
          * Reference to the RevisionPage
          * Document class has a DocumentHead and FreeSegmentsHeader which must refer to this RevisionPage
          */
-        RevisionPage* revisionPage;
+        AbsolutePageRef<RevisionPage> revisionPageRef;
 
         /**
          * Reference to the revision page
          * @return our RevisionPage
          */
         RevisionPage*
-        getRevisionPage () const;
+        getRevisionPage ();
 
         /**
          * Alter the RevisionPage
@@ -152,7 +152,7 @@ namespace Xem
          * @param revisionPagePtr the Revision Page Pointer to use
          */
         void
-        doInitialize (AbsolutePagePtr revisionPagePtr);
+        doInitialize ();
 
         /**
          * Maps a bunch of contiguous pages, ie a linear mapping between relative and absolute pages ; frontend to remap_file_pages()
@@ -172,6 +172,7 @@ namespace Xem
         AbsolutePagePtr
         __getFreePagePtr (PageType pageType);
 
+#if 0
         /**
          * Map of all AbsolutePages claimed to Store
          */
@@ -181,13 +182,16 @@ namespace Xem
          * Map instance of AbsolutePages claimed
          */
         AbsolutePages absolutePages;
+#endif
 
+#if 0
         /**
          *  Access stub to AbsolutePagePtr
          */
         template<typename PageClass>
             INLINE PageClass*
             getAbsolutePage (AbsolutePagePtr absPagePtr);
+#endif
 
         /**
          * Access stub for IndirectionPage pages
@@ -195,7 +199,7 @@ namespace Xem
          * @return the in-memory page pointer to the indirection page
          */
         INLINE
-        IndirectionPage*
+        AbsolutePageRef<IndirectionPage>
         getIndirectionPage (IndirectionPagePtr indirectionPagePtr);
 
         /**
@@ -204,9 +208,10 @@ namespace Xem
          * @return the in-memory page pointer to the PageInfoPage page
          */
         INLINE
-        PageInfoPage*
+        AbsolutePageRef<PageInfoPage>
         getPageInfoPage (AbsolutePagePtr pageInfoPagePtr);
 
+#if 0
         /**
          *
          */
@@ -220,6 +225,7 @@ namespace Xem
         INLINE
         void
         protectPageInfo (PageInfo& pageInfo);
+#endif
 
         /**
          * Access stub for PageList pages
@@ -227,7 +233,7 @@ namespace Xem
          * @return the in-memory page pointer to the PageList page
          */
         INLINE
-        PageList*
+        AbsolutePageRef<PageList>
         getPageList (AbsolutePagePtr pageListPtr);
 
         /**
@@ -236,7 +242,7 @@ namespace Xem
          * @return the in-memory page pointer to the RevisionPage page
          */
         INLINE
-        RevisionPage*
+        AbsolutePageRef<RevisionPage>
         getRevisionPage (AbsolutePagePtr revisionPagePtr);
 
         /**
@@ -245,15 +251,17 @@ namespace Xem
          * @return the in-memory page pointer to the SegmentPage page
          */
         INLINE
-        SegmentPage*
+        AbsolutePageRef<SegmentPage>
         getSegmentPage (AbsolutePagePtr segmentPagePtr);
 
+#if 0
         /**
          * Release an absolute page ptr
          */
         INLINE
         void
         releasePage (AbsolutePagePtr absPagePtr);
+#endif // 0
 
         /**
          * allocates a new IndirectionPage page.
@@ -280,8 +288,8 @@ namespace Xem
          * @return true on succes, false if not.
          */
         INLINE
-        bool
-        doGetPageInfoPage (RelativePagePtr relativePagePtr, PageInfoPage*& pageInfoPage, __ui64& index, bool write );
+        AbsolutePageRef<PageInfoPage>
+        doGetPageInfoPage (RelativePagePtr relativePagePtr, __ui64& index, bool write );
 
     /**
      * Increase covered area
@@ -334,6 +342,7 @@ namespace Xem
                            PageInfoPagePtr fetchPageInfoPagePtrFromIndirection ( IndirectionPagePtr indirectionPagePtr,
                            __ui32 currentLevel, __ui64 indirectionOffset, bool write );
 
+#if 0
                            /**
                             * returns the PageInfo active for a given RelativePagePtr
                             * @param relativePagePtr the relative page ptr we want to see
@@ -341,6 +350,7 @@ namespace Xem
                             * @return true on succes, false if not.
                             */
                            bool getPageInfo ( RelativePagePtr relativePagePtr, PageInfo& pageInfo ) DEPRECATED;
+#endif
 
                            /**
                             * Provide a reference to a pageInfo, must be called with mapMutex locked
@@ -348,7 +358,7 @@ namespace Xem
                             * @param write (optional) set to true if you want to modify this PageInfo
                             * @return a reference to the PageInfo
                             */
-                           INLINE PageInfo& getPageInfo ( RelativePagePtr relativePagePtr, bool write = false );
+                           INLINE PageInfo getPageInfo ( RelativePagePtr relativePagePtr, bool write = false );
 
                            /**
                             * Sets info inside of a PageInfo page
