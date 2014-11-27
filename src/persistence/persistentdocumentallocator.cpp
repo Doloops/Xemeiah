@@ -5,6 +5,8 @@
 #include <Xemeiah/auto-inline.hpp>
 #include <Xemeiah/persistence/auto-inline.hpp>
 
+#include <Xemeiah/persistence/pageinfoiterator.h>
+
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>

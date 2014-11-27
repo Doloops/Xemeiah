@@ -6,6 +6,8 @@
 #include <Xemeiah/persistence/format/revision.h>
 #include <Xemeiah/persistence/format/pages.h>
 
+#include <Xemeiah/persistence/pageinfoiterator.h>
+
 #include <Xemeiah/auto-inline.hpp>
 #include <Xemeiah/persistence/auto-inline.hpp>
 

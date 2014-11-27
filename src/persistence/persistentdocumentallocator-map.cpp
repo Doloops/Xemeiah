@@ -5,6 +5,8 @@
 #include <Xemeiah/auto-inline.hpp>
 #include <Xemeiah/persistence/auto-inline.hpp>
 
+#include <Xemeiah/persistence/pageinfoiterator.h>
+
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -13,7 +15,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define Log_PDAMap Debug
+#define Log_PDAMap Info
 
 namespace Xem
 {
@@ -60,7 +62,7 @@ namespace Xem
             __ui64 toAlloc = areaIdx + 32;
             Log("Reallocating Map for [%llx:%llx] : areas=%p, areaIdx=%llx, alloced %llx => %llx\n",
                 _brid(getBranchRevId()), areas, areaIdx, areasAlloced, toAlloc);
-#if 1
+#if 0
             void** newAreas = (void**) malloc(sizeof(void*) * (toAlloc));
             if (!newAreas)
             {
@@ -68,7 +70,9 @@ namespace Xem
             }
             void** oldAreas = areas;
             if (oldAreas)
+            {
                 memcpy(newAreas, oldAreas, sizeof(void*) * areasAlloced);
+            }
             areas = newAreas;
 
             /*
@@ -78,7 +82,9 @@ namespace Xem
             usleep(1);
 
             if (oldAreas)
+            {
                 free(oldAreas);
+            }
 
 #else
             areas = (void**) realloc ( areas, sizeof(void*) * ( toAlloc ) );
@@ -225,13 +231,13 @@ namespace Xem
             nbPages++;
         }
         areas[areaIdx] = area;
-        static __ui64 nbAreasMapped = 0;
-        nbAreasMapped++;
+        static __ui64 totalAreasMappedNumber = 0;
+        totalAreasMappedNumber++;
 
-        Log_PDAMap ( "Mapped area=%llx (at %p) [%llx:%llx], %llu pages, %llu maps, totalMaps=%llu\n",
+        Log_PDAMap ( "Mapped area=%llx (at %p) [%llx:%llx], %llu pages, %llu maps, totalAreasMappedNumber=%llu\n",
                 areaIdx, area, beginRelPagePtr, endRelPagePtr,
                 nbPages, nbMaps,
-                nbAreasMapped );
+                totalAreasMappedNumber );
     }
 
     void*
@@ -307,12 +313,14 @@ namespace Xem
     {
         NTime begin = getntime();
         for (__ui64 areaIdx = 1; areaIdx < areasAlloced; areaIdx++)
+        {
             if (areas[areaIdx] == NULL)
             {
                 Warn("Mapping area '%llx'\n", areaIdx);
                 mapArea(areaIdx);
 
             }
+        }
 
         NTime end = getntime();
         WarnTime("doMapAllPages took : ", begin, end)
