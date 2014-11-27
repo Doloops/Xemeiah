@@ -9,6 +9,7 @@
 #include <Xemeiah/trace.h>
 #include <Xemeiah/log.h>
 #include <Xemeiah/xpath/xpath.h>
+#include <Xemeiah/xpath/xpathparser.h>
 #include <Xemeiah/xprocessor/xprocessor.h>
 
 #include "xem-jni-dom.h"
@@ -20,11 +21,11 @@ JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_xpath_XPathExpression_cleanUp (JNIEnv *ev, jobject jXPathExpression)
 {
     AssertBug(jXPathExpression, "Null XPathExpression object provided !");
-    Xem::XPathParser* xpath = jXPathExpression2XPathParser(ev, jXPathExpression);
-    AssertBug(xpath, "Null xpath provided !");
+    Xem::XPathParser* xpathParser = jXPathExpression2XPathParser(ev, jXPathExpression);
+    AssertBug(xpathParser, "Null xpathParser provided !");
 
-    Log("Delete xpath=%p\n", xpath);
-    delete (xpath);
+    Log("Delete xpath=%p\n", xpathParser);
+    delete (xpathParser);
 }
 
 void

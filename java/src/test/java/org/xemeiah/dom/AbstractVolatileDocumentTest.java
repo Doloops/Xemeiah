@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.xemeiah.dom.DocumentFactory;
 
 public abstract class AbstractVolatileDocumentTest
 {
@@ -16,6 +15,11 @@ public abstract class AbstractVolatileDocumentTest
     protected Document createDocument()
     {
         return documentFactory.newVolatileDocument();
+    }
+    
+    protected void releaseDocument(Document document)
+    {
+        documentFactory.releaseDocument((org.xemeiah.dom.Document) document);
     }
     
     @Before

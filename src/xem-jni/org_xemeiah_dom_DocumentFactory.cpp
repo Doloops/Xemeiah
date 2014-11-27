@@ -151,9 +151,11 @@ Java_org_xemeiah_dom_DocumentFactory_newVolatileDocument (JNIEnv *ev, jobject jF
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_releaseDocument (JNIEnv *ev, jobject jFactory, jobject jDocument)
 {
+    /**
+     * Do not perform any cleanup here, maybe only a housewife could occur
+     * BUT WE DO NOT WANT TO CORRUPT JAVA-SIDE OBJECTS !!!
+     */
     Log("releaseDocument(%p)\n", jDocument);
-    cleanupJDocument(ev, jDocument);
-    Log("releaseDocument(%p) : done.\n", jDocument);
 }
 
 JNIEXPORT jboolean JNICALL

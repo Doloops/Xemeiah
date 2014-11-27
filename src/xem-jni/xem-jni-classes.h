@@ -21,6 +21,14 @@ public:
     ;
 };
 
+class JClass_JavaLangRuntimeException
+{
+public:
+    JCLASS("java/lang/RuntimeException")
+    ;
+    JMETHOD(constructor, "<init>", "(Ljava/lang/String;)V");
+};
+
 class JClass_JavaUtilMap
 {
 public:
@@ -49,13 +57,6 @@ public:
     JCLASS("java/util/Iterator");
     JMETHOD(next, "next", "()Ljava/lang/Object;");
     JMETHOD(hasNext, "hasNext", "()Z");
-};
-
-class JClass_JavaLangRuntimeException
-{
-public:
-    JCLASS("java/lang/RuntimeException")
-    ;
 };
 
 class JClass_JavaIoInputStream
@@ -196,11 +197,11 @@ class XemJNI
 {
 public:
     JClass_JavaLangClass javaLangClass;
+    JClass_JavaLangRuntimeException javaLangRuntimeException;
     JClass_JavaUtilMap javaUtilMap;
     JClass_JavaUtilMapEntry javaUtilMapEntry;
     JClass_JavaUtilSet javaUtilSet;
     JClass_JavaUtilIterator javaUtilIterator;
-    JClass_JavaLangRuntimeException javaLangRuntimeException;
     JClass_JavaLangString javaLangString;
     JClass_JavaIoInputStream javaIoInputStream;
     JClass_DocumentFactory documentFactory;

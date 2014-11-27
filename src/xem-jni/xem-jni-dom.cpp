@@ -22,6 +22,22 @@
 
 XemJNI xemJNI;
 
+#undef AssertBug
+
+#if 1
+#define AssertBug(__cond, ...) { if ( ! ( __cond) ) { \
+        Error( "Bug ! " __VA_ARGS__); \
+        throwException ( Xem::Exception, "Bug ! " __VA_ARGS__ ); } }
+#else
+#define AssertBug(__cond,...) { if ( ! (__cond) ) { \
+        Error( "Invalid conditions : " __VA_ARGS__); \
+        char message[512]; \
+        snprintf(message, 512, __VA_ARGS__); \
+        ev->Throw(exception2JRuntimeException(ev,  message)); \
+        return (void*) NULL; \
+}}
+#endif
+
 void
 XemJniInit (JNIEnv* ev)
 {
@@ -59,6 +75,7 @@ jDocument2XProcessor (JNIEnv* ev, jobject jDocument)
     AssertBug(ev->IsInstanceOf(jDocument, getXemJNI().document.getClass(ev)), "Invalid class for jDocument !");
     Xem::XProcessor* xprocessor = (Xem::XProcessor*) (ev->GetLongField(jDocument,
                                                                        getXemJNI().document.__xprocessorPtr(ev)));
+    AssertBug(xprocessor != NULL, "Null XProcessor at jDocument=%p!\n", jDocument);
     return xprocessor;
 }
 
@@ -69,12 +86,12 @@ elementRef2JElement (JNIEnv* ev, jobject jDocument, Xem::ElementRef& eltRef)
     jmethodID constructor = NULL;
     if (eltRef.isComment())
     {
-        // clazz = ev->FindClass("org/xemeiah/dom/Comment");
+// clazz = ev->FindClass("org/xemeiah/dom/Comment");
         Bug("Not implemented !");
     }
     else if (eltRef.isPI())
     {
-        // clazz = ev->FindClass("org/xemeiah/dom/ProcessingInstruction");
+// clazz = ev->FindClass("org/xemeiah/dom/ProcessingInstruction");
         Bug("Not implemented !");
     }
     else if (eltRef.isText())
@@ -119,25 +136,29 @@ createJDocument (JNIEnv* ev, jobject jFactory, Xem::Document* document, Xem::XPr
 void
 cleanupJDocument (JNIEnv *ev, jobject jDocument)
 {
-    Log("Cleanup JDocument at %p\n", jDocument);
-    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
-
-    if (xprocessor != NULL)
+    /**
+     * Here we consider that cleanup can already have occured
+     */
+    try
     {
+        Log("Cleanup JDocument at %p\n", jDocument);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
         Log("Delete XProcessor at %p\n", xprocessor);
         ev->SetLongField(jDocument, getXemJNI().document.__xprocessorPtr(ev), (jlong) 0);
         delete (xprocessor);
-    }
 
-    Xem::Document* doc = jDocument2Document(ev, jDocument);
-    if (doc != NULL)
-    {
+        Xem::Document* doc = jDocument2Document(ev, jDocument);
         Log("Delete document : jDocument=%p, doc=%p\n", jDocument, doc);
         ev->SetLongField(jDocument, getXemJNI().document.__documentPtr(ev), (jlong) 0);
 
         jobject jDocumentFactory = jDocument2JDocumentFactory(ev, jDocument);
         Xem::Store* store = jDocumentFactory2Store(ev, jDocumentFactory);
         store->releaseDocument(doc);
+    }
+    catch (Xem::Exception* e)
+    {
+        Error("Catched exception : %s\n", e->getMessage().c_str());
+        ev->Throw(exception2JRuntimeException(ev, e));
     }
 }
 
@@ -293,6 +314,16 @@ jobject
 jXPathExpression2JDocumentFactory (JNIEnv* ev, jobject jXPathExpression)
 {
     return ev->GetObjectField(jXPathExpression, getXemJNI().xpathExpression.documentFactory(ev));
+}
+
+jthrowable
+exception2JRuntimeException (JNIEnv* ev, Xem::Exception* exception)
+{
+    jstring msg = ev->NewStringUTF(exception->getMessage().c_str());
+    jthrowable jException = (jthrowable) ev->NewObject(getXemJNI().javaLangRuntimeException.getClass(ev),
+                                      getXemJNI().javaLangRuntimeException.constructor(ev), msg);
+    Info("jException=%p\n", jException);
+    return jException;
 }
 
 jthrowable

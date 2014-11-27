@@ -7,9 +7,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xemeiah.dom.AbstractVolatileDocumentTest;
 
-public class TestVolatileDocument extends AbstractVolatileDocumentTest
+public class TestMassiveVolatileDocuments extends AbstractVolatileDocumentTest
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestVolatileDocument.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestMassiveVolatileDocuments.class);
 
     @Test
     public void testMassiveVolatileDocumentCreation()

@@ -94,6 +94,9 @@ jthrowable
 exception2JDOMException (JNIEnv* ev, const char* message);
 
 jthrowable
+exception2JRuntimeException (JNIEnv* ev, Xem::Exception* exception);
+
+jthrowable
 exception2JDOMException (JNIEnv* ev, Xem::Exception* exception);
 
 Xem::String
