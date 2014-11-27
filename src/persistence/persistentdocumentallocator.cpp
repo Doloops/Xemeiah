@@ -81,7 +81,7 @@ namespace Xem
     PersistentDocumentAllocator::releaseAllAbsolutePages ()
     {
         Lock lock(mapMutex);
-        Log_PDA ( "releaseAllAbsolutePages : releasing %lu pages.\n", (unsigned long) absolutePages.size() );
+        Log_PDA_Housewife ( "releaseAllAbsolutePages : releasing %lu pages.\n", (unsigned long) absolutePages.size() );
         for (AbsolutePages::iterator iter = absolutePages.begin(); iter != absolutePages.end(); iter++)
         {
             AssertBug(iter->first && iter->second, "Null Absolute page %llx -> %p provided !\n", iter->first,
@@ -111,7 +111,12 @@ namespace Xem
                     continue;
                 areasUnmapped++;
                 Log_PDA ( "[PERSDOC-UNMAP] idx=0x%llx, area=%p\n", idx, area );
-                munmap(area, AreaSize);
+                int result = munmap(area, AreaSize);
+
+                if (result == -1)
+                {
+                    Bug("Could not munmap idx=%llu, area=%p, err=%d:%s\n", idx, area, errno, strerror(errno));
+                }
             }
             free(areas);
             areas = NULL;
@@ -487,6 +492,19 @@ namespace Xem
     void
     PersistentDocumentAllocator::housewife ()
     {
+        if (refCount > 1)
+        {
+            Log_PDA ( "[HOUSEWIFE] : refCount=%llu : exiting.\n", refCount );
+            return;
+        }
+        static const __ui64 minAreasMapped = (64ULL * 1024ULL * 1024ULL) >> InAreaBits;
+        static const __ui64 maxAreasMapped = (128ULL * 1024ULL * 1024ULL) >> InAreaBits;
+
+        if (areasMapped < maxAreasMapped)
+        {
+            return;
+        }
+
         Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : %llu MBytes mapped, %llu KBytes for absolute pages"
                 "(refCount=%llx, areasAlloced = '%llu', areasMapped = '%llu' -> %llu%% mapped)\n",
                 _brid(getBranchRevId()),
@@ -494,41 +512,38 @@ namespace Xem
                 ((((unsigned long long)absolutePages.size()) << InPageBits)>>10),
                 refCount, areasAlloced, areasMapped, (100* areasMapped)/areasAlloced );
 
-    flushInMemCaches();
+        flushInMemCaches();
 
-    if (refCount > 1)
-    {
-        Log_PDA ( "[HOUSEWIFE] : refCount=%llu : exiting.\n", refCount );
-        return;
-    }
-    static const __ui64 minAreasMapped = (4ULL * 1024ULL * 1024ULL) >> InAreaBits;
-    static const __ui64 maxAreasMapped = (128ULL * 1024ULL * 1024ULL) >> InAreaBits;
+        __ui64 originalAreasMapped = areasMapped;
+        (void) originalAreasMapped;
 
-    if (areasMapped < maxAreasMapped)
-    return;
-    __ui64 originalAreasMapped = areasMapped;
-    (void) originalAreasMapped;
-
-    for (__ui64 idx = 1; idx < areasAlloced; idx++)
-    {
-        void* area = areas[idx];
-        if (!area)
+        // for (__ui64 idx = 1; idx < areasAlloced; idx++)
+        for (__ui64 idx = areasAlloced - 1; idx > 0; idx--)
         {
-            continue;
-        }
-        Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
+            void* area = areas[idx];
+            if (!area)
+            {
+                continue;
+            }
+            Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
 
-        munmap(area, AreaSize);
-        areas[idx] = NULL;
-        areasMapped--;
-        if (areasMapped <= minAreasMapped)
-        break;
+            int result = munmap(area, AreaSize);
+            if (result == -1)
+            {
+                Bug("Could not munmap idx=%llu, area=%p, err=%d:%s\n", idx, area, errno, strerror(errno));
+            }
+            areas[idx] = NULL;
+            areasMapped--;
+            if (areasMapped <= minAreasMapped)
+            {
+                break;
+            }
+        }
+        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : areasAlloced = '%llu', areasMapped reduced from %llu (%llu%%) to %llu (%llu%%) !\n",
+                _brid(getBranchRevId()),
+                areasAlloced,
+                originalAreasMapped, (100* originalAreasMapped)/areasAlloced,
+                areasMapped, (100* areasMapped)/areasAlloced );
     }
-    Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : areasAlloced = '%llu', areasMapped reduced from %llu (%llu%%) to %llu (%llu%%) !\n",
-            _brid(getBranchRevId()),
-            areasAlloced,
-            originalAreasMapped, (100* originalAreasMapped)/areasAlloced,
-            areasMapped, (100* areasMapped)/areasAlloced );
-}
 
 }

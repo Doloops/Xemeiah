@@ -212,4 +212,6 @@ Java_org_xemeiah_dom_Element_triggerElementEnd (JNIEnv *ev, jobject jElement)
     Log("Trigger event : %s\n", me.generateVersatileXPath().c_str());
 
     me.eventElement(*xprocessor, DomEventType_CreateElement);
+
+    me.getDocument().housewife();
 }

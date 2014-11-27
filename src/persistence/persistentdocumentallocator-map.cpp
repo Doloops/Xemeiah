@@ -15,7 +15,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define Log_PDAMap Info
+#define Log_PDAMap_Area Info
+#define Log_PDAMap Debug
+#define Log_PDAMap_V Log
 
 namespace Xem
 {
@@ -46,7 +48,7 @@ namespace Xem
 #if 1
         areasAlloced = 32;
 
-        Log_PDAMap ( "Initial alloc : alloced %llu areas\n", areasAlloced );
+        Log_PDAMap_Area ( "Initial alloc : alloced %llu areas\n", areasAlloced );
         areas = (void**) realloc(areas, sizeof(void*) * (areasAlloced));
         for (__ui64 areaIdx = 0; areaIdx < areasAlloced; areaIdx++)
             areas[areaIdx] = NULL;
@@ -87,7 +89,7 @@ namespace Xem
             }
 
 #else
-            areas = (void**) realloc ( areas, sizeof(void*) * ( toAlloc ) );
+            areas = (void**) realloc(areas, sizeof(void*) * (toAlloc));
 #endif
             for (__ui64 i = areasAlloced; i < toAlloc; i++)
             {
@@ -136,7 +138,7 @@ namespace Xem
 #endif
         __ui64 areaIdx = relPagePtr >> InAreaBits;
         __ui64 pageIdx = relPagePtr & AreaPageMask;
-        Log_PDAMap ( "Get rel=%llx, areaIdx = %llx, pageIdx = %llx\n", relPagePtr, areaIdx, pageIdx );
+        Log_PDAMap_V ( "Get rel=%llx, areaIdx = %llx, pageIdx = %llx\n", relPagePtr, areaIdx, pageIdx );
         if (areasAlloced <= areaIdx || areas[areaIdx] == NULL)
         {
             Log_PDAMap ( "Area not alloced ! Must map Area=%llx\n", areaIdx );
@@ -234,9 +236,10 @@ namespace Xem
         static __ui64 totalAreasMappedNumber = 0;
         totalAreasMappedNumber++;
 
-        Log_PDAMap ( "Mapped area=%llx (at %p) [%llx:%llx], %llu pages, %llu maps, totalAreasMappedNumber=%llu\n",
+        Log_PDAMap_Area ( "Mapped area=%llx (at %p) [%llx:%llx], %llu pages, %llu maps\n",
                 areaIdx, area, beginRelPagePtr, endRelPagePtr,
-                nbPages, nbMaps,
+                nbPages, nbMaps);
+        Log_PDAMap_Area ( "=> Current status : areasMapped=%llu, totalAreasMappedNumber=%llu\n", areasMapped,
                 totalAreasMappedNumber );
     }
 
