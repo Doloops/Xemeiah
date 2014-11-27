@@ -13,7 +13,7 @@ import org.w3c.dom.xpath.XPathNSResolver;
 
 public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element, XPathNSResolver
 {
-    
+
     public native void triggerElementEnd();
 
     protected Element(org.xemeiah.dom.Document document, long __elementPtr)
@@ -35,6 +35,12 @@ public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element
 
     @Override
     public native String getLocalName();
+
+    @Override
+    public String getTagName()
+    {
+        return getLocalName();
+    }
 
     @Override
     public native org.xemeiah.dom.Element getFirstChild();
@@ -113,7 +119,7 @@ public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element
 
     @Override
     public native void setAttributeNS(String namespaceURI, String qualifiedName, String value) throws DOMException;
-    
+
     @Override
     public Attr setAttributeNode(Attr newAttr) throws DOMException
     {
@@ -169,8 +175,7 @@ public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element
             setAttributeNS("http://www.w3.org/2000/xmlns/", prefix, getNamespaceURI());
         }
     }
-    
-    
+
     @Override
     public TypeInfo getSchemaTypeInfo()
     {
@@ -178,10 +183,4 @@ public class Element extends org.xemeiah.dom.Node implements org.w3c.dom.Element
         throw new RuntimeException("NOT IMPLEMENTED !!!");
     }
 
-    @Override
-    public String getTagName()
-    {
-        // TODO Auto-generated method stub
-        throw new RuntimeException("NOT IMPLEMENTED !!!");
-    }
 }

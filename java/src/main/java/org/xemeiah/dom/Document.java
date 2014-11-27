@@ -215,24 +215,24 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public void setDocumentURI(String documentURI)
     {
-        throw new RuntimeException("NOT IMPLEMENTED !");
+        LOGGER.debug("Setting documentURI=" + documentURI);
     }
 
     @Override
     public void setStrictErrorChecking(boolean strictErrorChecking)
     {
-        throw new RuntimeException("NOT IMPLEMENTED !");
+        LOGGER.debug("Setting strictErrorChecking=" + strictErrorChecking);
     }
 
     @Override
     public void setXmlStandalone(boolean xmlStandalone) throws DOMException
     {
-        throw new RuntimeException("NOT IMPLEMENTED !");
+        LOGGER.debug("Setting xmlStandalone=" + xmlStandalone);
     }
 
     @Override
     public void setXmlVersion(String xmlVersion) throws DOMException
     {
-        throw new RuntimeException("NOT IMPLEMENTED !");
+        LOGGER.debug("Setting xmlVersion=" + xmlVersion);
     }
 }

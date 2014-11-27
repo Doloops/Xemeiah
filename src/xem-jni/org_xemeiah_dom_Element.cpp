@@ -56,7 +56,7 @@ Java_org_xemeiah_dom_Element_getFirstChild (JNIEnv *ev, jobject jElement)
     Xem::ElementRef eltRef = jElement2ElementRef(ev, jElement);
     Xem::ElementRef childRef = eltRef.getChild();
 
-    if ( ! childRef )
+    if (!childRef)
     {
         return NULL;
     }
@@ -73,7 +73,7 @@ Java_org_xemeiah_dom_Element_getLastChild (JNIEnv *ev, jobject jElement)
 
     Xem::ElementRef childRef = eltRef.getLastChild();
 
-    if ( ! childRef )
+    if (!childRef)
     {
         return NULL;
     }
@@ -174,16 +174,33 @@ Java_org_xemeiah_dom_Element_appendChild (JNIEnv *ev, jobject jElement, jobject 
 
     AssertBug(jElement != NULL, "Null jElement !\n");
     AssertBug(jChildNode != NULL, "Null child !\n");
-    Xem::ElementRef father = jElement2ElementRef(ev, jElement);
-    Xem::ElementRef child = jElement2ElementRef(ev, jChildNode);
+    try
+    {
+        Xem::ElementRef father = jElement2ElementRef(ev, jElement);
+        Xem::ElementRef child = jElement2ElementRef(ev, jChildNode);
 
-    father.appendChild(child);
+        Log("Adding '%s' to '%s'\n", child.getKey().c_str(), father.getKey().c_str());
 
-    return jChildNode;
+        father.appendChild(child);
+#if 0
+        jobject jDocument = jNode2JDocument(ev, jElement);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+        child.eventElement(*xprocessor, DomEventType_CreateElement);
+#endif
+
+        // father.getDocument().housewife();
+        return jChildNode;
+    }
+    catch (Xem::Exception* e)
+    {
+        ev->Throw(exception2JDOMException(ev, e));
+        return NULL;
+    }
 }
 
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_Element_triggerElementEnd
-  (JNIEnv *ev, jobject jElement)
+JNIEXPORT void JNICALL
+Java_org_xemeiah_dom_Element_triggerElementEnd (JNIEnv *ev, jobject jElement)
 {
     Log("tiggerElementEnd ev=%p, jElement=%p\n", ev, jElement);
 

@@ -4,7 +4,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.xemeiah.dom.AbstractVolatileDocumentTest;
 
 public class TestMassiveVolatileDocuments extends AbstractVolatileDocumentTest
@@ -19,14 +18,7 @@ public class TestMassiveVolatileDocuments extends AbstractVolatileDocumentTest
             LOGGER.info("At test=#" + nbTest);
             Document document = createDocument();
 
-            Element node = document.createElement("myElement");
-            document.getDocumentElement().appendChild(node);
-
-            for (int nbNode = 0; nbNode < 100; nbNode++)
-            {
-                Element subNode = document.createElement("child_" + nbNode);
-                node.appendChild(subNode);
-            }
+            DomTestUtils.fillDocumentWithNodes(document);
 
             if (nbTest % 100 == 0)
             {

@@ -156,6 +156,9 @@ Java_org_xemeiah_dom_DocumentFactory_releaseDocument (JNIEnv *ev, jobject jFacto
      * BUT WE DO NOT WANT TO CORRUPT JAVA-SIDE OBJECTS !!!
      */
     Log("releaseDocument(%p)\n", jDocument);
+
+    Xem::Document* document = jDocument2Document(ev, jDocument);
+    // document->housewife();
 }
 
 JNIEXPORT jboolean JNICALL

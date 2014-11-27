@@ -171,8 +171,10 @@ initDocumentFactory (JNIEnv* ev, jobject jFactory, Xem::Store* store)
 Xem::Store*
 jDocumentFactory2Store (JNIEnv* ev, jobject jFactory)
 {
+    AssertBug(jFactory, "Null jFactory provided !");
     jlong __storePtr = ev->GetLongField(jFactory, getXemJNI().documentFactory.__storePtr(ev));
     Xem::Store* store = (Xem::Store*) (__storePtr);
+    AssertBug(store, "Null store provided !");
     return store;
 }
 

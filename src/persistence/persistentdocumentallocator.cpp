@@ -13,7 +13,7 @@
 #include <errno.h>
 
 #define Log_PDA Debug
-#define Log_PDA_Housewife Debug
+#define Log_PDA_Housewife Info
 #define Log_APW Debug // Logging for authrorizePageWrite
 
 namespace Xem
@@ -510,7 +510,9 @@ namespace Xem
         {
             void* area = areas[idx];
             if (!area)
+            {
                 continue;
+            }
             Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
 
             munmap(area, AreaSize);
