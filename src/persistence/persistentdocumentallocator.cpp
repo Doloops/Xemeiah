@@ -485,48 +485,48 @@ namespace Xem
     void
     PersistentDocumentAllocator::housewife ()
     {
-        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : %llu MBytes mapped, %llu KBytes for absolute pages (refCount=%llx, areasAlloced = '%llu', areasMapped = '%llu' -> %llu%% mapped)\n",
+        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : %llu MBytes mapped, %llu KBytes for absolute pages"
+                "(refCount=%llx, areasAlloced = '%llu', areasMapped = '%llu' -> %llu%% mapped)\n",
                 _brid(getBranchRevId()),
                 ((areasMapped << InAreaBits)>>20),
                 ((((unsigned long long)absolutePages.size()) << InPageBits)>>10),
                 refCount, areasAlloced, areasMapped, (100* areasMapped)/areasAlloced );
 
-        flushInMemCaches();
+    flushInMemCaches();
 
-        if (refCount > 1)
-        {
-            Log_PDA ( "[HOUSEWIFE] : refCount=%llu : exiting.\n", refCount );
-            return;
-        }
-        static const __ui64 minAreasMapped = (4ULL * 1024ULL * 1024ULL) >> InAreaBits;
-        static const __ui64 maxAreasMapped = (128ULL * 1024ULL * 1024ULL) >> InAreaBits;
-
-        if (areasMapped < maxAreasMapped)
-            return;
-        __ui64 originalAreasMapped = areasMapped;
-        (void) originalAreasMapped;
-
-        for (__ui64 idx = 1; idx < areasAlloced; idx++)
-        {
-            void* area = areas[idx];
-            if (!area)
-            {
-                continue;
-            }
-            Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
-
-            munmap(area, AreaSize);
-            areas[idx] = NULL;
-            areasMapped--;
-            if (areasMapped <= minAreasMapped)
-                break;
-        }
-        Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : areasAlloced = '%llu', areasMapped reduced from %llu (%llu%%) to %llu (%llu%%) !\n",
-                _brid(getBranchRevId()),
-                areasAlloced,
-                originalAreasMapped, (100* originalAreasMapped)/areasAlloced,
-                areasMapped, (100* areasMapped)/areasAlloced );
+    if (refCount > 1)
+    {
+        Log_PDA ( "[HOUSEWIFE] : refCount=%llu : exiting.\n", refCount );
+        return;
     }
+    static const __ui64 minAreasMapped = (4ULL * 1024ULL * 1024ULL) >> InAreaBits;
+    static const __ui64 maxAreasMapped = (128ULL * 1024ULL * 1024ULL) >> InAreaBits;
+
+    if (areasMapped < maxAreasMapped)
+    return;
+    __ui64 originalAreasMapped = areasMapped;
+    (void) originalAreasMapped;
+
+    for (__ui64 idx = 1; idx < areasAlloced; idx++)
+    {
+        void* area = areas[idx];
+        if (!area)
+        {
+            continue;
+        }
+        Log_PDA ( "[HOUSEWIFE] : unalloc '%p' (idx=%llu)\n", area, idx );
+
+        munmap(area, AreaSize);
+        areas[idx] = NULL;
+        areasMapped--;
+        if (areasMapped <= minAreasMapped)
+        break;
+    }
+    Log_PDA_Housewife ( "[HOUSEWIFE %llx:%llx] : areasAlloced = '%llu', areasMapped reduced from %llu (%llu%%) to %llu (%llu%%) !\n",
+            _brid(getBranchRevId()),
+            areasAlloced,
+            originalAreasMapped, (100* originalAreasMapped)/areasAlloced,
+            areasMapped, (100* areasMapped)/areasAlloced );
+}
 
 }
-;

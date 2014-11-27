@@ -5,6 +5,8 @@
  *      Author: francois
  */
 
+#include <Xemeiah/persistence/persistentdocumentallocator.h>
+
 #define Log_WPCacheHPP Debug
 
 namespace Xem
