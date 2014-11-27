@@ -7,7 +7,7 @@
 #include <Xemeiah/persistence/persistentstore.h>
 #include <Xemeiah/persistence/writablepagecache.h>
 
-// #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
+#define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
 #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
 
@@ -312,7 +312,7 @@ namespace Xem
                            /**
                             * PageInfoPage Table
                             */
-                           typedef std::map<__ui64,PageInfoPage*> PageInfoPageTable;
+                           typedef std::map<RelativePagePtr, AbsolutePagePtr> PageInfoPageTable;
 
                            /**
                             * PageInfoPage Table instance

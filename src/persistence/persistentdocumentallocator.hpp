@@ -108,10 +108,12 @@ namespace Xem
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         PageInfoPageTable::iterator iter = pageInfoPageTable.find(indirectionOffset);
-        if ( iter != pageInfoPageTable.end() && (!write || ((__ui64)iter->second & PageFlags_Stolen) ) )
+        if ( iter != pageInfoPageTable.end() && (!write || (((__ui64)iter->second) & PageFlags_Stolen) ) )
         {
-            Log_PDAHPP ( "PIPT [%llx] : [%llx] => %p\n", relativePagePtr, iter->first, iter->second );
-            pageInfoPage = (PageInfoPage*) (((__ui64)iter->second) & PagePtr_Mask);
+            Log_PDAHPP ( "PIPT [%llx] : [%llx] => %llx\n", relativePagePtr, iter->first, iter->second );
+            AbsolutePagePtr pageInfoPagePtr = (((__ui64)iter->second) & PagePtr_Mask);
+            return AbsolutePageRef<PageInfoPage>(getPersistentStore(), pageInfoPagePtr);
+                    // (PageInfoPage*) (((__ui64)iter->second) & PagePtr_Mask);
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID
             bool found = false;
             for ( AbsolutePages::iterator it2 = absolutePages.begin(); it2 != absolutePages.end(); it2++ )
@@ -127,7 +129,6 @@ namespace Xem
                 pageInfoPage, indirectionOffset, (unsigned long) absolutePages.size() );
             }
 #endif
-            return true;
         }
         Log_PDAHPP ( "PIPT [%llx] CACHE MISS (indirectionOffset=%llx, pageIndex=%llx, write=%d)\n",
         relativePagePtr, indirectionOffset, pageIndex, write );
@@ -149,9 +150,11 @@ namespace Xem
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         Log_PDAHPP ( "PIPT [%llx] CACHE SET (indirectionOffset=%llx, pageIndex=%llx, pageInfoPage=%p, write=%d)\n",
-        relativePagePtr, indirectionOffset, pageIndex, pageInfoPage, write );
-        pageInfoPageTable[indirectionOffset] = (PageInfoPage*)
-        ( ((__ui64)pageInfoPage) | (write ? PageFlags_Stolen : 0) );
+        relativePagePtr, indirectionOffset, pageIndex, pageInfoPageRef.getPage(), write );
+        AbsolutePagePtr tgt = ((__ui64) pageInfoPagePtr | (write ? PageFlags_Stolen : 0));
+        // pageInfoPageTable[indirectionOffset] = (PageInfoPage*)
+        //  ((__ui64)pageInfoPage) | (write ? PageFlags_Stolen : 0) );
+        pageInfoPageTable[indirectionOffset] = tgt;
 #endif
 
 #if PARANOID

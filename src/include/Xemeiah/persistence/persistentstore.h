@@ -143,7 +143,7 @@ namespace Xem
             void* page;
             __ui64 refCount;
 
-            static const __ui64 PageChunk_Bits = 0; // 5;
+            static const __ui64 PageChunk_Bits = 4; // 5;
             static const __ui64 PageChunk_Size = (PageSize << PageChunk_Bits);
             static const __ui64 PageChunk_Mask = (PageChunk_Size) - 1;
             static const __ui64 PageChunk_ChunkMask = ~((PageChunk_Size) - 1);

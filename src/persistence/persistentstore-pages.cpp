@@ -160,6 +160,11 @@ namespace Xem
         {
             return;
         }
+        static const int chunkCacheSize = 512;
+        if ( chunkMap.size() < chunkCacheSize )
+        {
+            return;
+        }
 
         void* page = chunkInfo.page;
         chunkMap.erase(iter);
