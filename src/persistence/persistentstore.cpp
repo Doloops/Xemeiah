@@ -446,7 +446,7 @@ namespace Xem
         branchManager = NULL;
         closeFile();
 
-        Info("PersistentStore=%p : closed !", this);
+        Info("PersistentStore=%p : closed !\n", this);
         return true;
     }
 
