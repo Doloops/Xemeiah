@@ -148,7 +148,9 @@ namespace Xem
 
         mapMutex.lock();
 
-        PageInfo pageInfo = getPageInfo(relPagePtr, true);
+        __ui64 index;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, true);
+        PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
         BranchRevId& segPageBranchRevId = pageInfo.branchRevId;
 
         AssertBug(segPageBranchRevId.branchId && segPageBranchRevId.revisionId,
@@ -172,10 +174,11 @@ namespace Xem
             AbsolutePagePtr newAbsPagePtr = stealSegmentPage(segPage, __getPageType(pageFlags));
             AssertBug(__getPageType(newAbsPagePtr) == PageType_Segment, "Invalid type !\n");
 
-            // alterPageInfo(pageInfo);
+            getPersistentStore().alterPage(pageInfoPageRef.getPage());
             pageInfo.absolutePagePtr = newAbsPagePtr | pageFlags;
             pageInfo.branchRevId = revisionPageRef.getPage()->branchRevId;
-            setPageInfo(relPagePtr, pageInfo);
+            getPersistentStore().protectPage(pageInfoPageRef.getPage());
+            // setPageInfo(relPagePtr, pageInfo);
 
             __ui64 areaIdx = relPagePtr >> InAreaBits;
             AssertBug(areaIdx < areasAlloced && areas[areaIdx], "Area not allocated !\n");
@@ -221,7 +224,10 @@ namespace Xem
                 }
                 RelativePagePtr relPagePtr = ( areaIdx << InAreaBits ) + offset;
 
-                PageInfo pageInfo = getPageInfo ( relPagePtr );
+                __ui64 index;
+                AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, false);
+                PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
+
                 Log_PDA ( "pageInfo : rel=%llx, abs=%llx, brid=%llx:%llx - myBrid=%llx:%llx\n",
                         relPagePtr, pageInfo.absolutePagePtr, _brid(pageInfo.branchRevId),
                         _brid(getBranchRevId() ) );
@@ -244,7 +250,10 @@ namespace Xem
         RelativePagePtr relPagePtr = (segmentPtr & PagePtr_Mask);
         Log_PDA ( "Getting allocation profile for seg=%llx, page=%llx\n", segmentPtr, relPagePtr );
         Lock lock(mapMutex);
-        PageInfo pageInfo = getPageInfo(relPagePtr);
+
+        __ui64 index;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, false);
+        PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
         return pageInfo.allocationProfile;
     }
 
@@ -252,7 +261,10 @@ namespace Xem
     PersistentDocumentAllocator::getFirstFreeSegmentOffset (RelativePagePtr relPagePtr)
     {
         Lock lock(mapMutex);
-        PageInfo pageInfo = getPageInfo(relPagePtr);
+        __ui64 index;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, false);
+        PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
+
         Log_PDA ( "getFirstFreeSegmentOffset : page=%llx -> offset=%x (ptr=%llx)\n",
                 relPagePtr, pageInfo.firstFreeSegmentInPage, relPagePtr + pageInfo.firstFreeSegmentInPage );
         return pageInfo.firstFreeSegmentInPage;
@@ -263,11 +275,15 @@ namespace Xem
     {
         Lock lock(mapMutex);
 
-        PageInfo pageInfo = getPageInfo(relPagePtr, true);
-        // alterPageInfo(pageInfo);
+        __ui64 index;
+        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, true);
+        PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
+
+        // PageInfo pageInfo = getPageInfo(relPagePtr, true);
+        alterPageInfo(pageInfo);
         pageInfo.firstFreeSegmentInPage = offset;
-        setPageInfo(relPagePtr, pageInfo);
-        // protectPageInfo(pageInfo);
+        // setPageInfo(relPagePtr, pageInfo);
+        protectPageInfo(pageInfo);
 
         Log_PDA ( "setFirstFreeSegmentOffset : page=%llx -> offset=%x (ptr=%llx)\n",
                 relPagePtr, offset, relPagePtr + offset );
@@ -420,19 +436,18 @@ namespace Xem
             AbsolutePagePtr absPtr = __getFreePagePtr ( pageType );
             Log_PDA ( "New SegmentPage absolute=%llx, relative=%llx\n", absPtr, iter.first() );
 
-            PageInfo pageInfo = iter.second();
+            PageInfo& pageInfo = iter.second();
 
-            // alterPageInfo(pageInfo);
             /*
              * Initialize the PageInfo
              */
+            alterPageInfo(pageInfo);
             pageInfo.branchRevId = revisionPageRef.getPage()->branchRevId;
             pageInfo.absolutePagePtr = absPtr | pageType;
             pageInfo.allocationProfile = allocProfile;
             pageInfo.firstFreeSegmentInPage = PageSize * 2;
-
-            // protectPageInfo(pageInfo);
-            setPageInfo(iter.first(), pageInfo);
+            protectPageInfo(pageInfo);
+            // setPageInfo(iter.first(), pageInfo);
 
             /*
              * If the area containing this page is allocated, we have to remap it to the

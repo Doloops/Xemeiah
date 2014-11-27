@@ -24,13 +24,13 @@ ifeq ($(XemHasExtensions),true)
 endif
     XemHasJNI          = true
 
-    XemCompileAsLib    = true
+    XemCompileAsLib    = false
     XemExternalizeLibs = false
 
     Profile = Debug
-#    Profile = DebugPerf
-    Profile = ProfilePerf
-#    Profile = Perf
+    Profile = DebugPerf
+#    Profile = ProfilePerf
+    Profile = Perf
 #    Profile = HighPerfSpace
 #    Profile = HighPerf
 
@@ -69,12 +69,13 @@ ifeq ($(Profile),Perf)
 	CFLAGS += -DPARANOID=1
 endif
 ifeq ($(Profile),DebugPerf)
-	CFLAGS += -O3
+	CFLAGS += -O0
 	CFLAGS += -g
 	CFLAGS += -D__XEM_USE_INLINE
 	CFLAGS += -DXEM_SYNC
+	CFLAGS += -D__XEM_DISABLE_LOG_MESSAGES
 #	CFLAGS += -pg
-#	CFLAGS += -DPARANOID=1
+	CFLAGS += -DPARANOID=1
 #	CFLAGS += -DXEM_SYNC
 #	CFLAGS += -DXEM_MEM_PROTECT
 #	CFLAGS += -DXEM_MEM_PROTECT_SYS

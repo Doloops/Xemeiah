@@ -13,8 +13,9 @@ namespace Xem
     protected:
         PersistentDocumentAllocator& allocator;
         RelativePagePtr relPagePtr;
+        // AbsolutePageRef<PageInfoPage> pageInfoPageRef;
+        // __ui64 idx;
         AbsolutePageRef<PageInfoPage> pageInfoPageRef;
-        __ui64 idx;
         bool write;
 
     public:
@@ -24,22 +25,23 @@ namespace Xem
             relPagePtr = _relPagePtr;
             write = _write;
 
-            idx = 0;
+            // idx = 0;
 
-            pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
-            AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
+            // pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
+            // AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
         }
 
         PageInfoIterator&
         operator++ (int i)
         {
-            idx++;
+            // idx++;
             relPagePtr += PageSize;
-            if (idx == PageInfo_pointerNumber && relPagePtr < allocator.getNextRelativePagePtr())
-            {
-                pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
-                AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
-            }
+//            if (idx == PageInfo_pointerNumber && relPagePtr < allocator.getNextRelativePagePtr())
+//            {
+//                // allocator.doGetPageInfoPage(relPagePtr, idx, write);
+//                // AssertBug(pageInfoPageRef.getPage(), "Could not get page info !\n");
+//                idx = 0;
+//            }
             return *this;
         }
 
@@ -49,11 +51,13 @@ namespace Xem
             return relPagePtr;
         }
 
-        PageInfo
+        PageInfo&
         second ()
         {
             AssertBug(relPagePtr < allocator.getNextRelativePagePtr(), "OOB !\n");
-            AssertBug(pageInfoPageRef.getPage(), "NULL pageInfoPage !\n");
+            // AssertBug(pageInfoPageRef.getPage(), "NULL pageInfoPage !\n");
+            __ui64 idx;
+            pageInfoPageRef = allocator.doGetPageInfoPage(relPagePtr, idx, write);
             return pageInfoPageRef.getPage()->pageInfo[idx];
         }
 

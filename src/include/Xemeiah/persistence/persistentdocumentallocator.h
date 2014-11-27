@@ -189,8 +189,8 @@ namespace Xem
          *  Access stub to AbsolutePagePtr
          */
         template<typename PageClass>
-            INLINE PageClass*
-            getAbsolutePage (AbsolutePagePtr absPagePtr);
+        INLINE PageClass*
+        getAbsolutePage (AbsolutePagePtr absPagePtr);
 #endif
 
         /**
@@ -211,7 +211,6 @@ namespace Xem
         AbsolutePageRef<PageInfoPage>
         getPageInfoPage (AbsolutePagePtr pageInfoPagePtr);
 
-#if 0
         /**
          *
          */
@@ -225,7 +224,6 @@ namespace Xem
         INLINE
         void
         protectPageInfo (PageInfo& pageInfo);
-#endif
 
         /**
          * Access stub for PageList pages
@@ -309,10 +307,32 @@ namespace Xem
 #endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
+
+                           class PageInfoPageItem
+                           {
+                           private:
+                               AbsolutePageRef<PageInfoPage> pageInfoPageRef;
+                               bool stolen;
+                           public:
+                               PageInfoPageItem(const AbsolutePageRef<PageInfoPage>& _pageInfoPageRef, bool _stolen)
+                               : pageInfoPageRef(_pageInfoPageRef)
+                               {
+                                   stolen = _stolen;
+                               }
+
+                               AbsolutePageRef<PageInfoPage>& getPageInfoPageRef()
+                               {
+                                   return pageInfoPageRef;
+                               }
+                               bool isStolen()
+                               {
+                                   return stolen;
+                               }
+                           };
                            /**
                             * PageInfoPage Table
                             */
-                           typedef std::map<RelativePagePtr, AbsolutePagePtr> PageInfoPageTable;
+                           typedef std::map<RelativePagePtr, PageInfoPageItem*> PageInfoPageTable;
 
                            /**
                             * PageInfoPage Table instance
@@ -358,13 +378,12 @@ namespace Xem
                             * @param write (optional) set to true if you want to modify this PageInfo
                             * @return a reference to the PageInfo
                             */
-                           INLINE PageInfo getPageInfo ( RelativePagePtr relativePagePtr, bool write = false );
+                           INLINE PageInfo& getPageInfo ( AbsolutePageRef<PageInfoPage> &pageInfoPageRef, __ui64 index);
 
                            /**
                             * Sets info inside of a PageInfo page
                             */
-                           void setPageInfo ( RelativePagePtr relativePagePtr, PageInfo& pageInfo );
-
+                           // void setPageInfo ( RelativePagePtr relativePagePtr, PageInfo& pageInfo );
                            /**
                             * returns a copy of a stolen indirection page. The copy is owned by this revision, and can be altered.
                             * @param stolenPagePtr the location of the page to copy.

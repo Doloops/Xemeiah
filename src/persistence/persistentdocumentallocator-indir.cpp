@@ -78,6 +78,7 @@ namespace Xem
     }
 #endif
 
+#if 0
     void
     PersistentDocumentAllocator::setPageInfo (RelativePagePtr relativePagePtr, PageInfo& pageInfo)
     {
@@ -90,6 +91,7 @@ namespace Xem
         pageInfoPageRef.getPage()->pageInfo[index] = pageInfo;
         getPersistentStore().protectPage(pageInfoPageRef.getPage());
     }
+#endif
 
     void
     PersistentDocumentAllocator::increaseIndirectionCoveredArea ()

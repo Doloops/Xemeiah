@@ -345,7 +345,9 @@ namespace Xem
   do { __ui64 index = __relPagePtr / chunkSize;  \
     /* PageInfo pageInfo; getPageInfo ( __relPagePtr, pageInfo ); */ \
     Lock __lock(mapMutex); \
-    PageInfo pageInfo = getPageInfo ( __relPagePtr ); \
+    __ui64 __index; \
+    AbsolutePageRef<PageInfoPage> __pageInfoPageRef = doGetPageInfoPage(__relPagePtr, __index, false); \
+    PageInfo& pageInfo = getPageInfo(__pageInfoPageRef, __index); \
     CheckLog ( "--> Dumping page contents - rel=%llx (abs=%llx, brid=[%llx:%llx], allocProfile=%x, firstFreeInPage=%x)", \
       __relPagePtr, pageInfo.absolutePagePtr, _brid(pageInfo.branchRevId), pageInfo.allocationProfile, pageInfo.firstFreeSegmentInPage ); \
     for ( __ui64 i = 0 ; i < PageSize/chunkSize ; i++ ) \
@@ -866,7 +868,9 @@ namespace Xem
 
                 try
                 {
-                    PageInfo pageInfo = getPageInfo(relPagePtr);
+                    __ui64 index;
+                    AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relPagePtr, index, false);
+                    PageInfo& pageInfo = getPageInfo(pageInfoPageRef, index);
                     AbsolutePagePtr absPagePtr = pageInfo.absolutePagePtr & PagePtr_Mask;
                     PageFlags pageFlags = pageInfo.absolutePagePtr & PageFlags_Mask;
                     CheckError("\tErroneous page %llx, absPagePtr=%llx, pageFlags=%llx\n", relPagePtr, absPagePtr,

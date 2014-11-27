@@ -5,7 +5,7 @@
 
 #include <Xemeiah/persistence/format/indirection.h>
 
-#define Log_PDAHPP Debug
+#define Log_PDAHPP Log
 #define Log_PDA_AbsolutePage Debug
 
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID //< Option : Paranoid checks for PageInfoPageTable
@@ -57,7 +57,7 @@ namespace Xem
 #endif  
     }
 
-#if 0
+#if 1
     __INLINE void
     PersistentDocumentAllocator::alterPageInfo (PageInfo& pageInfo)
     {
@@ -108,27 +108,10 @@ namespace Xem
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         PageInfoPageTable::iterator iter = pageInfoPageTable.find(indirectionOffset);
-        if ( iter != pageInfoPageTable.end() && (!write || (((__ui64)iter->second) & PageFlags_Stolen) ) )
+        if ( iter != pageInfoPageTable.end() && (!write || iter->second->isStolen() ) )
         {
-            Log_PDAHPP ( "PIPT [%llx] : [%llx] => %llx\n", relativePagePtr, iter->first, iter->second );
-            AbsolutePagePtr pageInfoPagePtr = (((__ui64)iter->second) & PagePtr_Mask);
-            return AbsolutePageRef<PageInfoPage>(getPersistentStore(), pageInfoPagePtr);
-                    // (PageInfoPage*) (((__ui64)iter->second) & PagePtr_Mask);
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID
-            bool found = false;
-            for ( AbsolutePages::iterator it2 = absolutePages.begin(); it2 != absolutePages.end(); it2++ )
-            {
-                if ( pageInfoPage == it2->second )
-                {
-                    found = true; break;
-                }
-            }
-            if ( ! found )
-            {
-                Bug ( "PageInfoPageTable : PageInfopage %p for indirectionOffset %llx not in absolutePages map (%lu pages)\n",
-                pageInfoPage, indirectionOffset, (unsigned long) absolutePages.size() );
-            }
-#endif
+            Log_PDAHPP ( "PIPT [%llx] : [%llx] => %llx\n", relativePagePtr, iter->first, iter->second->getPageInfoPageRef().getPagePtr() );
+            return iter->second->getPageInfoPageRef().steal();
         }
         Log_PDAHPP ( "PIPT [%llx] CACHE MISS (indirectionOffset=%llx, pageIndex=%llx, write=%d)\n",
         relativePagePtr, indirectionOffset, pageIndex, write );
@@ -147,14 +130,13 @@ namespace Xem
 
         AbsolutePageRef<PageInfoPage> pageInfoPageRef = getPageInfoPage(pageInfoPagePtr);
 
-
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
         Log_PDAHPP ( "PIPT [%llx] CACHE SET (indirectionOffset=%llx, pageIndex=%llx, pageInfoPage=%p, write=%d)\n",
-        relativePagePtr, indirectionOffset, pageIndex, pageInfoPageRef.getPage(), write );
-        AbsolutePagePtr tgt = ((__ui64) pageInfoPagePtr | (write ? PageFlags_Stolen : 0));
+                     relativePagePtr, indirectionOffset, pageIndex, pageInfoPageRef.getPage(), write );
+        // AbsolutePagePtr tgt = ((__ui64) pageInfoPagePtr | (write ? PageFlags_Stolen : 0));
         // pageInfoPageTable[indirectionOffset] = (PageInfoPage*)
         //  ((__ui64)pageInfoPage) | (write ? PageFlags_Stolen : 0) );
-        pageInfoPageTable[indirectionOffset] = tgt;
+        pageInfoPageTable[indirectionOffset] = new PageInfoPageItem(pageInfoPageRef, write);
 #endif
 
 #if PARANOID
@@ -169,6 +151,7 @@ namespace Xem
         return pageInfoPageRef;
     }
 
+#if 0
     __INLINE PageInfo
     PersistentDocumentAllocator::getPageInfo (RelativePagePtr relativePagePtr, bool write)
     {
@@ -176,35 +159,35 @@ namespace Xem
         __ui64 index;
         AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relativePagePtr, index, write);
         AssertBug(pageInfoPageRef.getPage(), "Null page !");
-//        if (!doGetPageInfoPage(relativePagePtr, pageInfoPage, index, write))
-//        {
-//            throwException(PageInfoException, "Could not getPageInfo(relativPagePtr=%llx, write=%d)\n", relativePagePtr,
-//                           write);
-//        }
-//        PageInfo& pageInfo = pageInfoPage->pageInfo[index];
-//        return pageInfo;
         return pageInfoPageRef.getPage()->pageInfo[index];
     }
+#endif
 
+    __INLINE PageInfo&
+    PersistentDocumentAllocator::getPageInfo (AbsolutePageRef<PageInfoPage> &pageInfoPageRef, __ui64 index)
+    {
+        mapMutex.assertLocked();
+        return pageInfoPageRef.getPage()->pageInfo[index];
+    }
 #if 0
     template<typename PageClass>
-        __INLINE PageClass*
-        PersistentDocumentAllocator::getAbsolutePage (AbsolutePagePtr absPagePtr)
+    __INLINE PageClass*
+    PersistentDocumentAllocator::getAbsolutePage (AbsolutePagePtr absPagePtr)
+    {
+        AssertBug(absPagePtr, "NULL absPagePtr provided !\n");
+        mapMutex.assertLocked();
+        AssertBug(( absPagePtr & PagePtr_Mask ) == absPagePtr, "Erroneous absPagePtr %llx\n", absPagePtr);
+        AbsolutePages::iterator iter = absolutePages.find(absPagePtr);
+        if (iter != absolutePages.end())
         {
-            AssertBug(absPagePtr, "NULL absPagePtr provided !\n");
-            mapMutex.assertLocked();
-            AssertBug(( absPagePtr & PagePtr_Mask ) == absPagePtr, "Erroneous absPagePtr %llx\n", absPagePtr);
-            AbsolutePages::iterator iter = absolutePages.find(absPagePtr);
-            if (iter != absolutePages.end())
-            {
-                Log_PDAHPP ( "Absolute page %llx already claimed : at %p !\n", absPagePtr, iter->second );
-                return (PageClass*) iter->second;
-            }
-            PageClass* page = getPersistentStore().getAbsolutePage<PageClass>(absPagePtr);
-            absolutePages[absPagePtr] = (void*) page;
-            Log_PDA_AbsolutePage ( "Absolute page %llx set to %p !\n", absPagePtr, page );
-            return page;
+            Log_PDAHPP ( "Absolute page %llx already claimed : at %p !\n", absPagePtr, iter->second );
+            return (PageClass*) iter->second;
         }
+        PageClass* page = getPersistentStore().getAbsolutePage<PageClass>(absPagePtr);
+        absolutePages[absPagePtr] = (void*) page;
+        Log_PDA_AbsolutePage ( "Absolute page %llx set to %p !\n", absPagePtr, page );
+        return page;
+    }
 #endif
 
 #if 0

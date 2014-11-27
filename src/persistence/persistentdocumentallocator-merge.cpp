@@ -153,12 +153,16 @@ namespace Xem
     getRevisionPage()->ownedTypedPages[PageType_Segment] --;    
     protectRevisionPage ();
 
+    Bug ("NOT IMPLEMENTED !!!");
+#if 0
     targetDocumentAllocator.mapMutex.lock();
     targetDocumentAllocator.setPageInfo ( relPagePtr, myPageInfo );
     targetDocumentAllocator.mapMutex.unlock();
 
     setPageInfo ( relPagePtr, myPageInfo );
-    return true;  
+#endif
+    return true;
+
   }
 
 };
