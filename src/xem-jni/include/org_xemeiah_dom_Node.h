@@ -9,14 +9,6 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_Node
- * Method:    getNextSibling
- * Signature: ()Lorg/w3c/dom/Node;
- */
-JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getNextSibling
-  (JNIEnv *, jobject);
-
-/*
- * Class:     org_xemeiah_dom_Node
  * Method:    getParentNode
  * Signature: ()Lorg/w3c/dom/Node;
  */
@@ -29,6 +21,14 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getParentNode
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_Node_getPrefix
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_Node
+ * Method:    getNextSibling
+ * Signature: ()Lorg/w3c/dom/Node;
+ */
+JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Node_getNextSibling
   (JNIEnv *, jobject);
 
 /*

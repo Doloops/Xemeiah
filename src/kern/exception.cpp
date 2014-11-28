@@ -26,11 +26,9 @@ namespace Xem
 
   }
 
-  void Exception::doAppendMessage ( const char* file, const char* function, int line, const char* format, ...)
+  void Exception::doAppendMessageVA ( const char* file, const char* function, int line, const char* format, va_list a_list)
   {
     if ( silent ) return;
-
-    va_list a_list;
 
     messages.push_back(MessageFragment());
     MessageFragment& fragment = (messages.back());
@@ -38,15 +36,22 @@ namespace Xem
     fragment.file = file;
     fragment.function = function;
     fragment.line = line;
-    va_start(a_list,format);
+
+#if 1
+    int maxSize = 512;
+    char* msg = (char*) malloc ( maxSize);
+    vsnprintf(msg, maxSize, format, a_list);
+#else
+    // va_start(a_list,format);
     int sz = vsnprintf(NULL, 0, format, a_list);
-    va_end(a_list);
+    // va_end(a_list);
 
     char* msg = (char*) malloc ( sz + 2 );
 
-    va_start(a_list,format);
+    // va_start(a_list,format);
     vsnprintf(msg, sz + 1, format, a_list);
-    va_end(a_list);
+    // va_end(a_list);
+#endif
 
     fragment.fragment = stringFromAllocedStr(msg);
   }

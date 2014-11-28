@@ -145,24 +145,21 @@ namespace Xem
         return true;
     }
 
-    bool
+    void
     PersistentStore::checkFormat ()
     {
         SuperBlock* sb = getSB();
         Log_Check ( "sb at %p\n", sb );
         if (strncmp(sb->magic, XEM_SB_MAGIC, sb->magic_length) != 0)
         {
-            Error("Invalid file magic '%s'\n", sb->magic);
-            return false;
+            throwException(PersistenceException, "Invalid file magic '%s'\n", sb->magic);
         }
         if (strncmp(sb->version, XEM_SB_VERSION, sb->version_length) != 0)
         {
-            Error("Invalid file version '%s'\n", sb->version);
-            return false;
+            throwException(PersistenceException, "Invalid file version '%s'\n", sb->version);
         }
         Log_Check ( "Check : sb->magic : '%s', sb->version : '%s'\n", sb->magic, sb->version );
         // TODO : check SuperBlock sizes
-        return true;
     }
 
     /*

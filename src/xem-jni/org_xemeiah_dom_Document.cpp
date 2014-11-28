@@ -18,8 +18,12 @@
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_Document_cleanUp (JNIEnv *ev, jobject jDocument)
 {
-    Log("At jDocument=%p, cleanUp\n", jDocument);
-    cleanupJDocument(ev, jDocument);
+    XEMJNI_PROLOG
+    {
+        Log("At jDocument=%p, cleanUp\n", jDocument);
+        cleanupJDocument(ev, jDocument);
+    }
+    XEMJNI_POSTLOG;
 }
 
 JNIEXPORT void JNICALL

@@ -2,6 +2,8 @@ package org.xemeiah.dom;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
 import org.xemeiah.dom.parser.XemParser;
 import org.xml.sax.EntityResolver;
@@ -11,43 +13,67 @@ import org.xml.sax.SAXException;
 
 public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
 {
-    private final XemParser xemParser = new XemParser();
-
-    private long __storePtr = 0;
-
-    public native void openVolatile();
-    
-    public native void format(String fileName);
-    
-    public native void open(String fileName);
-    
-    public native void close();
-    
-    public native void releaseDocument(Document document);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DocumentFactory.class);
 
     static
     {
         System.loadLibrary("xemeiah");
     }
 
+    private long __storePtr = 0;
+
+    private native void cleanUp();
+
+    public native void openVolatile();
+
+    public native void format(String fileName);
+
+    public native void open(String fileName);
+
+    private native void close();
+
+    public native void releaseDocument(Document document);
+
     public DocumentFactory()
     {
     }
+
+    protected static boolean exceptionsHappenedInFinalizer = false;
+    
+    public static boolean isExceptionsHappenedInFinalizer()
+    {
+        return exceptionsHappenedInFinalizer;
+    }
+
+    protected void finalize()
+    {
+        try
+        {
+            cleanUp();
+        }
+        catch (RuntimeException e)
+        {
+            exceptionsHappenedInFinalizer = true;
+            LOGGER.error("Could not finalize() !", e);
+            throw (e);
+        }
+    }
+
+    private final XemParser xemParser = new XemParser();
 
     public final XemParser getXemParser()
     {
         return xemParser;
     }
-    
+
     public native void createBranch(String branchName, String branchFlags);
-    
+
     public native org.xemeiah.dom.Document newStandaloneDocument(String branchName, String branchFlags);
 
     public native org.xemeiah.dom.Document newVolatileDocument();
-    
-    
-    public native void process (org.w3c.dom.Element processElement, org.w3c.dom.NodeList initialNodeSet);
-    
+
+    public native void process(org.w3c.dom.Element processElement, org.w3c.dom.NodeList initialNodeSet);
+
     public org.w3c.dom.Document newDocument()
     {
         return newVolatileDocument();

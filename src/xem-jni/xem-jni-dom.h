@@ -111,4 +111,11 @@ getXemJNI ()
     return xemJNI;
 }
 
+#define XEMJNI_PROLOG try
+#define XEMJNI_CATCH_CLAUSE catch ( Xem::Exception* e )
+
+#define XEMJNI_THROW_RUNTIME ev->Throw(exception2JRuntimeException(ev, e));
+#define XEMJNI_POSTLOG XEMJNI_CATCH_CLAUSE { XEMJNI_THROW_RUNTIME } do{} while(0)
+
+#define XEMJNI_POSTLOG_OPS(...) XEMJNI_CATCH_CLAUSE { __VA_ARGS__ ; XEMJNI_THROW_RUNTIME } do{} while(0)
 #endif /* XEMJNI_H_ */

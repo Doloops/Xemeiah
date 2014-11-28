@@ -188,6 +188,13 @@ namespace Xem
       bool isFreeFromDocuments ();
       
       /**
+       * Check whether we can safely consider this branch as free from any instantiated documents
+       *
+       * @throw Exception upon error
+       */
+      void checkIsFreeFromDocuments();
+
+      /**
        * Set the scheduled for removal bit
        */
       void setScheduledForRemoval ();
@@ -321,6 +328,8 @@ namespace Xem
     void garbageCollectorThread ();
   public:
     virtual ~CacheBranchManager ();
+
+    void checkIsFreeFromDocuments ();
 
     virtual Store& getStore() = 0;
     virtual Store& getStore() const = 0;

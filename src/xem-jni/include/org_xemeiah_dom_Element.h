@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_Element
+ * Method:    triggerElementEnd
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_Element_triggerElementEnd
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_Element
  * Method:    getNodeName
  * Signature: ()Ljava/lang/String;
  */
@@ -134,14 +142,6 @@ JNIEXPORT jobject JNICALL Java_org_xemeiah_dom_Element_getAttributes
  */
 JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_Element_lookupNamespaceURI
   (JNIEnv *, jobject, jstring);
-
-/*
- * Class:     org_xemeiah_dom_Element
- * Method:    triggerElementEnd
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_Element_triggerElementEnd
-  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

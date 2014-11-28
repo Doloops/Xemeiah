@@ -28,9 +28,9 @@ endif
     XemExternalizeLibs = false
 
     Profile = Debug
-#    Profile = DebugPerf
+    Profile = DebugPerf
 #    Profile = ProfilePerf
-    Profile = Perf
+#    Profile = Perf
 #    Profile = HighPerfSpace
 #    Profile = HighPerf
 

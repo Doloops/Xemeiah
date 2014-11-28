@@ -19,6 +19,9 @@
 #define __INLINE inline
 #endif
 
+#ifdef __XEM_PERSISTENCE_ABSOLUTEPAGEREF_H
+#include "../../../persistence/absolutepageref.hpp"
+#endif
 #ifdef __XEM_PERSISTENCE_PERSISTENTSTORE_H
 #include "../../../persistence/persistentstore.hpp"
 #include "../../../persistence/persistentstore-protect.hpp"
@@ -33,4 +36,15 @@
 #endif
 
 #undef __INLINE
+
+#else // no  __XEM_USE_INLINE
+
+/**
+ * We must enforce template instanciation so include the hpp anyway
+ */
+#ifdef __XEM_PERSISTENCE_ABSOLUTEPAGEREF_H
+#include "../../../persistence/absolutepageref.hpp"
+#endif
+
+
 #endif // __XEM_USE_INLINE

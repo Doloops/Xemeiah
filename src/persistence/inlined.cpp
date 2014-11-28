@@ -15,6 +15,7 @@
 #undef __INLINE
 #define __INLINE
 
+#include "absolutepageref.hpp"
 #include "persistentstore.hpp"
 #include "persistentstore-protect.hpp"
 #include "persistentdocumentallocator.hpp"

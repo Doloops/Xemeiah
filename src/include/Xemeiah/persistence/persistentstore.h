@@ -8,12 +8,12 @@
 #include <Xemeiah/persistence/format/revision.h>
 #include <Xemeiah/persistence/format/pages.h>
 
+#include <Xemeiah/persistence/absolutepageref.h>
+
 #include <list>
 
 // #define __XEM_PERSISTENTDOCUMENT_CHECK_DUMP_ALL_PAGES //< Option : Dump all chunk at PersistentDocument::checkContents()
 #define __XEM_PERSISTENCE_CHECK_BUILD_BRANCHPAGETABLE //< Option : build branchPageTable
-
-#define Log_APR(...) Log("[APR]" __VA_ARGS__)
 
 namespace Xem
 {
@@ -26,91 +26,8 @@ namespace Xem
     class PageInfoIterator;
     class PersistentDocumentAllocator;
 
+    XemStdException(PersistenceException);
     XemStdException(PersistenceBranchLastRevisionAlreadyWritable);
-
-    template<typename T>
-        class AbsolutePageRef
-        {
-            friend class PersistentStore;
-            friend class PersistentBranchManager;
-            friend class PersistentDocumentAllocator;
-            friend class PageInfoIterator;
-        private:
-            PersistentStore* persistentStore;
-            AbsolutePagePtr pagePtr;
-            T* page;
-        protected:
-            AbsolutePageRef (const PersistentStore& persistentStore)
-            {
-                AssertBug(&persistentStore != NULL, "Should not be instantiated with NULL persistentStore here !\n");
-                this->persistentStore = (PersistentStore*) &persistentStore;
-                this->pagePtr = NullPage;
-                this->page = NULL;
-            }
-            AbsolutePageRef (PersistentStore* persistentStore, const AbsolutePagePtr pagePtr)
-            {
-                AssertBug(persistentStore != NULL, "Should not be instantiated with NULL persistentStore here !\n");
-                this->persistentStore = persistentStore;
-                this->pagePtr = pagePtr;
-                this->page = NULL;
-            }
-            AbsolutePageRef (const PersistentStore& persistentStore, const AbsolutePagePtr pagePtr)
-            {
-                AssertBug(&persistentStore != NULL, "Should not be instantiated with NULL persistentStore here !\n");
-                this->persistentStore = (PersistentStore*) &persistentStore;
-                this->pagePtr = pagePtr;
-                this->page = NULL;
-            }
-            /**
-             * This is called stealing a reference
-             */
-            AbsolutePageRef (PersistentStore* persistentStore, T* page, const AbsolutePagePtr pagePtr)
-            {
-                AssertBug(persistentStore == NULL, "Should be instantiated with NULL persistentStore here !\n");
-                AssertBug(page != NULL, "Should not be instantiated with NULL page here !\n");
-                this->persistentStore = persistentStore;
-                this->page = page;
-                this->pagePtr = pagePtr;
-            }
-        public:
-            INLINE
-            AbsolutePageRef (const AbsolutePageRef& pageRef)
-            {
-                AssertBug(pageRef.persistentStore != NULL, "Should not be instantiated with NULL pageRef.persistentStore here !\n");
-                this->persistentStore = pageRef.persistentStore;
-                this->pagePtr = pageRef.pagePtr;
-                this->page = NULL;
-                Log_APR("Ref by constructor(const&)  : pagePtr=%llx\n", pageRef.pagePtr);
-            }
-
-            INLINE
-            ~AbsolutePageRef ();
-
-            INLINE
-            AbsolutePagePtr
-            getPagePtr () const
-            {
-                return pagePtr;
-            }
-
-            INLINE
-            T*
-            getPage ();
-
-            INLINE
-            AbsolutePageRef&
-            operator= (const AbsolutePageRef& pageRef);
-
-            INLINE
-            AbsolutePageRef
-            steal ()
-            {
-                T* page = getPage();
-                AssertBug(page, "Could not get page for pagePtr=%llx\n", pagePtr);
-                return AbsolutePageRef(NULL, page, pagePtr);
-            }
-            // INLINE ElementRef& operator= ( const ElementRef& eRef );
-        };
 
     class PersistentStore : public Store
     {
@@ -245,14 +162,14 @@ namespace Xem
          * @param mayCreate set to true to create filename (needs to be formatted, so needs to be called by format())
          * @return true upon success, false otherwise
          */
-        bool
+        void
         openFile (const char* filename, bool mayCreate);
 
         /**
          * Lowl-level close
          * @return true on success, false on failure
          */
-        bool
+        void
         closeFile ();
 
         /**
@@ -263,7 +180,7 @@ namespace Xem
         bool
         extendFile (__ui64 expectedFileLength);
 
-        bool
+        void
         checkFormat ();
 
         int
@@ -299,7 +216,7 @@ namespace Xem
          * Loads all keys stored in the store file.
          *
          */
-        bool
+        void
         loadKeysFromStore ();
 
         LocalKeyId
@@ -416,7 +333,7 @@ namespace Xem
         /**
          * Formats file with default branch flags
          */
-        bool
+        void
         format (const char* filename);
 
         /**
@@ -442,13 +359,13 @@ namespace Xem
         /**
          * Open an existing file
          */
-        bool
+        void
         open (const char* filename);
 
         /**
          * Closes the current file
          */
-        bool
+        void
         close ();
 
         /**
@@ -465,172 +382,122 @@ namespace Xem
         {
             return (__ui64) chunkMap.size();}
 
-        /**
-         * Allocation information
-         */
-        bool isFileLengthIsAHardLimit() const
-        {   return fileLengthIsAHardLimit;}
+    /**
+     * Allocation information
+     */
+    bool isFileLengthIsAHardLimit() const
+    {   return fileLengthIsAHardLimit;}
 
-        __ui64 getFileLength() const
-        {   return fileLength;}
+    __ui64 getFileLength() const
+    {   return fileLength;}
 
-        /*
-         * ***************************************************************
-         * Check functions, sorted from finest to most global structures.
-         * ***************************************************************
-         *
-         * checkKeys() is implemented in keys.cpp, the others in check.cpp
-         */
-        void checkElement ( RevisionPage* revPage, ElementSegment* element );
-        // void checkFreeList ( RevisionPage* revisionPage, FreeListHeader* freeListHeader );
+    /*
+     * ***************************************************************
+     * Check functions, sorted from finest to most global structures.
+     * ***************************************************************
+     *
+     * checkKeys() is implemented in keys.cpp, the others in check.cpp
+     */
+    void checkElement ( RevisionPage* revPage, ElementSegment* element );
+    // void checkFreeList ( RevisionPage* revisionPage, FreeListHeader* freeListHeader );
 
-        class AllocationStats
+    class AllocationStats
+    {
+    protected:
+    public:
+#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT
+        struct PageReferenceCtxt
         {
-        protected:
+            const char* ctxt;
+            BranchRevId brId;
+            bool stolen;
+            PageType pageType;
+            RelativePagePtr relPagePtr;
+            PageReferenceCtxt* previous;
+        };
+#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
+        struct PageStats
+        {
+            AbsolutePagePtr absPagePtr;
+            RelativePagePtr relPagePtr;
+#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
+            PageReferenceCtxt* pageReferenceCtxt;
+#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
+        };
+
+        struct RelativePageRevInfos
+        {
+            BranchRevId brId;
+            bool stolen;
+            AbsolutePagePtr absPagePtr;
+        };
+
+        class RelativePageInfos
+        {
         public:
-#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
-            struct PageReferenceCtxt
-            {
-                const char* ctxt;
-                BranchRevId brId;
-                bool stolen;
-                PageType pageType;
-                RelativePagePtr relPagePtr;
-                PageReferenceCtxt* previous;
-            };
-#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
-            struct PageStats
-            {
-                AbsolutePagePtr absPagePtr;
-                RelativePagePtr relPagePtr;
-#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
-                PageReferenceCtxt* pageReferenceCtxt;
-#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
-            };
-
-            struct RelativePageRevInfos
-            {
-                BranchRevId brId;
-                bool stolen;
-                AbsolutePagePtr absPagePtr;
-            };
-
-            class RelativePageInfos
-            {
-            public:
-                RelativePageInfos()
-                {}
-                ~RelativePageInfos();
-                std::list<RelativePageRevInfos*> revInfos;
-            };
-            AllocationStats* father;
-            typedef std::map<RelativePagePtr, RelativePageInfos*> BranchPageTable;
-            BranchPageTable* branchPageTable;
-            PageStats* pageTable;
-            __ui64 pageTableSize;
-            __ui64 pageReferenceCtxtNb;
-            bool ownsPageTable;
-            AllocationStats();
-            AllocationStats(AllocationStats& father);
-            ~AllocationStats();
-
-            bool initPageTable ( __ui64 noMansLand );
-            bool initBranchPageTable ();
-
-            BranchPageTable* getBranchPageTable ();
-
-            __ui64 pages[PageType_Mask];
-            __ui64 stolenPages[PageType_Mask];
-
-            typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
-
-            bool appendPageReference ( PageStats* pStats, const char* ctxt, BranchRevId brId,
-                    RelativePagePtr relPagePtr, PageType pageType, bool stolen );
-            bool dumpPageReferences ( PageStats* pStats );
-            bool referencePage ( const char* ctxt, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-            bool referencePage ( const char* ctxt, BranchRevId brId,
-                    RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-
-            __ui64 getTotalPages () const;
-            __ui64 getTotalStolenPages () const;
-
-            __ui64 elements;
-
-            bool checkUnsetPages ( AbsolutePagePtrList& unsetPages );
+            RelativePageInfos()
+            {}
+            ~RelativePageInfos();
+            std::list<RelativePageRevInfos*> revInfos;
         };
-        void checkAllContents ();
-        void checkKeys ( AllocationStats& stats );
-        void checkFreePageHeader ( AllocationStats& stats );
-        void putPagesInAttic ( AllocationStats::AbsolutePagePtrList& atticPageList );
-        void checkBranch ( AbsolutePagePtr branchePagePtr, BranchPage* branchPage, AllocationStats& stats );
-        void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, AllocationStats& stats );
+        AllocationStats* father;
+        typedef std::map<RelativePagePtr, RelativePageInfos*> BranchPageTable;
+        BranchPageTable* branchPageTable;
+        PageStats* pageTable;
+        __ui64 pageTableSize;
+        __ui64 pageReferenceCtxtNb;
+        bool ownsPageTable;
+        AllocationStats();
+        AllocationStats(AllocationStats& father);
+        ~AllocationStats();
 
-        /**
-         * Main Check Function for Storage
-         */
-        enum CheckFlag
-        {
-            Check_Internals,
-            Check_Clean,
-            Check_AllContents
-        };
-        bool check ( CheckFlag flag );
+        bool initPageTable ( __ui64 noMansLand );
+        bool initBranchPageTable ();
 
-        /**
-         * Testing stuff
-         */
-        bool isFreePageCacheFull ();
+        BranchPageTable* getBranchPageTable ();
+
+        __ui64 pages[PageType_Mask];
+        __ui64 stolenPages[PageType_Mask];
+
+        typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
+
+        bool appendPageReference ( PageStats* pStats, const char* ctxt, BranchRevId brId,
+                RelativePagePtr relPagePtr, PageType pageType, bool stolen );
+        bool dumpPageReferences ( PageStats* pStats );
+        bool referencePage ( const char* ctxt, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
+        bool referencePage ( const char* ctxt, BranchRevId brId,
+                RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
+
+        __ui64 getTotalPages () const;
+        __ui64 getTotalStolenPages () const;
+
+        __ui64 elements;
+
+        bool checkUnsetPages ( AbsolutePagePtrList& unsetPages );
     };
+    void checkAllContents ();
+    void checkKeys ( AllocationStats& stats );
+    void checkFreePageHeader ( AllocationStats& stats );
+    void putPagesInAttic ( AllocationStats::AbsolutePagePtrList& atticPageList );
+    void checkBranch ( AbsolutePagePtr branchePagePtr, BranchPage* branchPage, AllocationStats& stats );
+    void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, AllocationStats& stats );
 
-    template<typename T>
-        INLINE
-        AbsolutePageRef<T>::~AbsolutePageRef ()
-        {
-            if (persistentStore != NULL && page != NULL)
-            {
-                Log_APR("Release page : pagePtr=%llx\n", pagePtr);
-                persistentStore->__releasePage(pagePtr);
-            }
-        }
+    /**
+     * Main Check Function for Storage
+     */
+    enum CheckFlag
+    {
+        Check_Internals,
+        Check_Clean,
+        Check_AllContents
+    };
+    bool check ( CheckFlag flag );
 
-    template<typename T>
-        INLINE
-        T*
-        AbsolutePageRef<T>::getPage ()
-        {
-            if (page == NULL)
-            {
-                AssertBug(persistentStore != NULL, "Null persistentStore provided here !");
-                Log_APR("Access to page : pagePtr=%llx\n", pagePtr);
-                page = (T*) persistentStore->__getAbsolutePage(pagePtr);
-            }
-            return page;
-        }
-
-    template<typename T>
-        INLINE
-        AbsolutePageRef<T>&
-        AbsolutePageRef<T>::operator= (const AbsolutePageRef& pageRef)
-        {
-            if (persistentStore != NULL && page != NULL)
-            {
-                Log_APR("Because ref by copy : Release page : pagePtr=%llx\n", pagePtr);
-                persistentStore->__releasePage(pagePtr);
-            }
-            this->persistentStore = pageRef.persistentStore;
-            this->pagePtr = pageRef.pagePtr;
-            if ( persistentStore != NULL )
-            {
-                this->page = NULL;
-            }
-            else
-            {
-                this->page = pageRef.page;
-            }
-            Log_APR("Ref by copy : store=%p, pagePtr=%llx, page=%p (from %p)\n", persistentStore, pagePtr, page, pageRef.page);
-            return *this;
-        }
-
+    /**
+     * Testing stuff
+     */
+    bool isFreePageCacheFull ();
+};
 }
 
 #endif //  __XEM_PERSISTENCE_PERSISTENTSTORE_H

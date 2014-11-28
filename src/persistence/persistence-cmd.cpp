@@ -169,7 +169,6 @@ namespace Xem
             store.check(PersistentStore::Check_AllContents);
         }
 
-        sleep(60);
         // store.stats.showStats ();
         return 0;
     }
@@ -243,8 +242,7 @@ namespace Xem
 #define __checkOpenned() \
         if ( ! isOpenned )  \
           { \
-            if ( ! store.open ( storeFile ) ) \
-            { Error ( "Could not open file '%s'\n", storeFile ); return 1; } \
+            store.open ( storeFile );\
             isOpenned = true; \
             postOpenInit ( store ); \
           }
@@ -413,4 +411,3 @@ namespace Xem
 
     }
 }
-;

@@ -19,7 +19,7 @@ namespace Xem
      * Load namespaces and keys from an (already formatted) Persistence file.
      * Namespaces and Keys are inserted manually in the keyCache.
      */
-    bool
+    void
     PersistentStore::loadKeysFromStore ()
     {
         if (getSB()->keyPage == 0)
@@ -53,7 +53,11 @@ namespace Xem
             }
         }
         Log_Keys ( "------------------------ End of Namespaces Loading ---------------------------\n" );
-        return buildKeyCacheBuiltinKeys();
+        bool result = buildKeyCacheBuiltinKeys();
+        if ( ! result )
+        {
+            throwException(PersistenceException, "Could not build key cache !");
+        }
     }
 
     LocalKeyId

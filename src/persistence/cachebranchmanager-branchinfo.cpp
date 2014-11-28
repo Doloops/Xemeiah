@@ -183,15 +183,40 @@ namespace Xem
     CacheBranchManager::BranchInfo::isFreeFromDocuments ()
     {
         if (!instanciatedDocuments.empty())
+        {
             return false;
+        }
 
         for (DependantBranchInfos::iterator iter = dependantBranchInfos.begin(); iter != dependantBranchInfos.end();
                 iter++)
         {
             if (!(*iter)->isFreeFromDocuments())
+            {
                 return false;
+            }
         }
         return true;
+    }
+
+    void
+    CacheBranchManager::BranchInfo::checkIsFreeFromDocuments ()
+    {
+        cleanupReusableDocument();
+
+        if (instanciatedDocuments.empty())
+        {
+            return;
+        }
+
+        Exception* e = new PersistenceException();
+        for (std::list<Document*>::iterator iter = instanciatedDocuments.begin(); iter != instanciatedDocuments.end();
+                iter++)
+        {
+            Document* doc = (*iter);
+            detailException(e, "Document [%llx:%llx] still opened for branch %s\n", _brid(doc->getBranchRevId()),
+                            getName());
+        }
+        throw(e);
     }
 
     bool
@@ -321,7 +346,9 @@ namespace Xem
     CacheBranchManager::BranchInfo::cleanupReusableDocument ()
     {
         if (!reusableDocument)
+        {
             return;
+        }
 
         Log_CBM ( "Branch %llx has reusableDocument [%llx:%llx] refCount=%llx, role=%s, flags=%s, alloced=%llu MBytes\n",
                 getBranchId(), _brid(reusableDocument->getBranchRevId()),
@@ -342,7 +369,7 @@ namespace Xem
             reusableDocument = NULL;
             dereferenceDocument(pDoc);
             pDoc->acknowledgedPersistentDocumentDeletion = true;
-            pDoc->refCount--;
+            pDoc->decrementRefCountLockLess();
             pDoc->unlockRefCount();
             delete (pDoc);
             Log_CBM ( "[REUSE] Effectively deleted document %p\n", pDoc );

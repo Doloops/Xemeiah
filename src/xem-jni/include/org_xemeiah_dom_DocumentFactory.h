@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    cleanUp
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_cleanUp
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
  * Method:    openVolatile
  * Signature: ()V
  */

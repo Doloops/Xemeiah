@@ -68,6 +68,7 @@ namespace Xem
     PersistentBranchManager&
     PersistentStore::getPersistentBranchManager ()
     {
+        AssertBug(branchManager, "Null BranchManager, is the PersistentStore shut down ?");
         return *branchManager;
     }
 
@@ -113,7 +114,7 @@ namespace Xem
         return readOnly;
     }
 
-    bool
+    void
     PersistentStore::openFile (const char* _filename, bool mayCreate)
     {
         static const size_t minimumFileSize = PageSize * 8;
@@ -136,15 +137,16 @@ namespace Xem
         fd = ::open(filename, flags, mode);
         if (fd == -1)
         {
-            Error("Could not open file '%s'. Error %d:%s\n", filename, errno, strerror(errno));
-            return false;
+            throwException(PersistenceException, "Could not open file '%s'. Error %d:%s\n", filename, errno,
+                           strerror(errno));
         }
         struct stat fileStat;
         if (fstat(fd, &fileStat) == -1)
         {
             Error("Could not stat(2) file '%s, Error %d:%s\n", filename, errno, strerror(errno));
             ::close(fd);
-            return false;
+            throwException(PersistenceException, "Could not stat(2) file '%s, Error %d:%s\n", filename, errno,
+                           strerror(errno));
         }
         if (S_ISREG(fileStat.st_mode))
         {
@@ -206,7 +208,7 @@ namespace Xem
             Error("Could not access superblock for file '%s'\n", filename);
             ::close(fd);
             fd = -1;
-            return false;
+            throwException(PersistenceException, "Could not access superblock for file '%s'\n", filename);
         }
         Log_Store ( "Openned file '%s', superBlock=%p\n", filename, superBlock );
         Log_Store ( "\tnoMansLand at=%llx, fileLength=%llx\n", getSB()->noMansLand, fileLength );
@@ -227,7 +229,6 @@ namespace Xem
                 mem_pages_table_size, mem_pages_table_size, mem_pages_table );
 
 #endif
-        return true;
     }
 
     bool
@@ -257,7 +258,7 @@ namespace Xem
         return true;
     }
 
-    bool
+    void
     PersistentStore::closeFile ()
     {
         Info("Closing Store File...\n");
@@ -271,7 +272,7 @@ namespace Xem
          */
         if (msync(superBlock, PageSize, MS_SYNC) == -1)
         {
-            Bug("Could not sync SuperBlock. Error %d:%s !\n", errno, strerror(errno));
+            throwException(PersistenceException, "Could not sync SuperBlock. Error %d:%s !\n", errno, strerror(errno));
         }
 
         for (ChunkMap::iterator iter = chunkMap.begin(); iter != chunkMap.end(); iter++)
@@ -297,136 +298,134 @@ namespace Xem
         begin = getntime();
         if (::close(fd))
         {
-            Bug("Could not close file. Error %d:%s\n", errno, strerror(errno));
-            return false;
+            throwException(PersistenceException, "Could not close file. Error %d:%s\n", errno, strerror(errno));
         }
         fd = -1;
         end = getntime();
         WarnTime("Closed Store File took : ", begin, end);
-        return true;
     }
 
-    bool
+    void
     PersistentStore::format (const char* filename)
     {
         Info("Formatting Store File '%s' ...\n", filename);
-        if (!openFile(filename, true))
-            return false;
-        SuperBlock * sb = getSB();
-        AssertBug(sb, "Could not get sb !\n");
-        /*
-         * Preliminary SuperBlock formatter.
-         *
-         * lockSB() and unlockSB() may no be accessible
-         * so do the mprotect() stuff by myself in case of XEM_MEM_PROTECT_SYS
-         */
-#ifdef XEM_MEM_PROTECT_SYS
-        mprotect ( sb, sizeof(SuperBlock), PROT_READ|PROT_WRITE );
-#endif
-        //  lockSB ();
-        memset(sb, 0, PageSize);
-        strncpy(sb->magic, XEM_SB_MAGIC, sb->magic_length);
-        strncpy(sb->version, XEM_SB_VERSION, sb->version_length);
+        openFile(filename, true);
 
-        sb->pageSize = PageSize;
-
-        sb->lastBranch = NullPage;
-        sb->nextBranchId = 1;
-        sb->keyPage = NullPage;
-        sb->namespacePage = NullPage;
-        /*
-         * FreeListHeader is at offset PageSize (1st page after superblock)
-         */
-        sb->freePageHeader = PageSize * 1;
-        /*
-         * Two pages are set by default : SuperBlock and FreeListHeader
-         * so noMansLand is at page 2.
-         */
-        sb->noMansLand = PageSize * 2;
-
-        sb->nextElementId = 1;
-#ifdef __XEM_COUNT_FREEPAGES
-        sb->nbFreePages = 0;
-#endif
-
-#ifdef XEM_MEM_PROTECT_SYS
-        mprotect ( sb, sizeof(SuperBlock), PROT_READ );
-#endif
-
-        /*
-         * Preliminary work is done, so protect functions are accessible.
-         * Create the freePageHeader now.
-         */
-        AbsolutePageRef<FreePageHeader> freePageHeaderRef = getAbsolutePage<FreePageHeader>(sb->freePageHeader);
-        alterPage(freePageHeaderRef.getPage());
-        memset(freePageHeaderRef.getPage(), 0, PageSize);
-        protectPage(freePageHeaderRef.getPage());
-
-        Info("Format ok, loading keys...\n");
-
-        /*
-         * Create the default keys and the local key cache now.
-         */
-        if (!loadKeysFromStore())
+        try
         {
-            Bug("Could not create default keys.\n");
+            SuperBlock * sb = getSB();
+            AssertBug(sb, "Could not get sb !\n");
+            /*
+             * Preliminary SuperBlock formatter.
+             *
+             * lockSB() and unlockSB() may no be accessible
+             * so do the mprotect() stuff by myself in case of XEM_MEM_PROTECT_SYS
+             */
+#ifdef XEM_MEM_PROTECT_SYS
+            mprotect ( sb, sizeof(SuperBlock), PROT_READ|PROT_WRITE );
+#endif
+            //  lockSB ();
+            memset(sb, 0, PageSize);
+            strncpy(sb->magic, XEM_SB_MAGIC, sb->magic_length);
+            strncpy(sb->version, XEM_SB_VERSION, sb->version_length);
+
+            sb->pageSize = PageSize;
+
+            sb->lastBranch = NullPage;
+            sb->nextBranchId = 1;
+            sb->keyPage = NullPage;
+            sb->namespacePage = NullPage;
+            /*
+             * FreeListHeader is at offset PageSize (1st page after superblock)
+             */
+            sb->freePageHeader = PageSize * 1;
+            /*
+             * Two pages are set by default : SuperBlock and FreeListHeader
+             * so noMansLand is at page 2.
+             */
+            sb->noMansLand = PageSize * 2;
+
+            sb->nextElementId = 1;
+#ifdef __XEM_COUNT_FREEPAGES
+            sb->nbFreePages = 0;
+#endif
+
+#ifdef XEM_MEM_PROTECT_SYS
+            mprotect ( sb, sizeof(SuperBlock), PROT_READ );
+#endif
+
+            /*
+             * Preliminary work is done, so protect functions are accessible.
+             * Create the freePageHeader now.
+             */
+            AbsolutePageRef<FreePageHeader> freePageHeaderRef = getAbsolutePage<FreePageHeader>(sb->freePageHeader);
+            alterPage(freePageHeaderRef.getPage());
+            memset(freePageHeaderRef.getPage(), 0, PageSize);
+            protectPage(freePageHeaderRef.getPage());
+
+            Info("Format ok, loading keys...\n");
+
+            /*
+             * Create the default keys and the local key cache now.
+             */
+            loadKeysFromStore();
+
+            Info("Starting BranchManager...\n");
+
+            /*
+             * Create the default Main Branch.
+             */
+            AssertBug(branchManager == NULL, "Already have a branch manager !\n");
+            branchManager = new PersistentBranchManager(*this);
         }
-
-        Info("Starting BranchManager...\n");
-
-        /*
-         * Create the default Main Branch.
-         */
-        AssertBug(branchManager == NULL, "Already have a branch manager !\n");
-        branchManager = new PersistentBranchManager(*this);
-
-        return true;
+        catch (Exception *e)
+        {
+            closeFile();
+            throw(e);
+        }
     }
 
-    bool
+    void
     PersistentStore::open (const char* filename)
     {
         Info("Openning Store File '%s'\n", filename);
-        if (!openFile(filename, false))
+        openFile(filename, false);
+
+        try
         {
-            return false;
-        }
-        if (!checkFormat())
-        {
-            closeFile();
-            return false;
-        }
+            checkFormat();
 #if 0
-        if ( ! readOnly )
-        {
-            if ( ! dropUncommittedRevisions() )
-            {   closeFile(); return false;}
-        }
+            if ( ! readOnly )
+            {
+                if ( ! dropUncommittedRevisions() )
+                {   closeFile(); return false;}
+            }
 #endif
-        Log_Store ( "Successfully openned '%s'\n", filename );
+            Log_Store ( "Successfully opened '%s'\n", filename );
 
-        if (!loadKeysFromStore())
-        {
-            Error("Could not load keys.\n");
-            closeFile();
-            return false;
+            loadKeysFromStore();
+
+            AssertBug(branchManager == NULL, "Already have a branch manager !\n");
+            branchManager = new PersistentBranchManager(*this);
+            Info("Openned file '%s' : noMansLand at=0x%llx, nbFreePages=0x%llx, fileLength=%lu MBytes\n", filename,
+                 getSB()->noMansLand, getSB()->nbFreePages, (unsigned long ) fileLength >> 20);
+
+            if (!check(Check_Clean))
+            {
+                Error("Could not check clean file.\n");
+                closeFile();
+                throwException(PersistenceException, "Could not check clean file.\n");
+            }
+
         }
-        AssertBug(branchManager == NULL, "Already have a branch manager !\n");
-        branchManager = new PersistentBranchManager(*this);
-        Info("Openned file '%s' : noMansLand at=0x%llx, nbFreePages=0x%llx, fileLength=%lu MBytes\n", filename,
-             getSB()->noMansLand, getSB()->nbFreePages, (unsigned long ) fileLength >> 20);
-
-        if (!check(Check_Clean))
+        catch (Exception* e)
         {
-            Error("Could not check clean file.\n");
             closeFile();
-            return false;
+            throw(e);
         }
-
-        return true;
     }
 
-    bool
+    void
     PersistentStore::close ()
     {
 #if 0
@@ -436,13 +435,14 @@ namespace Xem
         getServiceManager().waitTermination();
         Info("All services stopped.\n");
 #endif
+        AssertBug(branchManager, "Null branchManager !");
+        branchManager->checkIsFreeFromDocuments();
 
-        delete (branchManager);
         branchManager = NULL;
+        delete (branchManager);
         closeFile();
 
         Info("PersistentStore=%p : closed !\n", this);
-        return true;
     }
 
     void

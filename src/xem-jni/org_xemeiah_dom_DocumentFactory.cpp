@@ -21,8 +21,28 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_openVolatile
-  (JNIEnv *ev, jobject jFactory)
+JNIEXPORT void JNICALL
+Java_org_xemeiah_dom_DocumentFactory_cleanUp (JNIEnv *ev, jobject jFactory)
+{
+    XEMJNI_PROLOG
+    {
+        Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
+        if (store)
+        {
+            Xem::PersistentStore* pStore = dynamic_cast<Xem::PersistentStore*>(store);
+            if (pStore)
+            {
+                pStore->close();
+            }
+            delete (store);
+        }
+        initDocumentFactory(ev, jFactory, NULL);
+    }
+    XEMJNI_POSTLOG;
+}
+
+JNIEXPORT void JNICALL
+Java_org_xemeiah_dom_DocumentFactory_openVolatile (JNIEnv *ev, jobject jFactory)
 {
     Xem::Store* store = new Xem::VolatileStore();
     initDocumentFactory(ev, jFactory, store);
@@ -31,70 +51,65 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_openVolatile
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_format (JNIEnv *ev, jobject jFactory, jstring jFilename)
 {
+    Xem::String filename = jstring2XemString(ev, jFilename);
+
     Xem::PersistentStore* persistentStore = new Xem::PersistentStore();
-
-    jboolean isCopy = false;
-    const char* cfilename = ev->GetStringUTFChars(jFilename, &isCopy);
-
-    if (!persistentStore->format(cfilename))
+    XEMJNI_PROLOG
     {
-        Error("Could not format !\n");
-        ev->ThrowNew(getXemJNI().javaLangRuntimeException.getClass(ev), "Could not format file !");
+        persistentStore->format(filename.c_str());
     }
-    ev->ReleaseStringUTFChars(jFilename, cfilename);
+    XEMJNI_POSTLOG;
     delete (persistentStore);
 }
 
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_open (JNIEnv *ev, jobject jFactory, jstring jFilename)
 {
-    jboolean isCopy = false;
-    const char* cfilename = ev->GetStringUTFChars(jFilename, &isCopy);
+    Xem::String filename = jstring2XemString(ev, jFilename);
 
     Xem::PersistentStore* persistentStore = new Xem::PersistentStore();
-
-    if (!persistentStore->open(cfilename))
+    XEMJNI_PROLOG
     {
-        Error("Could not open file %s\n", cfilename);
-        ev->ReleaseStringUTFChars(jFilename, cfilename);
-        ev->ThrowNew(getXemJNI().javaLangRuntimeException.getClass(ev), "Could not open file !");
-        delete (persistentStore);
-        return;
+        persistentStore->open(filename.c_str());
+        initDocumentFactory(ev, jFactory, persistentStore);
+        persistentStore->dropUncommittedRevisions();
     }
-    ev->ReleaseStringUTFChars(jFilename, cfilename);
-    persistentStore->dropUncommittedRevisions();
-
-//    Xem::XProcessor* xprocessor = new Xem::XProcessor(*persistentStore);
-//    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
-
-    initDocumentFactory(ev, jFactory, persistentStore);
+    XEMJNI_POSTLOG_OPS(delete (persistentStore));
 }
 
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_createBranch (JNIEnv *ev, jobject jFactory, jstring jBranchName,
                                                    jstring jBranchFlags)
 {
-    Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
-
-    Xem::String branchName = jstring2XemString(ev, jBranchName);
-    Xem::BranchFlags branchFlags = 0;
-    store->getBranchManager().createBranch(branchName, branchFlags);
+    XEMJNI_PROLOG
+    {
+        Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
+        Xem::String branchName = jstring2XemString(ev, jBranchName);
+        Xem::BranchFlags branchFlags = 0;
+        store->getBranchManager().createBranch(branchName, branchFlags);
+    }
+    XEMJNI_POSTLOG;
 }
 
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_close (JNIEnv *ev, jobject jFactory)
 {
-    Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
-
-    Xem::PersistentStore* pStore = dynamic_cast<Xem::PersistentStore*>(store);
-    if (pStore)
+    XEMJNI_PROLOG
     {
-        Log("Closing PersistentStore at %p\n", pStore);
-        pStore->close();
-    }
-    delete (store);
+#if 1
+        throwException(Xem::RuntimeException, "Invalid call to DocumentFactory.close() !");
+#else
+        Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
 
-    initDocumentFactory(ev, jFactory, NULL);
+        Xem::PersistentStore* pStore = dynamic_cast<Xem::PersistentStore*>(store);
+        if (pStore)
+        {
+            Log("Closing PersistentStore at %p\n", pStore);
+            pStore->close();
+        }
+#endif
+    }
+    XEMJNI_POSTLOG;
 }
 
 JNIEXPORT jobject JNICALL

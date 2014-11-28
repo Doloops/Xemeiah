@@ -39,7 +39,16 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
 
     protected void finalize()
     {
-        cleanUp();
+        try
+        {
+            cleanUp();
+        }
+        catch (RuntimeException e)
+        {
+            DocumentFactory.exceptionsHappenedInFinalizer = true;
+            LOGGER.error("Could not finalize() !", e);
+            throw(e);
+        }
     }
 
     public final DocumentFactory getDocumentFactory()
@@ -106,22 +115,24 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     @Override
     public Node appendChild(Node newChild) throws DOMException
     {
-        throw new DOMException(DOMException.INVALID_ACCESS_ERR, "Could not add child to Document, I already have a Root element !");
+        throw new DOMException(DOMException.INVALID_ACCESS_ERR,
+                "Could not add child to Document, I already have a Root element !");
     }
 
     /*
      * **************************************************************************
-     * ********* Everything beyond this point is just NOT IMPLEMENTED ! ********* 
-     * **************************************************************************
+     * ********* Everything beyond this point is just NOT IMPLEMENTED !
+     * *********
+     * ****************************************************************
+     * **********
      */
-    
+
     @Override
     public Node adoptNode(Node source) throws DOMException
     {
         throw new RuntimeException("NOT IMPLEMENTED !");
     }
-    
-    
+
     @Override
     public EntityReference createEntityReference(String name) throws DOMException
     {

@@ -22,6 +22,7 @@
 
 XemJNI xemJNI;
 
+#if 0
 #undef AssertBug
 
 #if 1
@@ -36,6 +37,7 @@ XemJNI xemJNI;
         ev->Throw(exception2JRuntimeException(ev,  message)); \
         return (void*) NULL; \
 }}
+#endif
 #endif
 
 void

@@ -13,24 +13,40 @@
 #define __XEM_NOTIMPLEMENTED_THROWS_EXCEPTION //< Option : NotImplemented() throws exception or calls Fatal()
 
 #include <syslog.h>
+#include <stdarg.h>
 
 namespace Xem
 {
-  typedef int LogLevel;
+    typedef int LogLevel;
 #if 0
-  static const LogLevel LogLevel_Debug = 0;
-  static const LogLevel LogLevel_Log   = 1;
-  static const LogLevel LogLevel_Info  = 2;
-  static const LogLevel LogLevel_Warn  = 3;
-  static const LogLevel LogLevel_Error = 4;
-  static const LogLevel LogLevel_Fatal = 5;
-  static const LogLevel LogLevel_Bug   = 6;
-  static const LogLevel LogLevel_MAX   = 7;
+    static const LogLevel LogLevel_Debug = 0;
+    static const LogLevel LogLevel_Log = 1;
+    static const LogLevel LogLevel_Info = 2;
+    static const LogLevel LogLevel_Warn = 3;
+    static const LogLevel LogLevel_Error = 4;
+    static const LogLevel LogLevel_Fatal = 5;
+    static const LogLevel LogLevel_Bug = 6;
+    static const LogLevel LogLevel_MAX = 7;
 #endif
 
-  void doTraceMessage ( LogLevel level, const char* file, const char* function, int line, const char* format, ...) __attribute__((format(printf,5,6)));
+    void
+    doThrowXemException (const char* file, const char* function, int line, const char* format, ...)
+            __attribute__((format(printf,4,5)));
 
-  void setXemSysLog (const char* ident, int option, int facility);
+    void
+    doTraceMessageVA (LogLevel level, const char* file, const char* function, int line, const char* format,
+                      va_list a_list);
+
+    void
+    doTraceMessage (LogLevel level, const char* file, const char* function, int line, const char* format, ...)
+            __attribute__((format(printf,5,6)));
+
+    void
+    doAssertFails (const char* file, const char* function, int line, const char* format, ...)
+            __attribute__((format(printf,4,5)));
+
+    void
+    setXemSysLog (const char* ident, int option, int facility);
 
 #define DoTrace(level, ...) Xem::doTraceMessage ( level, __FILE__,__FUNCTION__,__LINE__, __VA_ARGS__ );
 
@@ -55,7 +71,7 @@ namespace Xem
 
 #define Message(...) DoTrace( LOG_INFO,"[MESSAGE]" __VA_ARGS__)
 
-#define Assert(__cond,...) { if ( ! (__cond) ) { Bug ( __VA_ARGS__) } }
+#define Assert(__cond,...) { if ( ! (__cond) ) { Xem::doAssertFails (__FILE__,__FUNCTION__,__LINE__, __VA_ARGS__); } }
 
 #if PARANOID
 #define AssertBug Assert
@@ -64,13 +80,14 @@ namespace Xem
 #endif
 
 #ifdef __XEM_NOTIMPLEMENTED_THROWS_EXCEPTION
- // Throw Exception
+// Throw Exception
 #define NotImplemented(...) throwException ( Xem::Exception, "NOT IMPLEMENTED : " __VA_ARGS__ )
 #else
- // Stop Xem Execution
+// Stop Xem Execution
 #define NotImplemented(...) Fatal ( "NOT IMPLEMENTED : " __VA_ARGS__ )
 #endif
 
-};
+}
+;
 
 #endif // __XEM_TRACE_LOG_H
