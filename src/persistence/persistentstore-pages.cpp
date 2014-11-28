@@ -8,8 +8,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include <atomic>
-
 #if 1
 #define Log_MapPage_Area Info
 #define Log_MapPage(...) do{} while(0)
