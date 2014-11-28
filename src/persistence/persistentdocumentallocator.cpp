@@ -516,7 +516,7 @@ namespace Xem
             return;
         }
         static const __ui64 minAreasMapped = (64ULL * 1024ULL * 1024ULL) >> InAreaBits;
-        static const __ui64 maxAreasMapped = (128ULL * 1024ULL * 1024ULL) >> InAreaBits;
+        static const __ui64 maxAreasMapped = (1024ULL * 1024ULL * 1024ULL) >> InAreaBits;
 
         if (areasMapped < maxAreasMapped)
         {

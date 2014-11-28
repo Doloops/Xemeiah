@@ -168,6 +168,8 @@ namespace Xem
         {
             store.check(PersistentStore::Check_AllContents);
         }
+
+        sleep(60);
         // store.stats.showStats ();
         return 0;
     }

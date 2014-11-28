@@ -8,8 +8,10 @@
 #include <errno.h>
 #include <string.h>
 
+#include <atomic>
+
 #if 1
-#define Log_MapPage_Area Log
+#define Log_MapPage_Area Info
 #define Log_MapPage(...) do{} while(0)
 #else
 #define Log_MapPage_Area(...) Info("[MAP_AREA]" __VA_ARGS__)
@@ -21,7 +23,7 @@
 
 namespace Xem
 {
-    static __ui64 totalMapped = 0;
+    static __ui64 totalCurrentlyMapped = 0, totalMapped = 0;
 
     void*
     PersistentStore::mapArea (__ui64 offset, __ui64 length)
@@ -51,8 +53,14 @@ namespace Xem
             return NULL;
         }
         totalMapped++;
-        Log_MapPage_Area("mapArea : offset=%llx, length=%llx, ptr=%p, totalMapped=%llu\n", offset, length, ptr,
-                totalMapped);
+        totalCurrentlyMapped++;
+        if (totalMapped % 10 == 0)
+        {
+            Log_MapPage("mapArea : offset=%llx, length=%llx, ptr=%p\n", offset, length, ptr);
+
+            Log_MapPage_Area("MapStatus : totalMapped=%llu, totalCurrentlyMapped=%llu\n",
+                    totalMapped, totalCurrentlyMapped);
+        }
 
         if (madvise(ptr, length, MADV_RANDOM) == -1)
         {
@@ -64,12 +72,15 @@ namespace Xem
     void
     PersistentStore::unmapArea (void* area, __ui64 length)
     {
-        totalMapped--;
-        Log_MapPage_Area("unmapArea : at %p, length=%llx, totalMapped=%llu\n", area, length, totalMapped);
         int result = munmap(area, length);
         if (result == -1)
         {
             Bug("Could not munmap area=%p, size=0x%llx, err=%d:%s\n", area, length, errno, strerror(errno));
+        }
+        totalCurrentlyMapped--;
+        if (totalCurrentlyMapped % 10 == 0)
+        {
+            Log_MapPage_Area("MapStatus : totalMapped=%llu, totalCurrentlyMapped=%llu\n", totalMapped, totalCurrentlyMapped);
         }
     }
 
@@ -92,6 +103,13 @@ namespace Xem
                     chunkIdx, chunkPtr, absPagePtr, (unsigned long) chunkMap.size() );
             iter = chunkMap.find(chunkIdx);
             AssertBug(iter != chunkMap.end(), "Fail !\n");
+
+            if (chunkMap.size() % 10 == 0)
+            {
+                __ui64 chunkMapSize = chunkMap.size();
+                __ui64 mappedChunkSize = (chunkMapSize << ChunkInfo::PageChunk_Index_Bits) >> 20;
+                Info("[CHUNK] Now chunkMap.size()=%llu, (total size=%llu Mb)\n", chunkMapSize, mappedChunkSize);
+            }
         }
         else
         {
@@ -104,7 +122,7 @@ namespace Xem
 
         if (iter->second.refCount > 60)
         {
-            Bug("Very large number of refCounts for this page !");
+            Log_MapPage("Very large number of refCounts for this page !\n");
         }
 
         return (void*) (((__ui64 ) chunk) + (absPagePtr & ChunkInfo::PageChunk_Mask));
@@ -160,7 +178,7 @@ namespace Xem
         {
             return;
         }
-        static const int chunkCacheSize = 1024;
+        static const int chunkCacheSize = 2048;
         if (chunkMap.size() < chunkCacheSize)
         {
             return;
