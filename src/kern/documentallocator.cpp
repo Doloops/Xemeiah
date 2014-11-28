@@ -152,10 +152,6 @@ namespace Xem
 #endif
         unlockMutex_Alloc();
         Log_GF_A ( "Allocated %llu (0x%llx) bytes, allocProfile=0x%x at ptr=0x%llx\n", size, size, allocProfile, ptr );
-//    if ( ptr == 0x4c20 )
-//    {
-//        Bug("ptr=0x%llx\n", ptr);
-//    }
         return ptr;
     }
 

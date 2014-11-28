@@ -21,8 +21,10 @@
 namespace Xem
 {
     PersistentDocumentAllocator::PersistentDocumentAllocator (PersistentStore& store, AbsolutePagePtr revisionPagePtr) :
-            DocumentAllocator(store), persistentStore(store), revisionPageRef(store, revisionPagePtr), mapMutex("Map Mutex", this), allocMutex("Alloc Mutex",
-                                                                                                      this)
+            DocumentAllocator(store), persistentStore(store), revisionPageRef(store, revisionPagePtr), mapMutex("Map Mutex", this)
+#ifdef  __XEM_DOCUMENTALLOCATOR_HAS_ALLOC_MUTEX
+    , allocMutex("Alloc Mutex", this)
+#endif
     {
 #ifdef __XEM_PERSISTENTDOCUMENT_HAS_PAGEINFOPAGECACHE
         pageInfoPageCache = NULL;
@@ -139,7 +141,9 @@ namespace Xem
         Log_APW ( "authorizePageWrite relPagePtr=0x%llx\n", relPagePtr );
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
         if (writablePageCache.isWritable(relPagePtr))
+        {
             return;
+        }
 #endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
 
 #if PARANOID
@@ -354,7 +358,7 @@ namespace Xem
     RelativePagePtr
     PersistentDocumentAllocator::getFreeRelativePages (__ui64 askedNumber, __ui64& allocedNumber, AllocationProfile allocProfile )
     {
-        allocMutex.assertLocked();
+        assertMutexLocked_Alloc();
 
         /*
          * Allocate a minimum of pages as a bunch, to increase page affinity

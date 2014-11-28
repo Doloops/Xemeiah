@@ -15,8 +15,8 @@
 #define Log_MapPage_Area(...) Info("[MAP_AREA]" __VA_ARGS__)
 #define Log_MapPage(...) Info("[MAP_PAGE]" __VA_ARGS__)
 #endif
+#define Log_ChunkMap Log
 #define Log_MapPage_Debug Debug
-#define Log_ChunkMap Debug
 #define Log_GetFreePage Debug
 
 namespace Xem
@@ -52,7 +52,7 @@ namespace Xem
         }
         totalMapped++;
         Log_MapPage_Area("mapArea : offset=%llx, length=%llx, ptr=%p, totalMapped=%llu\n", offset, length, ptr,
-                         totalMapped);
+                totalMapped);
 
         if (madvise(ptr, length, MADV_RANDOM) == -1)
         {
@@ -76,7 +76,7 @@ namespace Xem
     void*
     PersistentStore::mapPage (AbsolutePagePtr absPagePtr)
     {
-        AbsolutePagePtr chunkIdx = absPagePtr >> ChunkInfo::PageChunk_Bits;
+        AbsolutePagePtr chunkIdx = absPagePtr >> ChunkInfo::PageChunk_Index_Bits;
         AbsolutePagePtr chunkPtr = absPagePtr & ChunkInfo::PageChunk_ChunkMask;
         void* chunk = NULL;
 
@@ -88,8 +88,8 @@ namespace Xem
             chunk = mapArea(chunkPtr, ChunkInfo::PageChunk_Size);
             chunkMap[chunkIdx].page = chunk;
             chunkMap[chunkIdx].refCount = 1;
-            Log_ChunkMap ( "[CHUNK] Mapped chunk %llx for absPagePtr=%llx. Nb chunks=%lu\n",
-                    chunkIdx, absPagePtr, (unsigned long) chunkMap.size() );
+            Log_ChunkMap ( "[CHUNK] Mapped chunk chunkIdx=%llx, chunkPtr=%llx for absPagePtr=%llx. Nb chunks=%lu\n",
+                    chunkIdx, chunkPtr, absPagePtr, (unsigned long) chunkMap.size() );
             iter = chunkMap.find(chunkIdx);
             AssertBug(iter != chunkMap.end(), "Fail !\n");
         }
@@ -99,8 +99,8 @@ namespace Xem
             iter->second.refCount++;
 
         }
-        Log_MapPage("CHUNK REF : pagePtr=0x%llx, chunkIdx=0x%llx, page=%p, refCount=0x%llx\n", absPagePtr, chunkIdx,
-                    iter->second.page, iter->second.refCount);
+        Log_MapPage("CHUNK REF : pagePtr=0x%llx, (chunkIdx=0x%llx, chunkPtr=0x%llx), page=%p, refCount=0x%llx\n",
+                    absPagePtr, chunkIdx, chunkPtr, iter->second.page, iter->second.refCount);
 
         if (iter->second.refCount > 60)
         {
@@ -128,7 +128,7 @@ namespace Xem
     void
     PersistentStore::__releasePage (AbsolutePagePtr absPagePtr)
     {
-        AbsolutePagePtr chunkIdx = absPagePtr >> ChunkInfo::PageChunk_Bits;
+        AbsolutePagePtr chunkIdx = absPagePtr >> ChunkInfo::PageChunk_Index_Bits;
 
         Lock lock(chunkMapMutex);
 
@@ -160,8 +160,8 @@ namespace Xem
         {
             return;
         }
-        static const int chunkCacheSize = 512;
-        if ( chunkMap.size() < chunkCacheSize )
+        static const int chunkCacheSize = 1024;
+        if (chunkMap.size() < chunkCacheSize)
         {
             return;
         }

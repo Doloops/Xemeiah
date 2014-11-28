@@ -665,13 +665,17 @@ namespace Xem
     void lockMutex_Map() { mapMutex.lock(); }
     void unlockMutex_Map() { mapMutex.unlock(); }
 
+#ifdef __XEM_DOCUMENTALLOCATOR_HAS_ALLOC_MUTEX
     /**
      * Mutex locked when we are trying to allocate something
      */
     Mutex allocMutex;
     void lockMutex_Alloc() { allocMutex.lock(); }
     void unlockMutex_Alloc() { allocMutex.unlock(); }
-
+    void assertMutexLocked_Alloc() { allocMutex.assertLocked(); }
+#else
+    void assertMutexLocked_Alloc() {}
+#endif
 
     /**
      * housewife

@@ -6,100 +6,109 @@
 #include <Xemeiah/kern/format/document_head.h>
 #include <Xemeiah/kern/format/dom.h>
 
+// #define __XEM_DOCUMENTALLOCATOR_HAS_ALLOC_MUTEX
+
 namespace Xem
 {
-  /**
-   * A SegmentPage is a generic void* pointer
-   */
-  typedef void SegmentPage;
-  class ElementRef;
-  class Store;
-  class Document;
+    /**
+     * A SegmentPage is a generic void* pointer
+     */
+    typedef void SegmentPage;
+    class ElementRef;
+    class Store;
+    class Document;
 
-  /**
-   * Defines wether we want the Page ro or rw
-   */
-  enum PageCredentials
+    /**
+     * Defines wether we want the Page ro or rw
+     */
+    enum PageCredentials
     {
-      Read  = 0x01,
-      Write = 0x02
+        Read = 0x01, Write = 0x02
     };
 
-  /**
-   * Class responsible for allocating Document objects (Nodes, Elements, Attributes, ...)
-   */
-  class DocumentAllocator
-  {
-  public:
     /**
-     * The size in bit offset of an Area handled by this Allocator
+     * Class responsible for allocating Document objects (Nodes, Elements, Attributes, ...)
      */
-    static const __ui64 InAreaBits = 22; // 20; // 16 = 64Ko, 18=256Ko, 20=1Mo 22 = 4Mo 24=16, 26=64
+    class DocumentAllocator
+    {
+    public:
+        /**
+         * The size in bit offset of an Area handled by this Allocator
+         */
+        static const __ui64 InAreaBits = 22; // 20; // 16 = 64Ko, 18=256Ko, 20=1Mo 22 = 4Mo 24=16, 26=64
 
-    /**
-     * The size in bits of an Area handled by this Allocator
-     */
-    static const __ui64 AreaSize = ( 1 << InAreaBits );
-    static const __ui64 AreaPageMask = AreaSize - 1;
-  protected:  
-    /**
-     * Function to force Template instanciation
-     */
-    void __foo__ (); 
+        /**
+         * The size in bits of an Area handled by this Allocator
+         */
+        static const __ui64 AreaSize = (1 << InAreaBits);
+        static const __ui64 AreaPageMask = AreaSize - 1;
+    protected:
+        /**
+         * Function to force Template instanciation
+         */
+        void
+        __foo__ ();
 
-    /**
-     * Reference how much Documents use us !
-     */
-    __ui64 refCount;
+        /**
+         * Reference how much Documents use us !
+         */
+        __ui64 refCount;
 
-    /**
-     * Pointer to the DocumentAllocationHeader Header. 
-     * This pointer *must* be aligned to PageSize and allocs PageSize bytes in memory
-     */
-    DocumentAllocationHeader* documentAllocationHeader;
+        /**
+         * Pointer to the DocumentAllocationHeader Header.
+         * This pointer *must* be aligned to PageSize and allocs PageSize bytes in memory
+         */
+        DocumentAllocationHeader* documentAllocationHeader;
 
-    /**
-     * Access to our documentAllocationHeader
-     */
-    INLINE DocumentAllocationHeader& getDocumentAllocationHeader() const { return *documentAllocationHeader; }
+        /**
+         * Access to our documentAllocationHeader
+         */
+        INLINE
+        DocumentAllocationHeader&
+        getDocumentAllocationHeader () const
+        {
+            return *documentAllocationHeader;
+        }
 
-    /**
-     * Assert the document allocator is always writable, and bypass the __authorizeWrite() stuff
-     */
-    bool __assertDocumentAlwaysWritable;
+        /**
+         * Assert the document allocator is always writable, and bypass the __authorizeWrite() stuff
+         */
+        bool __assertDocumentAlwaysWritable;
 
-    /**
-     * Assert that the document allocator has a Coalesce mechanism, with getFirstFreeSegmentOffset()
-     */
-    bool __assertDocumentHasCoalesce;
+        /**
+         * Assert that the document allocator has a Coalesce mechanism, with getFirstFreeSegmentOffset()
+         */
+        bool __assertDocumentHasCoalesce;
 
-    /**
-     * Document partial mmapping of the Store file.
-     * The mapping is quite similar to the Store one.
-     * THis mapping is based on the *relative* page address.
-     */
-    void** areas;
-    __ui64 areasAlloced;
-    __ui64 areasMapped;
+        /**
+         * Document partial mmapping of the Store file.
+         * The mapping is quite similar to the Store one.
+         * THis mapping is based on the *relative* page address.
+         */
+        void** areas;
+        __ui64 areasAlloced;
+        __ui64 areasMapped;
 
-    /**
-     * Map a given area
-     */
-    virtual void mapArea ( __ui64 areaIdx ) = 0;
+        /**
+         * Map a given area
+         */
+        virtual void
+        mapArea (__ui64 areaIdx) = 0;
 
-    /*
-     * Page allocation
-     */
+        /*
+         * Page allocation
+         */
 
-    /**
-     * Returns a set of linear free pages.
-     * The first page can be located by the pointer returned.
-     * @param askedNumber number of pages to allocate.
-     * @param allocedNumber number of pages allocated (shall be more than or equals to askedNumber)
-     * @return a free page, with a whole bunch after, or NullPtr on error.
-     */
-    virtual RelativePagePtr getFreeRelativePages ( __ui64 askedNumber,  __ui64& allocedNumber, AllocationProfile allocProfile ) = 0;
-  
+        /**
+         * Returns a set of linear free pages.
+         * The first page can be located by the pointer returned.
+         * @param askedNumber number of pages to allocate.
+         * @param allocedNumber number of pages allocated (shall be more than or equals to askedNumber)
+         * @return a free page, with a whole bunch after, or NullPtr on error.
+         */
+        virtual RelativePagePtr
+        getFreeRelativePages (__ui64 askedNumber, __ui64& allocedNumber, AllocationProfile allocProfile ) = 0;
+
     /*
      * Segment allocation
      */
@@ -118,10 +127,10 @@ namespace Xem
      * @param fslHeader FreeSegmentsLevelHeader to use
      * @param level the size level
      */
-    SegmentPtr getFreeSegmentPtrFromHoles ( __ui64 size, 
-      AllocationProfile allocProfile,
-      FreeSegmentsLevelHeader* fslHeader, __ui32 level );
-      
+    SegmentPtr getFreeSegmentPtrFromHoles ( __ui64 size,
+    AllocationProfile allocProfile,
+    FreeSegmentsLevelHeader* fslHeader, __ui32 level );
+
     /**
      * Try to allocate a segment from the holes in the owned pages
      * @param size the (aligned) size of the segment to allocate
@@ -129,7 +138,7 @@ namespace Xem
      * @return the segment pointer, or null if failed
      */
     SegmentPtr getFreeSegmentPtrFromHoles ( __ui64 size, AllocationProfile allocProfile );
-  
+
     /**
      * Allocate a segment from newly created pages
      * @param size the (aligned) size of the segment to allocate
@@ -155,8 +164,8 @@ namespace Xem
     /**
      * Mark a (supposed-to-be non-allocated) virgin segment as being free for now on (does not increment DocumentHead::allocedBytes)
      */
-    void markSegmentAsFree ( SegmentPtr segPtr, __ui64 size, 
-        AllocationProfile allocProfile );
+    void markSegmentAsFree ( SegmentPtr segPtr, __ui64 size,
+    AllocationProfile allocProfile );
 
     /**
      * markSegmentAsFree helper function : try to coalesce the segment with left and right free segments
@@ -165,7 +174,7 @@ namespace Xem
      * @param allocProfile the allocation profile of the impacted pages
      */
     void coalesceFreeSegment ( SegmentPtr& segPtr, __ui64& size, AllocationProfile allocProfile );
-    
+
     /**
      * Insert the provided segment in the in-page sorted list of free segments
      * @param segPtr the pointer of the free segment to insert
@@ -263,10 +272,14 @@ namespace Xem
       
     virtual void lockMutex_Map() {}
     virtual void unlockMutex_Map() {}
-      
+
+#ifdef __XEM_DOCUMENTALLOCATOR_HAS_ALLOC_MUTEX
     virtual void lockMutex_Alloc() {}
     virtual void unlockMutex_Alloc() {}
-
+#else
+    void lockMutex_Alloc() {}
+    void unlockMutex_Alloc() {}
+#endif
     DocumentAllocator ( Store& store );
     
     /**
@@ -447,7 +460,8 @@ namespace Xem
      */
     virtual bool checkContents ( ) { return true; }
   };
-};
+}
+;
 
 #endif // KERN_DOCUMENTALLOCATOR
 
