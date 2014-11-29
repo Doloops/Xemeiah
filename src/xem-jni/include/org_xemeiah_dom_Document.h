@@ -33,6 +33,14 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_Document_reopen
 
 /*
  * Class:     org_xemeiah_dom_Document
+ * Method:    merge
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_Document_merge
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_Document
  * Method:    createForkBranch
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */

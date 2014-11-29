@@ -26,11 +26,12 @@ namespace Xem
         memset(pages, 0, sizeof(pages));
         memset(stolenPages, 0, sizeof(stolenPages));
         elements = 0;
-        branchPageTable = NULL;
+        branchPageTable = new BranchPageTable();
+        stolenBranchPageTable = false;
         ownsPageTable = false;
     }
 
-    AllocationStats::AllocationStats (AllocationStats& _father)
+    AllocationStats::AllocationStats (AllocationStats& _father, bool stealBranchPageTable)
     {
         root = _father.root;
         father = &_father;
@@ -41,7 +42,21 @@ namespace Xem
         memset(pages, 0, sizeof(pages));
         memset(stolenPages, 0, sizeof(stolenPages));
         elements = 0;
-        branchPageTable = NULL;
+
+        AssertBug(father->branchPageTable, "Null branchPageTable from father !");
+        if (stealBranchPageTable)
+        {
+            branchPageTable = father->branchPageTable;
+        }
+        else
+        {
+            /**
+             * Create a copy of the whole branchBageTable
+             */
+            branchPageTable = new BranchPageTable();
+            *branchPageTable = *(father->branchPageTable);
+        }
+        stolenBranchPageTable = stealBranchPageTable;
         ownsPageTable = false;
     }
 
@@ -62,7 +77,7 @@ namespace Xem
             AssertBug(pageTable, "No Page Table set !\n");
             free(pageTable);
         }
-        if (branchPageTable)
+        if (!stolenBranchPageTable && branchPageTable)
         {
             delete (branchPageTable);
         }
@@ -83,25 +98,11 @@ namespace Xem
         ownsPageTable = true;
     }
 
-    void
-    AllocationStats::initBranchPageTable ()
-    {
-        branchPageTable = new BranchPageTable();
-    }
-
     AllocationStats::BranchPageTable*
     AllocationStats::getBranchPageTable ()
     {
-        AllocationStats* stats = this;
-        while (!stats->branchPageTable)
-        {
-            stats = stats->father;
-            if (!stats)
-            {
-                Bug("Could not get branchTablePage !\n");
-            }
-        }
-        return stats->branchPageTable;
+        AssertBug(branchPageTable != NULL, "Null branchPageTable here !");
+        return branchPageTable;
     }
 
     void

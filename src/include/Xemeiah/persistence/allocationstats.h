@@ -58,24 +58,27 @@ namespace Xem
         };
 
         std::list<String>* errors;
+    public:
+        typedef std::map<RelativePagePtr, RelativePageInfos> BranchPageTable;
 
+    private:
         AllocationStats* root;
         AllocationStats* father;
-        typedef std::map<RelativePagePtr, RelativePageInfos> BranchPageTable;
+
         BranchPageTable* branchPageTable;
+        bool stolenBranchPageTable;
+
         PageStats* pageTable;
         __ui64 pageTableSize;
         __ui64 pageReferenceCtxtNb;
         bool ownsPageTable;
+    public:
         AllocationStats ();
-        AllocationStats (AllocationStats& father);
+        AllocationStats (AllocationStats& father, bool stealBranchPageTable = false);
         ~AllocationStats ();
 
         void
         initPageTable (__ui64 noMansLand);
-
-        void
-        initBranchPageTable ();
 
         BranchPageTable*
         getBranchPageTable ();

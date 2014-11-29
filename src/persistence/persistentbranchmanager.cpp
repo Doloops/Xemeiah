@@ -300,12 +300,11 @@ namespace Xem
 
         getPersistentStore().alterPage(branchPage);
 
-        ((char*) branchPage)[0] = '\0';
-
         memset(branchPage, 0, PageSize);
         getPersistentStore().protectPage(branchPage);
 
         getPersistentStore().freePage(branchPagePtr);
+        getPersistentStore().checkAllContents();
     }
 
     BranchId

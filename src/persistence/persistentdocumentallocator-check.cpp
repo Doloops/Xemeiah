@@ -20,7 +20,7 @@ namespace Xem
 #define Log_Check_Page Log
 
 #define CheckError(__text,...) do { fprintf ( stderr, "[CHECK][ERROR][Rev=%llx:%llx]" __text, _brid(getBranchRevId()), __VA_ARGS__ );  \
-        stats.addError(__text, __VA_ARGS__); } while (0)
+        stats.addError("[Rev=%llx:%llx]" __text, _brid(getBranchRevId()), __VA_ARGS__); } while (0)
 #define CheckInfo(__text,...) fprintf ( stderr, "[CHECK][Rev=%llx:%llx]" __text, _brid(getBranchRevId()), __VA_ARGS__ );
 
 #if 1

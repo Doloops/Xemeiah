@@ -182,7 +182,8 @@ namespace Xem
                                    _brid(lastRevPageRef.getPage()->branchRevId));
                 }
             }
-            AssertBug(lastRevPageRef.getPage()->documentAllocationHeader.writable == false, "Last Revision *was* writable !\n");
+            AssertBug(lastRevPageRef.getPage()->documentAllocationHeader.writable == false,
+                      "Last Revision *was* writable !\n");
         }
 
         BranchRevId branchRevId;
@@ -199,10 +200,10 @@ namespace Xem
         }
         else
         {
-            formatHeadRevisionPage (revPageRef.getPage());
+            formatHeadRevisionPage(revPageRef.getPage());
         }
 
-        revPageRef.getPage()->lastRevisionPage= branchPage->lastRevisionPage;
+        revPageRef.getPage()->lastRevisionPage = branchPage->lastRevisionPage;
 
         getPersistentStore().protectPage(revPageRef.getPage());
 
@@ -284,18 +285,21 @@ namespace Xem
     PersistentBranchManager::dropRevisions (BranchPage* branchPage, RevisionId fromRev, RevisionId toRev)
     {
         Warn("dropRevisions() is not completely implemented !!\n");
-        Warn("dropRevisions(branch=%s, fromRev=%llu, toRev=%llu)\n", branchPage->name, fromRev, toRev);
+        Warn("dropRevisions(branch=%llx '%s', fromRev=%llu, toRev=%llu)\n", branchPage->branchId, branchPage->name,
+             fromRev, toRev);
 
         AssertBug(branchPage, "Null branchPage provided.\n");
 
         if (!fromRev && !toRev)
         {
             // Specific case : will blindly delete all revisions
+            Log_DropRevision ( "Dropping every revision for branch %llx\n", branchPage->branchId);
             AbsolutePagePtr revPagePtr = branchPage->lastRevisionPage, nextRevPagePtr = NullPage;
 
             while (revPagePtr)
             {
-                AbsolutePageRef<RevisionPage> revPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(revPagePtr);
+                AbsolutePageRef<RevisionPage> revPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(
+                        revPagePtr);
 
                 nextRevPagePtr = revPageRef.getPage()->lastRevisionPage;
 
@@ -355,7 +359,8 @@ namespace Xem
 
             if (lastRevPagePtr)
             {
-                AbsolutePageRef<RevisionPage> revPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(lastRevPagePtr);
+                AbsolutePageRef<RevisionPage> revPageRef = getPersistentStore().getAbsolutePage<RevisionPage>(
+                        lastRevPagePtr);
                 getPersistentStore().alterPage(revPageRef.getPage());
                 revPageRef.getPage()->lastRevisionPage = firstRevPagePtr;
                 getPersistentStore().protectPage(revPageRef.getPage());
@@ -375,8 +380,9 @@ namespace Xem
     PersistentStore::dropUncommittedRevisions ()
     {
         SuperBlock* sb = getSB();
-        for (AbsolutePageRef<BranchPage> branchPageRef = getAbsolutePage<BranchPage>(sb->lastBranch); branchPageRef.getPage(); branchPageRef =
-                getAbsolutePage<BranchPage>(branchPageRef.getPage()->lastBranch))
+        for (AbsolutePageRef<BranchPage> branchPageRef = getAbsolutePage<BranchPage>(sb->lastBranch);
+                branchPageRef.getPage();
+                branchPageRef = getAbsolutePage<BranchPage>(branchPageRef.getPage()->lastBranch))
         {
             Log_DropRevision ( "At branch=%p, sb->lastBranch=%llx, branch->lastRevPage=%llx\n",
                     branchPageRef.getPage(), sb->lastBranch,

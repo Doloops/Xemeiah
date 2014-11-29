@@ -151,6 +151,7 @@ namespace Xem
         DropStats dropStats;
         memset(&(dropStats.droppedPages), 0, sizeof(dropStats.droppedPages));
 
+        dropStats.droppedPages[PageType_Revision]++;
 #if 1
         if (revisionPageRef.getPage()->freePageList)
         {
@@ -170,10 +171,16 @@ namespace Xem
         forAllIndirectionPages(&PersistentDocumentAllocator::dropOwnedIndirectionPage,
                                &PersistentDocumentAllocator::dropOwnedSegmentPage, &dropStats, false, true);
 
+        /**
+         * The revision page will be dropped at the end
+         */
+
         for (__ui64 type = 0; type < PageType_Mask; type++)
         {
             if (getRevisionPage()->ownedTypedPages[type] == 0 && dropStats.droppedPages[type] == 0)
+            {
                 continue;
+            }
             Info("\ttype=%llx:%s : owned=%llu, dropped=%llu, %s\n", type, PersistencePageTypeName[type],
                  getRevisionPage()->ownedTypedPages[type], dropStats.droppedPages[type],
                  getRevisionPage()->ownedTypedPages[type] == dropStats.droppedPages[type] ? "Ok." : "! ERROR !");
@@ -209,14 +216,6 @@ namespace Xem
          */
         unmapAllAreas();
 
-        /*
-         * Put the revision page out of absolute pages cache
-         */
-//    if ( false )
-//      {
-        // Lock lock ( mapMutex );
-        // releasePage ( revisionPagePtr );
-        //}
         /*
          * Free the revision page
          */

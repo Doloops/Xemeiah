@@ -61,12 +61,35 @@ Java_org_xemeiah_dom_Document_reopen (JNIEnv *ev, jobject jDocument)
         Xem::Document* doc = jDocument2Document(ev, jDocument);
         Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
 
-        Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
+        Log("Document : %s : reopen()\n", doc->getDocumentTag().c_str());
 
         Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
         if (transactionalDoc != NULL)
         {
             transactionalDoc->reopen(*xprocessor);
+        }
+        else
+        {
+            Log("Document is not transactional !");
+        }
+    }
+    XEMJNI_POSTLOG;
+}
+
+JNIEXPORT void JNICALL
+Java_org_xemeiah_dom_Document_merge (JNIEnv *ev, jobject jDocument)
+{
+    XEMJNI_PROLOG
+    {
+        Xem::Document* doc = jDocument2Document(ev, jDocument);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+        Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
+
+        Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
+        if (transactionalDoc != NULL)
+        {
+            transactionalDoc->merge(*xprocessor, false);
         }
         else
         {

@@ -146,7 +146,7 @@ namespace Xem
         virtual bool
         isJournalEnabled ()
         {
-            return false;
+            return true;
         }
     public:
         /**

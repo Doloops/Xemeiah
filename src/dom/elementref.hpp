@@ -422,6 +422,7 @@ namespace Xem
             me->textualContents.contentsPtr = contentsPtr;
             getDocumentAllocator().protect(me);
         }
+        getDocument().appendJournal(*this, JournalOperation_UpdateTextNode, *this, 0);
     }
 
     __INLINE void

@@ -60,6 +60,8 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
 
     public native void reopen();
 
+    public native void merge();
+
     public native String createForkBranch(String branchName, String branchFlags);
     
     @Override
@@ -248,4 +250,5 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
     {
         LOGGER.debug("Setting xmlVersion=" + xmlVersion);
     }
+
 }

@@ -439,12 +439,8 @@ namespace Xem
                 branchPage->lastRevisionPage );
         AllocationStats stats(fatherStats);
         stats.referencePage("BranchPage", branchPagePtr, PageType_Branch, false);
-        stats.initBranchPageTable();
-        if (branchPage->forkedFrom.branchId != 0)
-        {
-            stats.getBranchPageTable()->swap(*fatherStats.getBranchPageTable());
-        }
 
+        Log_Branch ("BranchPageTable %p has %lu records\n", stats.getBranchPageTable(), stats.getBranchPageTable()->size());
         std::list<AbsolutePagePtr> revisionPagePtrList;
         for (AbsolutePagePtr revPagePtr = branchPage->lastRevisionPage; revPagePtr;)
         {
@@ -461,6 +457,8 @@ namespace Xem
         for (std::list<AbsolutePagePtr>::iterator revisionPageIterator = revisionPagePtrList.begin();
                 revisionPageIterator != revisionPagePtrList.end(); revisionPageIterator++)
         {
+            Log_Branch ("Before checkRevision(), BranchPageTable=%p has %lu records\n", stats.getBranchPageTable(), stats.getBranchPageTable()->size());
+
             AbsolutePageRef<RevisionPage> revPageRef = getAbsolutePage<RevisionPage>(*revisionPageIterator);
 
             PersistentDocument* pDoc = getPersistentBranchManager().instanciateTemporaryPersistentDocument(
@@ -468,7 +466,8 @@ namespace Xem
             AssertBug(pDoc, "Could not create a persistent document at page %llx\n", revPageRef.getPagePtr());
 
             checkRevision(revPageRef.getPagePtr(), revPageRef.getPage(), pDoc, stats);
-            Log_Branch ( "Checking contents for rev=%llx:%llx\n", _brid(revPageRef.getPage()->branchRevId) );
+            Log_Branch ( "Checking contents for rev=%llx:%llx (branchPageTable=%p has %lu records)\n",
+                         _brid(revPageRef.getPage()->branchRevId), stats.getBranchPageTable(), stats.getBranchPageTable()->size() );
 
             pDoc->getPersistentDocumentAllocator().checkRelativePages(stats);
             pDoc->getPersistentDocumentAllocator().checkContents(stats);
@@ -485,11 +484,12 @@ namespace Xem
                 {
                     BranchId childBranchId = *branchIdIter;
                     BranchHierarchy& childBranchHierarchy = hierarchy[childBranchId];
-                    Log_Branch("Checking forked branch %llx from [%llx:%llx]\n", childBranchId, branchPage->branchId, revisionId);
+                    Log_Branch("==> Checking forked branch %llx from [%llx:%llx]\n", childBranchId, branchPage->branchId, revisionId);
                     checkBranch(childBranchHierarchy.branchPagePtr, hierarchy, stats);
+                    Log_Branch("<== Checked  forked branch %llx from [%llx:%llx]\n", childBranchId, branchPage->branchId, revisionId);
                 }
             }
-
+            Log_Branch ("Before checkRevision(), BranchPageTable=%p has %lu records\n", stats.getBranchPageTable(), stats.getBranchPageTable()->size());
         }
         Log_Stats(Log_Branch, stats);
 
@@ -499,7 +499,7 @@ namespace Xem
     PersistentStore::checkRevision (AbsolutePagePtr revPagePtr, RevisionPage* revPage, PersistentDocument* pDoc,
                                     AllocationStats& _stats)
     {
-        AllocationStats stats(_stats);
+        AllocationStats stats(_stats, true);
         stats.referencePage("RevisionPage", revPage->branchRevId, NullPage, revPagePtr, PageType_Revision, false);
         Log_Rev ( "Revision page=%llx\n", revPagePtr );
         Log_Rev ( "\tbrid=%llx:%llx, lastRevPage=%llx\n",

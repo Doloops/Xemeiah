@@ -200,9 +200,12 @@ namespace Xem
                            _brid(getBranchRevId()));
         }
 
-        Document* _mergeDocument = getStore().getBranchManager().openDocument(forkedFrom.branchId, 0,
+        Document* genericMergeDocument = getStore().getBranchManager().openDocument(forkedFrom.branchId, 0,
                                                                               DocumentOpeningFlags_Write);
-        PersistentDocument* mergeDocument = dynamic_cast<PersistentDocument*>(_mergeDocument);
+        AssertBug(genericMergeDocument, "Could not open document from branch %llx\n", forkedFrom.branchId);
+
+        PersistentDocument* mergeDocument = dynamic_cast<PersistentDocument*>(genericMergeDocument);
+        AssertBug(mergeDocument, "Could not cast merge document to a PersistentDocument !");
 
         mergeDocument->incrementRefCount();
 
@@ -211,7 +214,6 @@ namespace Xem
         AssertBug(mergeDocument->getRefCount(), "RefCount is null ???\n");
 
         BranchRevId mergeBranchRevId = mergeDocument->getBranchRevId();
-
         AssertBug(mergeBranchRevId.branchId == forkedFrom.branchId, "Diverging branches in merge !!\n");
 
 #ifdef __XEM_PERSISTANCE_ENABLE_QUICKMERGE
@@ -250,7 +252,7 @@ namespace Xem
         }
 #endif // __XEM_PERSISTANCE_ENABLE_QUICKMERGE
 
-        Warn("[MERGE] : Can't do QUICK MERGE. Applying journal from [%llx:%llx] : forked from [%llx:%llx], merging to [%llx:%llx] ok !\n",
+        Warn("[MERGE] : Can't do QUICK MERGE. Applying journal from [%llx:%llx] : forked from [%llx:%llx], merging to [%llx:%llx]\n",
              _brid(getBranchRevId()), _brid(forkedFrom), _brid(mergeBranchRevId));
 
         try
@@ -267,7 +269,10 @@ namespace Xem
             getStore().releaseDocument(mergeDocument);
             throw(e);
         }
-
+        if ( ! keepBranch )
+        {
+            scheduleBranchForRemoval();
+        }
         Log_PDoc ( "[MERGE] : At document [%llx:%llx] : forked from [%llx:%llx], merging to [%llx:%llx] ok !\n",
                 _brid(getBranchRevId()), _brid(forkedFrom), _brid(mergeDocument->getBranchRevId()) );
 
