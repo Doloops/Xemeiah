@@ -194,7 +194,7 @@ namespace Xem
     INLINE void alterDocumentHead () {}
     INLINE void protectDocumentHead () {}
 #endif
-
+    void authorizeWriteDocumentHead();
 
     /*
      * DOM Initiation facilities

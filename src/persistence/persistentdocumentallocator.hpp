@@ -5,7 +5,7 @@
 
 #include <Xemeiah/persistence/format/indirection.h>
 
-#define Log_PDAHPP Log
+#define Log_PDAHPP Debug
 #define Log_PDA_AbsolutePage Debug
 
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID //< Option : Paranoid checks for PageInfoPageTable

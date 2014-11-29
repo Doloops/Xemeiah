@@ -3,7 +3,7 @@
 #include <Xemeiah/persistence/persistentstore.h>
 #endif // __XEM_PERSISTENCE_ABSOLUTEPAGEREF_H
 
-#define Log_APR(...) Log("[APR]" __VA_ARGS__)
+#define Log_APR(...) Debug("[APR]" __VA_ARGS__)
 
 namespace Xem
 {

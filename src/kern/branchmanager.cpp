@@ -89,8 +89,7 @@ namespace Xem
                 "can-fork-at-reopen",
                 NULL };
 
-    BranchId
-    BranchManager::createBranch (const String& branchName, BranchRevId forkedFrom, const String& branchFlagsStr)
+    BranchFlags BranchManager::parseBranchFlags ( const String& branchFlagsStr)
     {
         BranchFlags branchFlags = 0;
         std::list<String> tokens;
@@ -113,6 +112,13 @@ namespace Xem
                 throwException(Exception, "Invalid flag '%s' from '%s'\n", flag.c_str(), branchFlagsStr.c_str());
             }
         }
+        return branchFlags;
+    }
+
+    BranchId
+    BranchManager::createBranch (const String& branchName, BranchRevId forkedFrom, const String& branchFlagsStr)
+    {
+        BranchFlags branchFlags = parseBranchFlags(branchFlagsStr);
         return createBranch(branchName, forkedFrom, branchFlags);
     }
 

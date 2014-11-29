@@ -32,7 +32,7 @@ namespace Xem
     virtual void reopen () { Warn ( "no reopen.\n" ); }
     virtual void grantWrite () { Warn ( "no grandWrite.\n" ); }
     virtual void drop () { Warn ( "no drop.\n" ); }
-    virtual void fork ( String& branchName, BranchFlags branchFlags ) { Warn ( "no fork.\n" ); }
+    virtual void fork ( const String& branchName, BranchFlags branchFlags ) { Warn ( "no fork.\n" ); }
     virtual void merge ( XProcessor& xproc, bool keepBranch ) { Warn ( "no merge.\n" ); }
 
     virtual void scheduleBranchForRemoval () { Bug ( "no scheduleBranchForRemoval.\n" ); }

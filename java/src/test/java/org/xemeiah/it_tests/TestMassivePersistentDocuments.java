@@ -15,10 +15,10 @@ public class TestMassivePersistentDocuments extends AbstractPersistenceTest
     private static final Logger LOGGER = LoggerFactory.getLogger(TestMassivePersistentDocuments.class);
 
     @Test
-    public void testCreateDocuments()
+    public void testCreateDocumentsInMultipleBranches()
     {
         List<Document> createdDocs = Lists.newArrayList();
-        for ( int i = 0 ; i < 1000 ; i++ )
+        for ( int i = 0 ; i < 100 ; i++ )
         {
             String branchName = "Branch_" + i;
             getDocumentFactory().createBranch(branchName, "");
@@ -36,6 +36,24 @@ public class TestMassivePersistentDocuments extends AbstractPersistenceTest
         createdDocs.clear();
         
         System.gc();
+    }
+
+    @Test
+    public void testCreateDocumentsInSameBranch()
+    {
+        String branchName = "Main";
+        getDocumentFactory().createBranch(branchName, "");
+        
+        for ( int i = 0 ; i < 100 ; i++ )
+        {
+            Document document = getDocumentFactory().newStandaloneDocument(branchName, "write");
+            
+            DomTestUtils.fillDocumentWithNodes(document);
+            
+            document.commit();
+            
+            getDocumentFactory().releaseDocument(document);
+        }
     }
 
 }

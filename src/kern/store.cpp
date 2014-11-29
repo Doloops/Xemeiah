@@ -10,7 +10,7 @@
 
 #include <list>
 
-#define Log_Store Info
+#define Log_Store Log
 
 namespace Xem
 {

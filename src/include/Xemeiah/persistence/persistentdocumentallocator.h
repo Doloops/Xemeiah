@@ -575,27 +575,16 @@ namespace Xem
 
     bool checkIndirectionPage ( RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool isStolen, void* arg );
     
-    bool checkPages ( PersistentStore::AllocationStats& stats );
+    void checkPages ( AllocationStats& stats );
     
-    bool checkRelativePages ( PersistentStore::AllocationStats& stats );
+    void checkRelativePages ( AllocationStats& stats );
     
     /**
      * Check our contents
      */
-    virtual bool checkContents ( );
-   
-    class ContentsCheck
-    {
-    public:
-        __ui64 errorCount;
+    virtual void checkContents ( AllocationStats& stats);
 
-        ContentsCheck()
-        {
-            errorCount = 0;
-        }
-    };
-
-    void checkPageInfos ( ContentsCheck& contentsCheck, __ui64 *nbPagesPerAllocationProfile, __ui64& totalPages);
+    void checkPageInfos ( AllocationStats& stats, __ui64 *nbPagesPerAllocationProfile, __ui64& totalPages);
 
     /**
      * Flush all in-memory caches
@@ -635,7 +624,7 @@ namespace Xem
      * @param branchFlags the new branch's flag
      * @return true upon success, false otherwise
      */
-    void fork ( String& branchName, BranchFlags branchFlags );
+    void fork (const String& branchName, BranchFlags branchFlags );
 
     /**
      * Quickly merge a branch to a document

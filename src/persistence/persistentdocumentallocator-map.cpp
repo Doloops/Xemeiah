@@ -16,7 +16,7 @@
 #include <fcntl.h>
 
 #define Log_PDAMap_V Debug
-#define Log_PDAMap Log
+#define Log_PDAMap Debug
 #define Log_PDAMap_Area Log
 
 namespace Xem

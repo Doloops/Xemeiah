@@ -316,7 +316,7 @@ namespace Xem
     }
 
     void
-    PersistentDocument::fork (String& branchName, BranchFlags branchFlags)
+    PersistentDocument::fork (const String& branchName, BranchFlags branchFlags)
     {
         if (getDocumentOpeningFlags() == DocumentOpeningFlags_ExplicitRead)
         {

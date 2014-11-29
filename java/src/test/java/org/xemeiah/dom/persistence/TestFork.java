@@ -7,11 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 import org.xemeiah.dom.Document;
-import org.xemeiah.it_tests.TestMassiveVolatileDocuments;
 
 public class TestFork extends AbstractPersistenceTest
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestMassiveVolatileDocuments.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestFork.class);
 
     @Test
     public void testSimpleFork()
@@ -48,7 +47,7 @@ public class TestFork extends AbstractPersistenceTest
         {
             Document document = getDocumentFactory().newStandaloneDocument(branchName, "read");
             document.createForkBranch(forkName, "");
-            
+
             Element root = document.getDocumentElement().getFirstChild();
             Assert.assertEquals("Root", root.getNodeName());
 
@@ -69,7 +68,7 @@ public class TestFork extends AbstractPersistenceTest
             Text textNode = (Text) root.getFirstChild();
             Assert.assertEquals("Another value", textNode.getTextContent());
         }
-        
+
         /**
          * But main branch did not change at all
          */
@@ -82,5 +81,64 @@ public class TestFork extends AbstractPersistenceTest
             Assert.assertEquals("Some value", textNode.getTextContent());
         }
     }
-    
+
+    @Test
+    public void testThreeLevels()
+    {
+        String branchName = "main";
+        String forkName = "forked";
+        String fork2Name = "second forked";
+        getDocumentFactory().createBranch(branchName, "");
+
+        {
+            Document document = getDocumentFactory().newStandaloneDocument(branchName, "write");
+
+            Element root = document.createElement("Root");
+            document.getDocumentElement().appendChild(root);
+
+            Text text = document.createTextNode("First");
+            root.appendChild(text);
+
+            document.commit();
+        }
+        
+        LOGGER.info("forkName=" + forkName);
+
+        Document forkedDocument = getDocumentFactory().newStandaloneDocument(branchName, "read");
+        forkedDocument.createForkBranch(forkName, "");
+
+        LOGGER.info("forkedDocument=" + forkedDocument);
+
+        {
+            Element root = forkedDocument.getDocumentElement().getFirstChild();
+            Assert.assertEquals("First", root.getFirstChild().getTextContent());
+
+            Text text = (Text) root.getFirstChild();
+            text.setTextContent("Second");
+
+            forkedDocument.commit();
+        }
+
+
+        Document forked2Document = getDocumentFactory().newStandaloneDocument(forkName, "read");
+        forked2Document.createForkBranch(fork2Name, "");
+
+        Element root = forked2Document.getDocumentElement().getFirstChild();
+        Assert.assertEquals("Second", root.getFirstChild().getTextContent());
+
+        Text text = (Text) root.getFirstChild();
+        text.setTextContent("Third");
+
+        forked2Document.commit();
+
+        Document finalDocument = getDocumentFactory().newStandaloneDocument(fork2Name, "read");
+
+        root = finalDocument.getDocumentElement().getFirstChild();
+        Assert.assertEquals("Third", root.getFirstChild().getTextContent());
+
+        Document initialDocument = getDocumentFactory().newStandaloneDocument(branchName, "read");
+
+        root = initialDocument.getDocumentElement().getFirstChild();
+        Assert.assertEquals("First", root.getFirstChild().getTextContent());
+    }
 }

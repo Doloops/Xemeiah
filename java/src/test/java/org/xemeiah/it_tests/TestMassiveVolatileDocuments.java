@@ -13,7 +13,7 @@ public class TestMassiveVolatileDocuments extends AbstractVolatileDocumentTest
     @Test
     public void testMassiveVolatileDocumentCreation()
     {
-        for (int nbTest = 0; nbTest < 10 * 1000; nbTest++)
+        for (int nbTest = 0; nbTest < 100; nbTest++)
         {
             LOGGER.info("At test=#" + nbTest);
             Document document = createDocument();

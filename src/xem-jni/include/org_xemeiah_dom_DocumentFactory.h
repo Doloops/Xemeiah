@@ -49,6 +49,14 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_close
 
 /*
  * Class:     org_xemeiah_dom_DocumentFactory
+ * Method:    check
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_check
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_xemeiah_dom_DocumentFactory
  * Method:    releaseDocument
  * Signature: (Lorg/xemeiah/dom/Document;)V
  */
@@ -57,10 +65,10 @@ JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_releaseDocument
 
 /*
  * Class:     org_xemeiah_dom_DocumentFactory
- * Method:    createBranch
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ * Method:    doCreateBranch
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT void JNICALL Java_org_xemeiah_dom_DocumentFactory_createBranch
+JNIEXPORT jstring JNICALL Java_org_xemeiah_dom_DocumentFactory_doCreateBranch
   (JNIEnv *, jobject, jstring, jstring);
 
 /*

@@ -13,6 +13,9 @@
 #include "xem-jni-dom.h"
 #include "xem-jni-classes.h"
 
+#include <Xemeiah/kern/branchmanager.h>
+#include <Xemeiah/persistence/persistentstore.h>
+
 #include <Xemeiah/auto-inline.hpp>
 
 JNIEXPORT void JNICALL
@@ -29,40 +32,85 @@ Java_org_xemeiah_dom_Document_cleanUp (JNIEnv *ev, jobject jDocument)
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_Document_commit (JNIEnv *ev, jobject jDocument)
 {
-    Xem::Document* doc = jDocument2Document(ev, jDocument);
-    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
-
-    Log("jDocument at %p, document at %p, xprocessor at %p\n", jDocument, doc, xprocessor);
-
-    Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
-    Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
-    if (transactionalDoc != NULL)
+    XEMJNI_PROLOG
     {
-        transactionalDoc->commit(*xprocessor);
+        Xem::Document* doc = jDocument2Document(ev, jDocument);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+        Log("jDocument at %p, document at %p, xprocessor at %p\n", jDocument, doc, xprocessor);
+
+        Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
+        Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
+        if (transactionalDoc != NULL)
+        {
+            transactionalDoc->commit(*xprocessor);
+        }
+        else
+        {
+            Log("Document is not transactional !");
+        }
     }
-    else
-    {
-        Log("Document is not transactional !");
-    }
+    XEMJNI_POSTLOG;
 }
 
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_Document_reopen (JNIEnv *ev, jobject jDocument)
 {
-    Xem::Document* doc = jDocument2Document(ev, jDocument);
-    Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
-
-    Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
-
-    Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
-    if (transactionalDoc != NULL)
+    XEMJNI_PROLOG
     {
-        transactionalDoc->reopen(*xprocessor);
+        Xem::Document* doc = jDocument2Document(ev, jDocument);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+        Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
+
+        Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
+        if (transactionalDoc != NULL)
+        {
+            transactionalDoc->reopen(*xprocessor);
+        }
+        else
+        {
+            Log("Document is not transactional !");
+        }
     }
-    else
+    XEMJNI_POSTLOG;
+}
+
+JNIEXPORT jstring JNICALL
+Java_org_xemeiah_dom_Document_createForkBranch (JNIEnv *ev, jobject jDocument, jstring jBranchName,
+                                                jstring jBranchFlags)
+{
+    XEMJNI_PROLOG
     {
-        Log("Document is not transactional !");
+        Xem::Document* doc = jDocument2Document(ev, jDocument);
+        Xem::XProcessor* xprocessor = jDocument2XProcessor(ev, jDocument);
+
+        Log("jDocument at %p, document at %p, xprocessor at %p\n", jDocument, doc, xprocessor);
+
+        Log("Document : %s : commit()\n", doc->getDocumentTag().c_str());
+        Xem::TransactionalDocument* transactionalDoc = dynamic_cast<Xem::TransactionalDocument*>(doc);
+        if (transactionalDoc != NULL)
+        {
+            Xem::String branchName = jstring2XemString(ev, jBranchName);
+            Xem::String branchFlags = jstring2XemString(ev, jBranchFlags);
+            transactionalDoc->fork(*xprocessor, branchName, branchFlags);
+
+            Xem::BranchId newBranchId = transactionalDoc->getBranchRevId().branchId;
+
+            if ( ! newBranchId )
+            {
+                throwException(Xem::PersistenceException, "Invalid branch forked from %s\n", branchName.c_str());
+            }
+
+            return ev->NewStringUTF(doc->getStore().getBranchManager().getBranchName(newBranchId).c_str());
+        }
+        else
+        {
+            Log("Document is not transactional !");
+        }
     }
+    XEMJNI_POSTLOG;
+    return NULL;
 }
 
 JNIEXPORT jstring JNICALL

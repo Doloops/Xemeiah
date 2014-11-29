@@ -40,6 +40,12 @@ public class Text extends org.xemeiah.dom.CharacterData implements org.w3c.dom.T
     }
 
     @Override
+    public void setTextContent(String textContent) throws DOMException
+    {
+        setData(textContent);
+    }
+    
+    @Override
     public native boolean isElementContentWhitespace();
 
     @Override

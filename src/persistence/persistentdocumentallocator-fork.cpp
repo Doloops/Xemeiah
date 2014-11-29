@@ -9,7 +9,7 @@
 namespace Xem
 {
     void
-    PersistentDocumentAllocator::fork (String& branchName, BranchFlags branchFlags)
+    PersistentDocumentAllocator::fork (const String& branchName, BranchFlags branchFlags)
     {
         getPersistentStore().getPersistentBranchManager().assertIsUnlocked();
 

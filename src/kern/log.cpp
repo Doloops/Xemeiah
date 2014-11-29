@@ -104,7 +104,7 @@ namespace Xem
         throw(e);
     }
 
-    static const bool assertThrowsException = true;
+    static const bool assertThrowsException = false;
 
     void
     doAssertFails (const char* file, const char* function, int line, const char* format, ...)

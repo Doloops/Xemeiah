@@ -25,9 +25,31 @@ namespace Xem
     class PersistentStore;
     class PageInfoIterator;
     class PersistentDocumentAllocator;
+    class AllocationStats;
 
     XemStdException(PersistenceException);
+    XemStdException(PersistenceCheckContentException);
     XemStdException(PersistenceBranchLastRevisionAlreadyWritable);
+
+    typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
+    typedef std::list<BranchId> BranchesList;
+    typedef std::map<RevisionId, BranchesList> BranchesForkFromRevision;
+
+    class BranchHierarchy
+    {
+    public:
+        BranchHierarchy ()
+        {
+            branchPagePtr = NullPage;
+            forkedFrom.branchId = 0;
+            forkedFrom.revisionId = 0;
+        }
+        AbsolutePagePtr branchPagePtr;
+        BranchRevId forkedFrom;
+        BranchesForkFromRevision branchesForkedFromRevision;
+    };
+
+    typedef std::map<BranchId, BranchHierarchy> BranchesHierarchy;
 
     class PersistentStore : public Store
     {
@@ -401,86 +423,15 @@ namespace Xem
     void checkElement ( RevisionPage* revPage, ElementSegment* element );
     // void checkFreeList ( RevisionPage* revisionPage, FreeListHeader* freeListHeader );
 
-    class AllocationStats
-    {
-    protected:
-    public:
-#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT
-        struct PageReferenceCtxt
-        {
-            const char* ctxt;
-            BranchRevId brId;
-            bool stolen;
-            PageType pageType;
-            RelativePagePtr relPagePtr;
-            PageReferenceCtxt* previous;
-        };
-#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
-        struct PageStats
-        {
-            AbsolutePagePtr absPagePtr;
-            RelativePagePtr relPagePtr;
-#ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT    
-            PageReferenceCtxt* pageReferenceCtxt;
-#endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT          
-        };
-
-        struct RelativePageRevInfos
-        {
-            BranchRevId brId;
-            bool stolen;
-            AbsolutePagePtr absPagePtr;
-        };
-
-        class RelativePageInfos
-        {
-        public:
-            RelativePageInfos()
-            {}
-            ~RelativePageInfos();
-            std::list<RelativePageRevInfos*> revInfos;
-        };
-        AllocationStats* father;
-        typedef std::map<RelativePagePtr, RelativePageInfos*> BranchPageTable;
-        BranchPageTable* branchPageTable;
-        PageStats* pageTable;
-        __ui64 pageTableSize;
-        __ui64 pageReferenceCtxtNb;
-        bool ownsPageTable;
-        AllocationStats();
-        AllocationStats(AllocationStats& father);
-        ~AllocationStats();
-
-        bool initPageTable ( __ui64 noMansLand );
-        bool initBranchPageTable ();
-
-        BranchPageTable* getBranchPageTable ();
-
-        __ui64 pages[PageType_Mask];
-        __ui64 stolenPages[PageType_Mask];
-
-        typedef std::list<AbsolutePagePtr> AbsolutePagePtrList;
-
-        bool appendPageReference ( PageStats* pStats, const char* ctxt, BranchRevId brId,
-                RelativePagePtr relPagePtr, PageType pageType, bool stolen );
-        bool dumpPageReferences ( PageStats* pStats );
-        bool referencePage ( const char* ctxt, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-        bool referencePage ( const char* ctxt, BranchRevId brId,
-                RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr, PageType pageType, bool stolen );
-
-        __ui64 getTotalPages () const;
-        __ui64 getTotalStolenPages () const;
-
-        __ui64 elements;
-
-        bool checkUnsetPages ( AbsolutePagePtrList& unsetPages );
-    };
+protected:
+    void buildBranchesHierarchy ( BranchesHierarchy& branchesHierarchy);
+public:
     void checkAllContents ();
     void checkKeys ( AllocationStats& stats );
     void checkFreePageHeader ( AllocationStats& stats );
-    void putPagesInAttic ( AllocationStats::AbsolutePagePtrList& atticPageList );
-    void checkBranch ( AbsolutePagePtr branchePagePtr, BranchPage* branchPage, AllocationStats& stats );
-    void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, AllocationStats& stats );
+    void putPagesInAttic ( AbsolutePagePtrList& atticPageList );
+    void checkBranch ( AbsolutePagePtr branchPagePtr, BranchesHierarchy& hierarchy, AllocationStats& stats );
+    void checkRevision ( AbsolutePagePtr revisionPagePtr, RevisionPage* revisionPage, PersistentDocument* document, AllocationStats& stats );
 
     /**
      * Main Check Function for Storage

@@ -52,8 +52,10 @@ namespace Xem
     virtual void drop () = 0;
     virtual void drop ( XProcessor& xproc );
 
-    virtual void fork ( String& branchName, BranchFlags branchFlags ) = 0;
-    virtual void fork ( XProcessor& xproc, String& branchName, BranchFlags branchFlags );
+    virtual void fork ( const String& branchName, BranchFlags branchFlags ) = 0;
+    virtual void fork ( XProcessor& xproc, const String& branchName, BranchFlags branchFlags );
+
+    virtual void fork ( XProcessor& xproc, const String& branchName, const String& branchFlags );
 
     // virtual void merge ( bool keepBranch ) = 0;
     virtual void merge ( XProcessor& xproc, bool keepBranch ) = 0;

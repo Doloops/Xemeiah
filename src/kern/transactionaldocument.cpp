@@ -6,6 +6,7 @@
  */
 
 #include <Xemeiah/kern/transactionaldocument.h>
+#include <Xemeiah/kern/branchmanager.h>
 #include <Xemeiah/dom/domeventmask.h>
 #include <Xemeiah/dom/elementref.h>
 
@@ -49,10 +50,15 @@ namespace Xem
     drop ();
   }
 
-  void TransactionalDocument::fork ( XProcessor& xproc, String& branchName, BranchFlags branchFlags )
+  void TransactionalDocument::fork ( XProcessor& xproc, const String& branchName, BranchFlags branchFlags )
   {
     fork ( branchName, branchFlags );
     triggerDomEventDocument(xproc, DomEventType_DocumentFork);
+  }
+
+  void TransactionalDocument::fork ( XProcessor& xproc, const String& branchName, const String& branchFlags )
+  {
+      fork(xproc, branchName, BranchManager::parseBranchFlags(branchFlags));
   }
 
 #if 0

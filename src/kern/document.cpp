@@ -145,6 +145,11 @@ namespace Xem
     }
 #endif
 
+    void Document::authorizeWriteDocumentHead()
+    {
+        getDocumentAllocator().authorizeWrite(documentHeadPtr, sizeof(DocumentHead));
+    }
+
     bool
     Document::createRootElement ()
     {
@@ -156,6 +161,7 @@ namespace Xem
 
         rootElementPtr = rootElement.getElementPtr();
 
+        authorizeWriteDocumentHead();
         alterDocumentHead();
         getDocumentHead().rootElementPtr = rootElementPtr;
         getDocumentHead().elements = 1;
@@ -496,6 +502,8 @@ namespace Xem
             ElementRef root = getRootElement();
             ElementRef metaElement = createElement(root, getKeyCache().getBuiltinKeys().xemint.document_meta());
             ElementPtr metaElementPtr = metaElement.getElementPtr();
+
+            authorizeWriteDocumentHead();
             alterDocumentHead();
             getDocumentHead().metaElementPtr = metaElementPtr;
             protectDocumentHead();

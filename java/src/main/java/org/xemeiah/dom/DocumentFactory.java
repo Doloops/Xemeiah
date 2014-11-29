@@ -31,6 +31,8 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
     public native void open(String fileName);
 
     private native void close();
+    
+    public native void check();
 
     public native void releaseDocument(Document document);
 
@@ -66,8 +68,19 @@ public class DocumentFactory extends javax.xml.parsers.DocumentBuilder
         return xemParser;
     }
 
-    public native void createBranch(String branchName, String branchFlags);
+    private native String doCreateBranch(String branchName, String branchFlags);
 
+    /**
+     * Create a new Branch
+     * @param branchName
+     * @param branchFlags
+     * @return the new branch name, can be different upon branchFlags 
+     */
+    public String createBranch(String branchName, String branchFlags)
+    {
+        return doCreateBranch(branchName, branchFlags);
+    }
+    
     public native org.xemeiah.dom.Document newStandaloneDocument(String branchName, String branchFlags);
 
     public native org.xemeiah.dom.Document newVolatileDocument();

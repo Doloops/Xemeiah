@@ -456,12 +456,6 @@ namespace Xem
         fpHeaderRef.getPage()->firstFreePageList = freePageListPtr;
         protectPage(fpHeaderRef.getPage());
 
-        if (0)
-        {
-            AllocationStats stats;
-            checkFreePageHeader(stats);
-        }
-
         return true;
     }
 

@@ -219,7 +219,7 @@ namespace Xem
     void
     CacheBranchManager::updateDocumentReference (Document* doc, BranchRevId oldBrId, BranchRevId newBrId)
     {
-        Warn("[UPDATEDOCREF] doc=%p (%llx:%llx) oldBrId=[%llx:%llx] => newBrId=[%llx:%llx]\n", doc,
+        Log_CBM("[UPDATEDOCREF] doc=%p (%llx:%llx) oldBrId=[%llx:%llx] => newBrId=[%llx:%llx]\n", doc,
              _brid(doc->getBranchRevId()), _brid(oldBrId), _brid(newBrId));
         lockBranchManager();
         BranchInfo* oldBranchInfo = branchMap[oldBrId.branchId];

@@ -54,6 +54,8 @@ namespace Xem
      */
     virtual BranchId createBranch ( const String& branchName, BranchRevId forkedFrom, BranchFlags branchFlags ) = 0; 
 
+    static BranchFlags parseBranchFlags ( const String& branchFlagsString);
+
     /**
      * Create a branch with dependency information
      * @param branchName the name of the branch to create, must not exist except if BranchFlags_MayIndexNameIfDuplicate flag is set

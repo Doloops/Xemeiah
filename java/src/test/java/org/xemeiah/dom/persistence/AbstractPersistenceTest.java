@@ -25,6 +25,7 @@ public abstract class AbstractPersistenceTest
     @After
     public void tearDown()
     {
+        documentFactory.check();
         LOGGER.info("At tearDown() : calling System.gc() : 1");
         System.gc();
         try

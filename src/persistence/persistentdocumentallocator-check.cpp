@@ -1,4 +1,5 @@
 #include <Xemeiah/persistence/persistentdocumentallocator.h>
+#include <Xemeiah/persistence/allocationstats.h>
 #include <Xemeiah/kern/format/dom.h>
 #include <Xemeiah/kern/format/blob.h>
 #include <Xemeiah/kern/format/journal.h>
@@ -16,10 +17,10 @@ namespace Xem
 #define Log_Check Info
 #define Log_Check_L Debug // Very verbose
 #define Log_Check_Journal Debug // Very verbose
-#define Log_Check_Page(...)
+#define Log_Check_Page Log
 
 #define CheckError(__text,...) do { fprintf ( stderr, "[CHECK][ERROR][Rev=%llx:%llx]" __text, _brid(getBranchRevId()), __VA_ARGS__ );  \
-        contentsCheck.errorCount++; } while (0)
+        stats.addError(__text, __VA_ARGS__); } while (0)
 #define CheckInfo(__text,...) fprintf ( stderr, "[CHECK][Rev=%llx:%llx]" __text, _brid(getBranchRevId()), __VA_ARGS__ );
 
 #if 1
@@ -34,7 +35,7 @@ namespace Xem
     PersistentDocumentAllocator::checkIndirectionPage (RelativePagePtr relPagePtr, AbsolutePagePtr absPagePtr,
                                                        PageType pageType, bool isStolen, void* arg)
     {
-        PersistentStore::AllocationStats* pStats = (PersistentStore::AllocationStats*) arg;
+        AllocationStats* pStats = (AllocationStats*) arg;
         pStats->referencePage("In Revision/Indirection", revisionPageRef.getPage()->branchRevId, relPagePtr,
                               absPagePtr & PagePtr_Mask, pageType, __isStolen(absPagePtr) | isStolen);
         return true;
@@ -46,7 +47,7 @@ namespace Xem
     {
         AssertBug(pageType, "Invalid non-typed page !\n");
         AbsolutePagePtr absPagePtr = pageInfo.absolutePagePtr;
-        PersistentStore::AllocationStats* pStats = (PersistentStore::AllocationStats*) arg;
+        AllocationStats* pStats = (AllocationStats*) arg;
 
         if (isStolen)
             absPagePtr |= PageFlags_Stolen;
@@ -54,121 +55,107 @@ namespace Xem
         {
             return true;
         }
-        pStats->referencePage("In Revision", revisionPageRef.getPage()->branchRevId, relPagePtr, absPagePtr & PagePtr_Mask, pageType,
-                              __isStolen(absPagePtr));
+        pStats->referencePage("In Revision", revisionPageRef.getPage()->branchRevId, relPagePtr,
+                              absPagePtr & PagePtr_Mask, pageType, __isStolen(absPagePtr));
         return true;
     }
 
-    bool
-    PersistentDocumentAllocator::checkPages (PersistentStore::AllocationStats& stats)
+    void
+    PersistentDocumentAllocator::checkPages (AllocationStats& stats)
     {
         forAllIndirectionPages(&PersistentDocumentAllocator::checkIndirectionPage,
                                &PersistentDocumentAllocator::checkSegmentPage, &stats, false, false);
         Log_Check_Page ( "[After Check : alloc=%llx, map=%llx, chunkMapSize=%llx]\n",
                 areasAlloced, areasMapped, getPersistentStore().getChunkMapSize() );
-        return true;
     }
 
-    bool
-    PersistentDocumentAllocator::checkRelativePages (PersistentStore::AllocationStats& stats)
+    void
+    PersistentDocumentAllocator::checkRelativePages (AllocationStats& stats)
     {
 #ifdef __XEM_PERSISTENCE_CHECK_BUILD_BRANCHPAGETABLE      
-        ContentsCheck contentsCheck;
         /*
          * Checking the branch page table
          *
          */
-        PersistentStore::AllocationStats::BranchPageTable* brTable = stats.getBranchPageTable();
+        AllocationStats::BranchPageTable* brTable = stats.getBranchPageTable();
         BranchRevId myBrId = getBranchRevId();
         for (RelativePagePtr relPagePtr = PageSize; relPagePtr < getDocumentAllocationHeader().nextRelativePagePtr;
                 relPagePtr += PageSize)
         {
             // Log_Check_Page ( "At relPagePtr = %llx\n", relPagePtr );
-            PersistentStore::AllocationStats::BranchPageTable::iterator rpiter = brTable->find(relPagePtr);
+            AllocationStats::BranchPageTable::iterator rpiter = brTable->find(relPagePtr);
             if (rpiter == brTable->end())
             {
                 CheckError("Invalid relPagePtr=%llx\n", relPagePtr);
                 continue;
             }
-            PersistentStore::AllocationStats::RelativePageInfos* rpi = rpiter->second;
-            if (rpi->revInfos.size() == 0)
+            AllocationStats::RelativePageInfos& rpi = rpiter->second;
+            if (rpi.revInfos.size() == 0)
             {
                 CheckError("Invalid null rpvi for relPagePtr=%llx\n", relPagePtr);
-            }Log_Check_Page ( "Page %llx has %lu rpvi\n", relPagePtr, (unsigned long) rpi->revInfos.size() );
-            bool found = false, resolved = false;
+            }
+            Log_Check_Page ( "Page %llx has %lu rpvi\n", relPagePtr, (unsigned long) rpi.revInfos.size() );
+
             AbsolutePagePtr myAbsPagePtr = NullPage;
-            bool stolen = false;
-            for (std::list<PersistentStore::AllocationStats::RelativePageRevInfos*>::iterator rpviter =
-                    rpi->revInfos.begin(); rpviter != rpi->revInfos.end(); rpviter++)
+            AbsolutePagePtr lastNotStolenAbsPagePtr = NullPage;
+            BranchRevId lastNotStolenBranchRevId =
+                { 0, 0 };
+            bool stolen = false, found = false, resolved = false;
+
+            for (std::list<AllocationStats::RelativePageRevInfos>::iterator rpviter = rpi.revInfos.begin();
+                    rpviter != rpi.revInfos.end(); rpviter++)
             {
-                PersistentStore::AllocationStats::RelativePageRevInfos* rpvi = *rpviter;
+                AllocationStats::RelativePageRevInfos& rpvi = *rpviter;
                 Log_Check_Page ( "\trelPagePtr=%llx, brId=%llx:%llx, abs=%llx, stolen=%s\n",
-                        relPagePtr, _brid(rpvi->brId), rpvi->absPagePtr, rpvi->stolen ? "true" : "false" );
-                if (myBrId.branchId != rpvi->brId.branchId)
-                {
-                    Warn("Not implemented : forked branch ??\n");
-                }
-                if (myBrId.revisionId == rpvi->brId.revisionId)
+                        relPagePtr, _brid(rpvi.brId), rpvi.absPagePtr, rpvi.stolen ? "true" : "false" );
+
+                if ( bridcmp(myBrId, rpvi.brId) == 0)
                 {
                     Log_Check_Page ( "\t\tFound my version !\n" );
+                    myAbsPagePtr = rpvi.absPagePtr;
                     found = true;
-                    myAbsPagePtr = rpvi->absPagePtr;
-                    stolen = rpvi->stolen;
-                    if (!stolen)
-                        resolved = true;
-                }
-                else if (found && !resolved)
-                {
-
-                    if (rpvi->absPagePtr != myAbsPagePtr)
+                    stolen = rpvi.stolen;
+                    if ( ! stolen )
                     {
-                        CheckError("Diverging absPagePtr whereas stolen : my=%llx, rpvi(%llx:%llx)=%llx\n",
-                                   myAbsPagePtr, _brid(rpvi->brId), rpvi->absPagePtr);
-                    }
-                    if (!rpvi->stolen)
-                    {
-                        Log_Check_Page ( "\t\tStolen from here, final version.\n" );
                         resolved = true;
                     }
-                    else
-                    {
-                        Log_Check_Page ( "\t\tStolen from here.\n" );
-                    }
                 }
-                else
+                else if ( ! rpvi.stolen )
                 {
-                    if (rpvi->absPagePtr == myAbsPagePtr)
-                    {
-                        CheckError("Similar absPagePtr whereas stolen : my=%llx, rpvi(%llx:%llx)=%llx\n", myAbsPagePtr,
-                                   _brid(rpvi->brId), rpvi->absPagePtr);
-                    }
-
+                    lastNotStolenAbsPagePtr = rpvi.absPagePtr;
+                    lastNotStolenBranchRevId = rpvi.brId;
+                    resolved = true;
                 }
             }
+            Log_Check_Page("Final, myAbsPagePtr=%llx, lastNotStolenAbsPagePtr=%llx (brid=%llx:%llx), stolen=%d, found=%d, resolved=%d\n",
+                    myAbsPagePtr, lastNotStolenAbsPagePtr, _brid(lastNotStolenBranchRevId), stolen, found, resolved);
             if (!found)
             {
                 CheckError("Cound not find relPagePtr=%llx\n", relPagePtr);
             }
+            if (stolen && (myAbsPagePtr != lastNotStolenAbsPagePtr))
+            {
+                CheckError("Diverging absPagePtr whereas stolen : my=%llx, rpvi(%llx:%llx)=%llx\n", myAbsPagePtr,
+                           _brid(lastNotStolenBranchRevId), lastNotStolenAbsPagePtr);
+            }
             if (!resolved)
             {
                 CheckError("Unresolved relPagePtr=%llx\n", relPagePtr);
-                for (std::list<PersistentStore::AllocationStats::RelativePageRevInfos*>::iterator rpviter =
-                        rpi->revInfos.begin(); rpviter != rpi->revInfos.end(); rpviter++)
+                for (std::list<AllocationStats::RelativePageRevInfos>::iterator rpviter = rpi.revInfos.begin();
+                        rpviter != rpi.revInfos.end(); rpviter++)
                 {
-                    PersistentStore::AllocationStats::RelativePageRevInfos* rpvi = *rpviter;
-                    CheckError("\trelPagePtr=%llx, brId=%llx:%llx, abs=%llx, stolen=%s\n", relPagePtr,
-                               _brid(rpvi->brId), rpvi->absPagePtr, rpvi->stolen ? "true" : "false");
+                    AllocationStats::RelativePageRevInfos& rpvi = *rpviter;
+                    CheckError("\trelPagePtr=%llx, brId=%llx:%llx, abs=%llx, stolen=%s\n", relPagePtr, _brid(rpvi.brId),
+                               rpvi.absPagePtr, rpvi.stolen ? "true" : "false");
 
                 }
             }
         }
 #endif //  __XEM_PERSISTENCE_CHECK_BUILD_BRANCHPAGETABLE
-        return contentsCheck.errorCount == 0;
     }
 
     void
-    PersistentDocumentAllocator::checkPageInfos (ContentsCheck& contentsCheck, __ui64 *nbPagesPerAllocationProfile,
-                                                 __ui64& totalPages)
+    PersistentDocumentAllocator::checkPageInfos (AllocationStats& stats, __ui64 *nbPagesPerAllocationProfile, __ui64& totalPages)
     {
         mapMutex.lock();
         for (PageInfoIterator iter(*this); iter; iter++)
@@ -212,16 +199,14 @@ namespace Xem
 
     }
 
-    bool
-    PersistentDocumentAllocator::checkContents ()
+    void
+    PersistentDocumentAllocator::checkContents (AllocationStats& stats)
     {
         RevisionPage* revisionPage = revisionPageRef.getPage();
         CheckInfo(
                 "Checking revision contents for revisionPage=%p, revision=[%llx:%llx], nextRelativePagePtr=%llx, documentHeadPtr=%llx, " "indirection[firstPage=%llx, level=%x]\n",
                 revisionPage, _brid(getBranchRevId()), getNextRelativePagePtr(), revisionPage->documentHeadPtr,
                 revisionPage->indirection.firstPage, revisionPage->indirection.level);
-
-        ContentsCheck contentsCheck;
 
         __ui64 chunkSize = sizeof(FreeSegment);
         RelativePagePtr nextRelativePagePtr = getNextRelativePagePtr();
@@ -233,7 +218,7 @@ namespace Xem
         __ui64 totalPages = 0;
         memset(nbPagesPerAllocationProfile, 0, sizeof(__ui64) * getDocumentAllocationHeader().nbAllocationProfiles );
 
-        checkPageInfos(contentsCheck, nbPagesPerAllocationProfile, totalPages);
+        checkPageInfos(stats, nbPagesPerAllocationProfile, totalPages);
 
         CheckInfo("Total pages per profile : (total=%llu, nbFreeListHeaders=%x)\n", totalPages,
                   getDocumentAllocationHeader().nbAllocationProfiles);
@@ -883,7 +868,7 @@ namespace Xem
                     }
                     else
                     {
-                        PersistentStore::AllocationStats::PageStats* pStats = &(stats.pageTable[pageIndex]);
+                        AllocationStats::PageStats* pStats = &(stats.pageTable[pageIndex]);
                         stats.dumpPageReferences ( pStats );
                     }
 #endif                  
@@ -893,21 +878,21 @@ namespace Xem
                     CheckError("\tCould not get pageInfo for relPagePtr=%llx\n", relPagePtr);
                 }
 #if 0 // def __XEM_PERSISTENCE_CHECK_BUILD_BRANCHPAGETABLE
-                PersistentStore::AllocationStats::BranchPageTable::iterator rpiter = brTable->find ( relPagePtr );
+                AllocationStats::BranchPageTable::iterator rpiter = brTable->find ( relPagePtr );
                 if (rpiter == brTable->end() )
                 {
                     CheckError ( "Invalid relPagePtr=%llx\n", relPagePtr );
                     continue;
                 }
-                PersistentStore::AllocationStats::RelativePageInfos* rpi = rpiter->second;
+                AllocationStats::RelativePageInfos* rpi = rpiter->second;
                 if ( rpi->revInfos.size() == 0 )
                 {
                     CheckError ( "Invalid null rpvi for relPagePtr=%llx\n", relPagePtr );
                 }
-                for ( std::list<PersistentStore::AllocationStats::RelativePageRevInfos*>::iterator rpviter = rpi->revInfos.begin();
+                for ( std::list<AllocationStats::RelativePageRevInfos*>::iterator rpviter = rpi->revInfos.begin();
                         rpviter != rpi->revInfos.end(); rpviter++ )
                 {
-                    PersistentStore::AllocationStats::RelativePageRevInfos* rpvi = *rpviter;
+                    AllocationStats::RelativePageRevInfos* rpvi = *rpviter;
                     CheckError ( "\trelPagePtr=%llx, brId=%llx:%llx, abs=%llx, stolen=%s\n",
                             relPagePtr, _brid(rpvi->brId), rpvi->absPagePtr, rpvi->stolen ? "true" : "false" );
                 }
@@ -1019,7 +1004,6 @@ namespace Xem
                 nbKnownChunks, nbChunks, nbKnownChunks * chunkSize, nbChunks * chunkSize );
 
         free(chunks);
-        return contentsCheck.errorCount == 0;
     }
 }
 ;

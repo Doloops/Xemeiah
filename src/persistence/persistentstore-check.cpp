@@ -1,6 +1,7 @@
 #include <Xemeiah/persistence/persistentstore.h>
 #include <Xemeiah/persistence/persistentbranchmanager.h>
 #include <Xemeiah/persistence/persistentdocument.h>
+#include <Xemeiah/persistence/allocationstats.h>
 #include <Xemeiah/trace.h>
 
 #include <Xemeiah/persistence/format/keys.h>
@@ -108,7 +109,7 @@ namespace Xem
             case Check_Internals:
             {
                 checkFormat();
-                Log_Check ( "Check Step 1 :Basic in-mem structures check\n" );
+                Log_Check ( "Check Step 1 : Basic in-mem structures check\n" );
                 Log_Check ( "\tnoMansLand at %llu(0x%llx). Total alloced=%llu Mb.\n",
                         getSB()->noMansLand, getSB()->noMansLand,
                         (getSB()->noMansLand) / ( 1024 * 1024 ) );
@@ -162,10 +163,31 @@ namespace Xem
         // TODO : check SuperBlock sizes
     }
 
+    void
+    PersistentStore::buildBranchesHierarchy (BranchesHierarchy& branchesHierarchy)
+    {
+        SuperBlock* sb = getSB();
+        for (AbsolutePagePtr branchPagePtr = sb->lastBranch; branchPagePtr;)
+        {
+            AbsolutePageRef<BranchPage> branchPageRef = getAbsolutePage<BranchPage>(branchPagePtr);
+            BranchId branchId = branchPageRef.getPage()->branchId;
+            BranchRevId forkedFrom = branchPageRef.getPage()->forkedFrom;
+
+            branchesHierarchy[branchId].branchPagePtr = branchPagePtr;
+            branchesHierarchy[branchId].forkedFrom = forkedFrom;
+
+            if (forkedFrom.branchId)
+            {
+                branchesHierarchy[forkedFrom.branchId].branchesForkedFromRevision[forkedFrom.revisionId].push_back(
+                        branchId);
+            }
+            branchPagePtr = branchPageRef.getPage()->lastBranch;
+        }
+    }
+
     /*
      * Checking All Contents.
      */
-
     void
     PersistentStore::checkAllContents ()
     {
@@ -182,13 +204,21 @@ namespace Xem
         checkFreePageHeader(allStats);
         checkKeys(allStats);
 
-        for (AbsolutePagePtr branchPagePtr = sb->lastBranch; branchPagePtr;)
+        BranchesHierarchy branchesHierarchy;
+
+        buildBranchesHierarchy(branchesHierarchy);
+
+        for (BranchesHierarchy::iterator branchesIter = branchesHierarchy.begin();
+                branchesIter != branchesHierarchy.end(); branchesIter++)
         {
-            AbsolutePageRef<BranchPage> branchPageRef = getAbsolutePage<BranchPage>(branchPagePtr);
-            checkBranch(branchPagePtr, branchPageRef.getPage(), allStats);
-            // __incrementAndRelease ( branchPagePtr, branchPageRef.getPage()->lastBranch );
-            branchPagePtr = branchPageRef.getPage()->lastBranch;
+            Log("At branch : %llu, forkedFrom=[%llx,%llx], number of forked revisions : %lu\n", branchesIter->first,
+                _brid(branchesIter->second.forkedFrom), branchesIter->second.branchesForkedFromRevision.size());
+            if (branchesIter->second.forkedFrom.branchId == 0)
+            {
+                checkBranch(branchesIter->second.branchPagePtr, branchesHierarchy, allStats);
+            }
         }
+
         Log_Check ( "\n" );
         Log_Check ( "AllStats for sb=%p\n", getSB() );
         Log_Stats(Log_Check, allStats);
@@ -216,13 +246,13 @@ namespace Xem
         Log_Check ( "\tSuperBlock has nbFreePages=%llu\n", getSB()->nbFreePages );
         if (allStats.pages[PageType_FreePageList] + allStats.pages[PageType_FreePage] != getSB()->nbFreePages)
         {
-            Log_Check ( "Wrong number of free pages : SuperBlock has %llu, stats have %llu\n",
-                    getSB()->nbFreePages,
-                    allStats.pages[PageType_FreePageList] + allStats.pages[PageType_FreePage] );
+            allStats.addError("Wrong number of free pages : SuperBlock has %llu, stats have %llu\n",
+                              getSB()->nbFreePages,
+                              allStats.pages[PageType_FreePageList] + allStats.pages[PageType_FreePage]);
         }
 #endif
         bool doPutPagesInAttic = false;
-        AllocationStats::AbsolutePagePtrList unsetPages;
+        AbsolutePagePtrList unsetPages;
         allStats.checkUnsetPages(unsetPages);
         if (doPutPagesInAttic && unsetPages.size())
         {
@@ -236,6 +266,16 @@ namespace Xem
         fpHeader->ownFreePageList = NullPage;
         protectPage ( fpHeader );
 #endif
+        if ( !allStats.errors->empty() )
+        {
+            String result;
+            for ( std::list<String>::iterator iter = allStats.errors->begin() ; iter != allStats.errors->end() ; iter ++)
+            {
+                result += *iter;
+                result += "\n";
+            }
+            throwException(PersistenceCheckContentException, "Details : \n%s", result.c_str());
+        }
     }
 
     void
@@ -245,14 +285,12 @@ namespace Xem
         {
             AbsolutePageRef<KeyPage> keyPageRef = getAbsolutePage<KeyPage>(keyPagePtr);
             stats.referencePage("Check Keys", keyPagePtr & PagePtr_Mask, PageType_Key, false);
-            // __incrementAndRelease ( keyPagePtr, keyPage->nextPage );
             keyPagePtr = keyPageRef.getPage()->nextPage;
         }
         for (AbsolutePagePtr nsPagePtr = getSB()->namespacePage; nsPagePtr;)
         {
             AbsolutePageRef<NamespacePage> nsPageRef = getAbsolutePage<NamespacePage>(nsPagePtr);
             stats.referencePage("Check Namespaces", nsPagePtr & PagePtr_Mask, PageType_Key, false);
-            // __incrementAndRelease ( nsPagePtr, nsPage->nextPage );
             nsPagePtr = nsPageRef.getPage()->nextPage;
         }
     }
@@ -283,7 +321,6 @@ namespace Xem
                 PageType_FreePage,
                                     false);
             }
-            // releasePage ( fpHeader->currentFreedPageList );
         }
 
         if (fpHeader->ownFreePageList)
@@ -296,11 +333,8 @@ namespace Xem
                 stats.referencePage("ownFreePageList-Content", pageListRef.getPage()->pages[index], PageType_FreePage,
                                     false);
             }
-            // releasePage ( fpHeader->ownFreePageList );
         }
 
-//  for ( pageList = getAbsolutePage<PageList> ( fpHeader->firstFreePageList ) ;
-//    pageList ; pageList = getAbsolutePage<PageList> ( pageList->nextPage ) )
         for (AbsolutePagePtr pageListPtr = fpHeader->firstFreePageList; pageListPtr;)
         {
             AbsolutePageRef<PageList> pageListRef = getAbsolutePage<PageList>(pageListPtr);
@@ -318,7 +352,6 @@ namespace Xem
                 stats.referencePage("FreePageList-Content", pageListRef.getPage()->pages[index], PageType_FreePage,
                                     false);
             }
-            // __incrementAndRelease ( pageListPtr, pageList->nextPage );
             pageListPtr = pageListRef.getPage()->nextPage;
         }
 
@@ -334,7 +367,6 @@ namespace Xem
                 stats.referencePage("atticPageList-Content", pageListRef.getPage()->pages[index], PageType_FreePage,
                                     false);
             }
-            // __incrementAndRelease ( pageListPtr, pageList->nextPage );
             pageListPtr = pageListRef.getPage()->nextPage;
         }
         Log_Check ( "\tTotal free Page Lists : %llu, free Pages : %llu\n",
@@ -343,7 +375,7 @@ namespace Xem
     }
 
     void
-    PersistentStore::putPagesInAttic (AllocationStats::AbsolutePagePtrList& unsetPageList)
+    PersistentStore::putPagesInAttic (AbsolutePagePtrList& unsetPageList)
     {
         AbsolutePageRef<FreePageHeader> fpHeaderRef = getFreePageHeader();
         FreePageHeader* fpHeader = fpHeaderRef.getPage();
@@ -356,7 +388,6 @@ namespace Xem
             {
                 break;
             }
-            // __incrementAndRelease ( atticPageListPtr, atticPageList->nextPage );
         }
         if (atticPageListPtr == NullPage)
         {
@@ -374,8 +405,7 @@ namespace Xem
             syncPage(fpHeader);
         }
 
-        for (AllocationStats::AbsolutePagePtrList::iterator iter = unsetPageList.begin(); iter != unsetPageList.end();
-                iter++)
+        for (AbsolutePagePtrList::iterator iter = unsetPageList.begin(); iter != unsetPageList.end(); iter++)
         {
             AbsolutePagePtr absPagePtr = *iter;
             Log_Check ( "\tPutting %llx in attic.\n", absPagePtr );
@@ -397,21 +427,29 @@ namespace Xem
     }
 
     void
-    PersistentStore::checkBranch (AbsolutePagePtr branchPagePtr, BranchPage* branchPage, AllocationStats& _stats)
+    PersistentStore::checkBranch (AbsolutePagePtr branchPagePtr, BranchesHierarchy& hierarchy,
+                                  AllocationStats& fatherStats)
     {
+        AbsolutePageRef<BranchPage> branchPageRef = getAbsolutePage<BranchPage>(branchPagePtr);
+        BranchPage* branchPage = branchPageRef.getPage();
+
         Log_Branch ( "Branch page=0x%llx (%p)\n", branchPagePtr, branchPage );
         Log_Branch ( "\tbranchId=%llx, name='%s', forkedFrom=%llx:%llx, lastRevision=%llx\n",
                 branchPage->branchId, branchPage->name, _brid(branchPage->forkedFrom),
                 branchPage->lastRevisionPage );
-        AllocationStats stats(_stats);
+        AllocationStats stats(fatherStats);
         stats.referencePage("BranchPage", branchPagePtr, PageType_Branch, false);
         stats.initBranchPageTable();
+        if (branchPage->forkedFrom.branchId != 0)
+        {
+            stats.getBranchPageTable()->swap(*fatherStats.getBranchPageTable());
+        }
 
+        std::list<AbsolutePagePtr> revisionPagePtrList;
         for (AbsolutePagePtr revPagePtr = branchPage->lastRevisionPage; revPagePtr;)
         {
+            revisionPagePtrList.push_front(revPagePtr);
             AbsolutePageRef<RevisionPage> revPageRef = getAbsolutePage<RevisionPage>(revPagePtr);
-            checkRevision(revPagePtr, revPageRef.getPage(), stats);
-            // __incrementAndRelease ( revPagePtr, revPage->lastRevisionPage );
             revPagePtr = revPageRef.getPage()->lastRevisionPage;
 #ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT        
             Log_Rev ( "my pageReferenceCtxtNb=%llu -> %llu MBytes\n",
@@ -419,31 +457,47 @@ namespace Xem
 #endif // __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT        
         }
         Log_Branch ( "BranchStats for %llx (at %llx)\n", branchPage->branchId, branchPagePtr );
-        Log_Stats(Log_Branch, stats);
 
-        // sleep ( 1000 );
-
-        for (AbsolutePagePtr revPagePtr = branchPage->lastRevisionPage; revPagePtr;)
+        for (std::list<AbsolutePagePtr>::iterator revisionPageIterator = revisionPagePtrList.begin();
+                revisionPageIterator != revisionPagePtrList.end(); revisionPageIterator++)
         {
-            AbsolutePageRef<RevisionPage> revPageRef = getAbsolutePage<RevisionPage>(revPagePtr);
+            AbsolutePageRef<RevisionPage> revPageRef = getAbsolutePage<RevisionPage>(*revisionPageIterator);
+
+            PersistentDocument* pDoc = getPersistentBranchManager().instanciateTemporaryPersistentDocument(
+                    revPageRef.getPagePtr());
+            AssertBug(pDoc, "Could not create a persistent document at page %llx\n", revPageRef.getPagePtr());
+
+            checkRevision(revPageRef.getPagePtr(), revPageRef.getPage(), pDoc, stats);
             Log_Branch ( "Checking contents for rev=%llx:%llx\n", _brid(revPageRef.getPage()->branchRevId) );
+
+            pDoc->getPersistentDocumentAllocator().checkRelativePages(stats);
+            pDoc->getPersistentDocumentAllocator().checkContents(stats);
+            delete (pDoc);
+
+            RevisionId revisionId = revPageRef.getPage()->branchRevId.revisionId;
+            BranchHierarchy& branchHierarchy = hierarchy[branchPage->branchId];
+            BranchesForkFromRevision::iterator found = branchHierarchy.branchesForkedFromRevision.find(revisionId);
+            if (found != branchHierarchy.branchesForkedFromRevision.end())
             {
-                PersistentDocument* pDoc = getPersistentBranchManager().instanciateTemporaryPersistentDocument(
-                        revPagePtr);
-                pDoc->getPersistentDocumentAllocator().checkRelativePages(stats);
-                pDoc->getPersistentDocumentAllocator().checkContents();
-                delete (pDoc);
-                pDoc = NULL;
+                BranchesList& branchesList = found->second;
+                for (BranchesList::iterator branchIdIter = branchesList.begin(); branchIdIter != branchesList.end();
+                        branchIdIter++)
+                {
+                    BranchId childBranchId = *branchIdIter;
+                    BranchHierarchy& childBranchHierarchy = hierarchy[childBranchId];
+                    Log_Branch("Checking forked branch %llx from [%llx:%llx]\n", childBranchId, branchPage->branchId, revisionId);
+                    checkBranch(childBranchHierarchy.branchPagePtr, hierarchy, stats);
+                }
             }
-            // __incrementAndRelease ( revPagePtr, revPage->lastRevisionPage );
-            revPagePtr = revPageRef.getPage()->lastRevisionPage;
+
         }
+        Log_Stats(Log_Branch, stats);
 
     }
 
     void
-    PersistentStore::checkRevision (AbsolutePagePtr revPagePtr, RevisionPage* revPage, AllocationStats& _stats)
-    // Note : this can be the checkRevision() code also...
+    PersistentStore::checkRevision (AbsolutePagePtr revPagePtr, RevisionPage* revPage, PersistentDocument* pDoc,
+                                    AllocationStats& _stats)
     {
         AllocationStats stats(_stats);
         stats.referencePage("RevisionPage", revPage->branchRevId, NullPage, revPagePtr, PageType_Revision, false);
@@ -461,21 +515,8 @@ namespace Xem
         Log_Rev ( "\tIndirection page=%llx, level=%u, nextRelativePagePtr=%llx :\n",
                 revPage->indirection.firstPage, revPage->indirection.level,
                 revPage->documentAllocationHeader.nextRelativePagePtr );
-        if (1)
-        {
-            PersistentDocument* pDoc = getPersistentBranchManager().instanciateTemporaryPersistentDocument(revPagePtr);
-            if (pDoc)
-            {
-                pDoc->getPersistentDocumentAllocator().checkPages(stats);
-                // pDoc->checkContents ( stats );
-                delete (pDoc);
-                pDoc = NULL;
-            }
-            else
-            {
-                Bug(".");
-            }
-        }
+
+        pDoc->getPersistentDocumentAllocator().checkPages(stats);
 #ifdef __XEM_PERSISTENTSTORE_HAS_PAGEREFERENCECTXT        
         Log_Rev ( "my pageReferenceCtxtNb=%llu -> %llu MBytes\n",
                 stats.pageReferenceCtxtNb, (stats.pageReferenceCtxtNb * sizeof(AllocationStats::PageReferenceCtxt)) >> 20 );
@@ -495,12 +536,12 @@ namespace Xem
             }
         if (revPage->ownedPages != totalOwned)
         {
-            Warn("Wrong number of owned pages : revPage %llx:%llx has %llu owned pages, counted %llu\n",
+            stats.addError("Wrong number of owned pages : revPage %llx:%llx has %llu owned pages, counted %llu\n",
                  _brid(revPage->branchRevId), revPage->ownedPages, totalOwned);
         }
         if (stats.getTotalPages() != revPage->ownedPages)
         {
-            Warn("Wrong ownedPages number : revPage %llx:%llx has %llu, but counted %llu.\n",
+            stats.addError("Wrong ownedPages number : revPage %llx:%llx has %llu, but counted %llu.\n",
                  _brid(revPage->branchRevId), revPage->ownedPages, stats.getTotalPages());
         }
         // checkFreeList ( revPage, &(revPage->freeListHeader) );

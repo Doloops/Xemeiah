@@ -60,6 +60,8 @@ public class Document extends org.xemeiah.dom.Element implements org.w3c.dom.Doc
 
     public native void reopen();
 
+    public native String createForkBranch(String branchName, String branchFlags);
+    
     @Override
     public short getNodeType()
     {

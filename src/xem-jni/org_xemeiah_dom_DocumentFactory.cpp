@@ -21,6 +21,11 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
+#if 0
+#undef Log
+#define Log Info
+#endif
+
 JNIEXPORT void JNICALL
 Java_org_xemeiah_dom_DocumentFactory_cleanUp (JNIEnv *ev, jobject jFactory)
 {
@@ -77,18 +82,31 @@ Java_org_xemeiah_dom_DocumentFactory_open (JNIEnv *ev, jobject jFactory, jstring
     XEMJNI_POSTLOG_OPS(delete (persistentStore));
 }
 
-JNIEXPORT void JNICALL
-Java_org_xemeiah_dom_DocumentFactory_createBranch (JNIEnv *ev, jobject jFactory, jstring jBranchName,
-                                                   jstring jBranchFlags)
+JNIEXPORT jstring JNICALL
+Java_org_xemeiah_dom_DocumentFactory_doCreateBranch (JNIEnv *ev, jobject jFactory, jstring jBranchName,
+                                                     jstring jBranchFlags)
 {
     XEMJNI_PROLOG
     {
         Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
         Xem::String branchName = jstring2XemString(ev, jBranchName);
-        Xem::BranchFlags branchFlags = 0;
-        store->getBranchManager().createBranch(branchName, branchFlags);
+        Xem::String branchFlags = jstring2XemString(ev, jBranchFlags);
+
+        Xem::BranchRevId forkedFromBrId =
+            { 0, 0 };
+        Xem::BranchId newBranchId = store->getBranchManager().createBranch(branchName, forkedFromBrId, branchFlags);
+        if (!newBranchId)
+        {
+            throwException(Xem::RuntimeException, "Could not create branch '%s' from %llx:%llx (flags=%s)\n",
+                           branchName.c_str(), _brid(forkedFromBrId), branchFlags.c_str());
+        }
+        Xem::String newBranchName = store->getBranchManager().getBranchName(newBranchId);
+        Log("Created branch '%s' (%llx => %s) (from [%llx:%llx], flags=%s)\n", branchName.c_str(), newBranchId,
+                newBranchName.c_str(), _brid(forkedFromBrId), branchFlags.c_str());
+        return ev->NewStringUTF(newBranchName.c_str());
     }
     XEMJNI_POSTLOG;
+    return NULL;
 }
 
 JNIEXPORT void JNICALL
@@ -112,40 +130,48 @@ Java_org_xemeiah_dom_DocumentFactory_close (JNIEnv *ev, jobject jFactory)
     XEMJNI_POSTLOG;
 }
 
+JNIEXPORT void JNICALL
+Java_org_xemeiah_dom_DocumentFactory_check (JNIEnv *ev, jobject jFactory)
+{
+    XEMJNI_PROLOG
+    {
+        Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
+        Xem::PersistentStore* pStore = dynamic_cast<Xem::PersistentStore*>(store);
+        if (pStore)
+        {
+            Log("Checking PersistentStore at %p\n", pStore);
+            pStore->check(Xem::PersistentStore::Check_AllContents);
+        }
+    }
+    XEMJNI_POSTLOG;
+}
+
 JNIEXPORT jobject JNICALL
 Java_org_xemeiah_dom_DocumentFactory_newStandaloneDocument (JNIEnv *ev, jobject jFactory, jstring jBranchName,
-                                                            jstring jBranchFlags)
+                                                            jstring jOpenFlags)
 {
-    Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
-
-    jboolean isCopy = false;
-    const char* cBranch = ev->GetStringUTFChars(jBranchName, &isCopy);
-    const char* cFlags = ev->GetStringUTFChars(jBranchFlags, &isCopy);
-
-    Xem::Document* document = NULL;
-    try
+    XEMJNI_PROLOG
     {
+        Xem::Store* store = jDocumentFactory2Store(ev, jFactory);
+
+        Xem::String branchName = jstring2XemString(ev, jBranchName);
+        Xem::String openFlags = jstring2XemString(ev, jOpenFlags);
+
         Xem::KeyId roleId = store->getKeyCache().getBuiltinKeys().nons.none();
-        document = store->getBranchManager().openDocument(cBranch, cFlags, roleId);
+        Xem::Document* document = store->getBranchManager().openDocument(branchName, openFlags, roleId);
+
+        document->incrementRefCount();
+
+        Xem::XProcessor* xprocessor = new Xem::XProcessor(*store);
+        xprocessor->installModule("http://www.xemeiah.org/ns/xem");
+
+        jobject jDocument = createJDocument(ev, jFactory, document, xprocessor);
+
+        Log("DocumentFactory : jFactory=%p, new document=%p, jDocument=%p\n", jFactory, document, jDocument);
+        return jDocument;
     }
-    catch (Xem::Exception* e)
-    {
-        ev->ReleaseStringUTFChars(jBranchName, cBranch);
-        ev->ReleaseStringUTFChars(jBranchFlags, cFlags);
-        ev->ThrowNew(getXemJNI().javaLangRuntimeException.getClass(ev), "Could not open document !");
-        return NULL;
-    }
-    ev->ReleaseStringUTFChars(jBranchName, cBranch);
-    ev->ReleaseStringUTFChars(jBranchFlags, cFlags);
-    document->incrementRefCount();
-
-    Xem::XProcessor* xprocessor = new Xem::XProcessor(*store);
-    xprocessor->installModule("http://www.xemeiah.org/ns/xem");
-
-    jobject jDocument = createJDocument(ev, jFactory, document, xprocessor);
-
-    Log("DocumentFactory : jFactory=%p, new document=%p, jDocument=%p\n", jFactory, document, jDocument);
-    return jDocument;
+    XEMJNI_POSTLOG;
+    return NULL;
 }
 
 JNIEXPORT jobject JNICALL
