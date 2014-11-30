@@ -83,7 +83,7 @@ namespace Xem
         /**
          * Document partial mmapping of the Store file.
          * The mapping is quite similar to the Store one.
-         * THis mapping is based on the *relative* page address.
+         * This mapping is based on the *relative* page address.
          */
         void** areas;
         __ui64 areasAlloced;
@@ -461,7 +461,5 @@ namespace Xem
     virtual bool checkContents ( ) { return true; }
   };
 }
-;
 
 #endif // KERN_DOCUMENTALLOCATOR
-

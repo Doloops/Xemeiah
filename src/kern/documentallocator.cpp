@@ -62,8 +62,10 @@ namespace Xem
     DocumentAllocator::getAllocationProfile (ElementRef& father, KeyId keyId)
     {
         AssertBug(getDocumentAllocationHeader().nbAllocationProfiles, "No free list header defined ???\n");
-        if (getDocumentAllocationHeader().nbAllocationProfiles == 1)
+        if (true || getDocumentAllocationHeader().nbAllocationProfiles == 1)
+        {
             return 0;
+        }
 
         AllocationProfile fatherProfile = getAllocationProfile(father.getElementPtr());
         AllocationProfile allocProfile = fatherProfile;
@@ -95,16 +97,14 @@ namespace Xem
     __ui32
     DocumentAllocator::getFirstFreeSegmentOffset (RelativePagePtr relPagePtr)
     {
-        if (!__assertDocumentHasCoalesce)
-            Bug(".");
+        AssertBug(__assertDocumentHasCoalesce, "! DocumentHasCoalesce !");
         return PageSize * 2;
     }
 
     void
     DocumentAllocator::setFirstFreeSegmentOffset (RelativePagePtr relPagePtr, __ui32 offset)
     {
-        if (!__assertDocumentHasCoalesce)
-            Bug(".");
+        AssertBug(__assertDocumentHasCoalesce, "! DocumentHasCoalesce !");
         Log_GF ( "[NOTHING TO DO] setFirstFreeSegmentOffset() relPagePtr(page=%llx)= %x\n", relPagePtr, offset );
     }
 
@@ -117,7 +117,8 @@ namespace Xem
         }
         if (size > SegmentSizeMax)
         {
-            throwException(Exception, "Asked segment size is too large : 0x%llx (maximum : 0x%llx)\n", size, SegmentSizeMax);
+            throwException(Exception, "Asked segment size is too large : 0x%llx (maximum : 0x%llx)\n", size,
+                           SegmentSizeMax);
         }
         /*
          * Normalize size : we always allocate multiples of FreeSegment, ie 32 bytes of data
@@ -133,7 +134,7 @@ namespace Xem
         lockMutex_Alloc();
 
         /**
-         * First, tro to use holes to allocate this segment
+         * First, try to use holes to allocate this segment
          */
         SegmentPtr ptr = getFreeSegmentPtrFromHoles(size, allocProfile);
 
@@ -170,9 +171,9 @@ namespace Xem
     DocumentAllocator::markSegmentAsFree (SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile)
     {
 #if PARANOID
-        if ( ! isWritable() )
+        if (!isWritable())
         {
-            throwException ( Exception, "Document not writable !!!\n" );
+            throwException(Exception, "Document not writable !!!\n");
         }
 #endif
         Log_GF ( "freeSegment : freeing segPtr=0x%llx, size=0x%llx, allocProfile=0x%x\n",
@@ -180,11 +181,9 @@ namespace Xem
 
         size = alignSize(size);
 
-#if PARANOID
         AssertBug ( (segPtr % sizeof(FreeSegment)) == 0,
                 "Invalid segptr %p (not aligned with FreeSegment %lu)\n",
                 (void*) segPtr, (unsigned long) sizeof(FreeSegment) );
-#endif
 
         Log_GF ( "freeSegment : seg=0x%llx, size=%llu (0x%llx), profile=%x\n",
                 segPtr, size, size, allocProfile );
@@ -193,7 +192,9 @@ namespace Xem
          * First, compute coalescion for this segment
          */
         if (__assertDocumentHasCoalesce)
+        {
             coalesceFreeSegment(segPtr, size, allocProfile);
+        }
 
         /*
          * Then, update the per-level linked-list of free segments
@@ -234,7 +235,9 @@ namespace Xem
          * Finally, update the in-page linked-list of free segments accordingly
          */
         if (__assertDocumentHasCoalesce)
+        {
             insertFreeSegmentInPageList(segPtr, size, freeSeg, allocProfile);
+        }
     }
 
     void
@@ -346,7 +349,9 @@ namespace Xem
          */
         __ui64 pageNumber = size >> InPageBits;
         if (size % PageSize)
+        {
             pageNumber++;
+        }
 
         __ui64 allocedPageNumber = 0;
 
@@ -384,7 +389,9 @@ namespace Xem
         if (remainsSize)
         {
             if (isDocumentEmpty)
+            {
                 remainsSize -= sizeof(FreeSegment);
+            }
             SegmentPtr remainsStart = ptr + size;
             markSegmentAsFree(remainsStart, remainsSize, allocProfile);
         }
@@ -394,7 +401,8 @@ namespace Xem
     void
     DocumentAllocator::coalesceFreeSegment (SegmentPtr& segPtr, __ui64& size, AllocationProfile allocProfile )
     {
-        if ( ! __assertDocumentHasCoalesce ) Bug ( "." );
+        AssertBug( __assertDocumentHasCoalesce, "! DocumentHasCoalesce");
+
         /*
          * First, we have to find the first segment in page, and compute collations
          */
@@ -456,8 +464,7 @@ namespace Xem
     DocumentAllocator::insertFreeSegmentInPageList (SegmentPtr segPtr, __ui64 size, FreeSegment* freeSeg,
                                                     AllocationProfile allocProfile)
     {
-        if (!__assertDocumentHasCoalesce)
-            Bug(".");
+        AssertBug(__assertDocumentHasCoalesce, "! DocumentHasCoalesce !");
 
         RelativePagePtr basePagePtr = segPtr & PagePtr_Mask;
         __ui32 freeSegOffset = segPtr - basePagePtr;
@@ -489,7 +496,7 @@ namespace Xem
                 if (previousInPage->nextInPage > freeSegOffset)
                 {
                     AssertBug(segmentOffset < freeSegOffset, "Too late ! segOffset=%x, nextInPage=%x, freeSeg=%x\n",
-                              segmentOffset, previousInPage->nextInPage, freeSegOffset);
+                            segmentOffset, previousInPage->nextInPage, freeSegOffset);
                     alter(freeSeg);
                     freeSeg->nextInPage = previousInPage->nextInPage;
                     protect(freeSeg);
@@ -522,28 +529,27 @@ namespace Xem
                     this, allocProfile, level, fslHeader->firstFreeHole[level] );
             FreeSegment* lastFreeSeg = getSegment<FreeSegment, Read>(segPtr);
 #if PARANOID
-            if ( lastFreeSeg->dummy != FreeSegment_dummy )
+            if (lastFreeSeg->dummy != FreeSegment_dummy)
             {
-                Warn ( "Document (this=%p) : at segPtr=%llx, "
-                        "Invalid hole ! stored=0x%x, real dummy=0x%x\n",
-                        this, segPtr,lastFreeSeg->dummy, FreeSegment_dummy );
-                Warn ( "\tDocument first free at %x\n",
-                        getFirstFreeSegmentOffset(segPtr & PagePtr_Mask) );
-                Warn ( "\tDump : \n" );
-                fprintf ( stderr, "0x8%llx : ", segPtr + 0 );
-                for ( __ui64 x = 0; x < 64; x++ )
+                Warn("Document (this=%p) : at segPtr=%llx, "
+                     "Invalid hole ! stored=0x%x, real dummy=0x%x\n",
+                     this, segPtr, lastFreeSeg->dummy, FreeSegment_dummy);
+                Warn("\tDocument first free at %x\n", getFirstFreeSegmentOffset(segPtr & PagePtr_Mask));
+                Warn("\tDump : \n");
+                fprintf( stderr, "0x8%llx : ", segPtr + 0);
+                for (__ui64 x = 0; x < 64; x++)
                 {
-                    if ( x % 8 == 0 && x )
+                    if (x % 8 == 0 && x)
                     {
-                        fprintf ( stderr, "\n" );
-                        if ( x != 64 - 8 ) fprintf ( stderr, "0x8%llx : ", segPtr + x );
+                        fprintf( stderr, "\n");
+                        if (x != 64 - 8)
+                            fprintf( stderr, "0x8%llx : ", segPtr + x);
                     }
-                    fprintf ( stderr, "%8x ",
-                            (* getSegment<__ui32,Read> ( segPtr + x, sizeof(__ui32) ) ) );
+                    fprintf( stderr, "%8x ", (*getSegment<__ui32, Read>(segPtr + x, sizeof(__ui32) )));
                 }
 
-                Bug ( "This is considered fatal.\n" );
-                Warn ( "Getting segment from free pages instead...\n" );
+                Bug("This is considered fatal.\n");
+                Warn("Getting segment from free pages instead...\n");
                 return NullPtr;
             }
 #endif // PARANOID
@@ -585,12 +591,12 @@ namespace Xem
         {
             segPtr = getFreeSegmentPtrFromHoles(size, allocProfile, fslHeader, freeLevel);
             if (segPtr)
+            {
                 return segPtr;
+            }
         }
         segPtr = getFreeSegmentPtrFromHoles(size, allocProfile, fslHeader, FreeSegmentsLevelHeader::levelOther);
         return segPtr;
     }
 
 }
-;
-

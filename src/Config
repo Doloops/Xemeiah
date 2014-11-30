@@ -24,12 +24,12 @@ ifeq ($(XemHasExtensions),true)
 endif
     XemHasJNI          = true
 
-    XemCompileAsLib    = true
+    XemCompileAsLib    = false
     XemExternalizeLibs = false
 
     Profile = Debug
     Profile = DebugPerf
-#    Profile = ProfilePerf
+    Profile = ProfilePerf
 #    Profile = Perf
 #    Profile = HighPerfSpace
 #    Profile = HighPerf

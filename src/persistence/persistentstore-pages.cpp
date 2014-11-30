@@ -8,13 +8,14 @@
 #include <errno.h>
 #include <string.h>
 
-#if 1
-#define Log_MapPage_Area Info
-#define Log_MapPage(...) do{} while(0)
-#else
+#ifdef __XEM_PERSISTENCE_LOG_PAGES
 #define Log_MapPage_Area(...) Info("[MAP_AREA]" __VA_ARGS__)
 #define Log_MapPage(...) Info("[MAP_PAGE]" __VA_ARGS__)
+#else
+#define Log_MapPage_Area(...) Debug("[MAP_AREA]" __VA_ARGS__)
+#define Log_MapPage(...) Debug("[MAP_PAGE]" __VA_ARGS__)
 #endif
+
 #define Log_ChunkMap Log
 #define Log_MapPage_Debug Debug
 #define Log_GetFreePage Debug
@@ -44,14 +45,12 @@ namespace Xem
             Bug(".");
             return NULL;
         }
-        if (((__ui64 ) ptr) % PageSize)
-        {
-            Log_MapPage("MMap pointer is not aligned to PageSize. That may not hurt much...\n");
-            Bug(".");
-            return NULL;
-        }
+        AssertBug(((__ui64 ) ptr) % PageSize == 0, "MMap pointer is not aligned to PageSize. That may not hurt much...\n");
+
         totalMapped++;
         totalCurrentlyMapped++;
+
+#ifdef __XEM_PERSISTENCE_LOG_PAGES
         if (totalMapped % 10 == 0)
         {
             Log_MapPage("mapArea : offset=%llx, length=%llx, ptr=%p\n", offset, length, ptr);
@@ -59,6 +58,7 @@ namespace Xem
             Log_MapPage_Area("MapStatus : totalMapped=%llu, totalCurrentlyMapped=%llu\n",
                     totalMapped, totalCurrentlyMapped);
         }
+#endif // __XEM_PERSISTENCE_LOG_PAGES
 
         if (madvise(ptr, length, MADV_RANDOM) == -1)
         {
@@ -76,10 +76,12 @@ namespace Xem
             Bug("Could not munmap area=%p, size=0x%llx, err=%d:%s\n", area, length, errno, strerror(errno));
         }
         totalCurrentlyMapped--;
+#ifdef __XEM_PERSISTENCE_LOG_PAGES
         if (totalCurrentlyMapped % 10 == 0)
         {
             Log_MapPage_Area("MapStatus : totalMapped=%llu, totalCurrentlyMapped=%llu\n", totalMapped, totalCurrentlyMapped);
         }
+#endif // __XEM_PERSISTENCE_LOG_PAGES
     }
 
     void*
@@ -101,13 +103,14 @@ namespace Xem
                     chunkIdx, chunkPtr, absPagePtr, (unsigned long) chunkMap.size() );
             iter = chunkMap.find(chunkIdx);
             AssertBug(iter != chunkMap.end(), "Fail !\n");
-
+#ifdef __XEM_PERSISTENCE_LOG_PAGES
             if (chunkMap.size() % 10 == 0)
             {
                 __ui64 chunkMapSize = chunkMap.size();
                 __ui64 mappedChunkSize = (chunkMapSize << ChunkInfo::PageChunk_Index_Bits) >> 20;
-                Info("[CHUNK] Now chunkMap.size()=%llu, (total size=%llu Mb)\n", chunkMapSize, mappedChunkSize);
+                Log_MapPage("[CHUNK] Now chunkMap.size()=%llu, (total size=%llu Mb)\n", chunkMapSize, mappedChunkSize);
             }
+#endif // __XEM_PERSISTENCE_LOG_PAGES
         }
         else
         {
@@ -118,11 +121,12 @@ namespace Xem
         Log_MapPage("CHUNK REF : pagePtr=0x%llx, (chunkIdx=0x%llx, chunkPtr=0x%llx), page=%p, refCount=0x%llx\n",
                     absPagePtr, chunkIdx, chunkPtr, iter->second.page, iter->second.refCount);
 
+#ifdef __XEM_PERSISTENCE_LOG_PAGES
         if (iter->second.refCount > 60)
         {
             Log_MapPage("Very large number of refCounts for this page !\n");
         }
-
+#endif // __XEM_PERSISTENCE_LOG_PAGES
         return (void*) (((__ui64 ) chunk) + (absPagePtr & ChunkInfo::PageChunk_Mask));
     }
 
@@ -186,12 +190,6 @@ namespace Xem
         chunkMap.erase(iter);
 
         unmapArea(page, ChunkInfo::PageChunk_Size);
-#if 0
-        if (munmap(page, ChunkInfo::PageChunk_Size) == -1)
-        {
-            Bug("Could not unmap page %llx : %p. Error %d:%s\n", absPagePtr, page, errno, strerror(errno));
-        }
-#endif
 
         Log_ChunkMap ( "[CHUNK] Released chunk %llx for absPagePtr=%llx => %p. Nb chunks=%lu\n",
                 chunkIdx, absPagePtr, page, (unsigned long) chunkMap.size() );
@@ -207,9 +205,8 @@ namespace Xem
         if (!fpHeaderRef.getPage()->ownFreePageList)
         {
             AbsolutePagePtr pageListPtr = getFreePageList(false);
-            //	PageList* pageList = getAbsolutePage<PageList> ( pageListPtr );
             alterPage(fpHeaderRef.getPage());
-            fpHeaderRef.getPage()->ownFreePageList = pageListPtr; // getAbsolutePagePtr ( pageList );
+            fpHeaderRef.getPage()->ownFreePageList = pageListPtr;
             protectPage(fpHeaderRef.getPage());
             Log_GetFreePage( "New own freePageList=%llx\n", fpHeaderRef.getPage()->ownFreePageList );
         }
@@ -342,7 +339,7 @@ namespace Xem
             freePages(freePageList.getPage()->pages, freePageList.getPage()->number);
         }
         freePage(freePageListPtr);
-        // releasePage(freePageListPtr);
+// releasePage(freePageListPtr);
         return true;
     }
 
@@ -465,8 +462,8 @@ namespace Xem
     {
         lockSB();
         AssertBug(getSB()->nbFreePages >= count,
-                  "Superblock has not that much free pages ! count=%llx, getSB()->nbFreePages=%llx\n", count,
-                  getSB()->nbFreePages);
+                "Superblock has not that much free pages ! count=%llx, getSB()->nbFreePages=%llx\n", count,
+                getSB()->nbFreePages);
         getSB()->nbFreePages -= count;
         unlockSB();
     }

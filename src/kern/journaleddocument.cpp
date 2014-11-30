@@ -8,8 +8,8 @@
 
 #include <Xemeiah/auto-inline.hpp>
 
-#define Log_Journal Info
-#define Log_Journal_Apply Info
+#define Log_Journal Log
+#define Log_Journal_Apply Log
 #define Warn_Journal_Apply Warn
 
 namespace Xem
