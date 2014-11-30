@@ -113,7 +113,7 @@ namespace Xem
 
   void NodeFlow::processSequence ( XPath& xpath )
   {
-    Bug ( "Not implemented : we shall fallback to a standard serialization approach here !\n" )
+    Bug ( "Not implemented : we shall fallback to a standard serialization approach here !\n" );
   }
 
 #ifdef __XEM_NODEFLOW_HAS_CDATA_SECTION_ELEMENTS    

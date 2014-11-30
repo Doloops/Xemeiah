@@ -1,7 +1,7 @@
 #include <Xemeiah/kern/document.h>
 #include <Xemeiah/dom/documentmeta.h>
 
-#define Log_DocumentHPP Debug
+#define Log_DocumentHPP Log
 
 namespace Xem
 {
@@ -24,11 +24,17 @@ namespace Xem
         ElementId elementId;
         // LockMutex ( Alloc );
         AssertBug(getDocumentHead().firstReservedElementId <= getDocumentHead().lastReservedElementId,
-                  "Reserved elements out of bounds.\n");
+                "Reserved elements out of bounds.\n");
+
+        Log_DocumentHPP("At document [%llx:%llx], Current Free Element Ids are : %llx => %llx\n",
+                        _brid(getBranchRevId()), getDocumentHead().firstReservedElementId, getDocumentHead().lastReservedElementId);
+
         if (getDocumentHead().firstReservedElementId == getDocumentHead().lastReservedElementId)
         {
             ElementId firstId, lastId;
             store.reserveElementIds(firstId, lastId);
+
+            Log_DocumentHPP("At document [%llx:%llx], Reserved Free Element Ids : %llx => %llx\n",_brid(getBranchRevId()), firstId, lastId);
 
             alterDocumentHead();
             getDocumentHead().firstReservedElementId = firstId;
@@ -36,7 +42,7 @@ namespace Xem
             protectDocumentHead();
         }
         AssertBug(getDocumentHead().firstReservedElementId < getDocumentHead().lastReservedElementId,
-                  "Reserved elements did not work.\n");
+                "Reserved elements did not work.\n");
         alterDocumentHead();
         getDocumentHead().firstReservedElementId++;
         protectDocumentHead();
@@ -58,9 +64,9 @@ namespace Xem
         AssertBug(_roleId, "Null roleId provided !\n");
         AssertBug(roleId, "Null roleId stored !\n");
         AssertBug(roleId == getKeyCache().getBuiltinKeys().nons.none(),
-                  "Document already has a role %s (%x) set, could not set %s (%x) !\n",
-                  getStore().getKeyCache().dumpKey(roleId).c_str(), roleId,
-                  getStore().getKeyCache().dumpKey(_roleId).c_str(), _roleId);
+                "Document already has a role %s (%x) set, could not set %s (%x) !\n",
+                getStore().getKeyCache().dumpKey(roleId).c_str(), roleId,
+                getStore().getKeyCache().dumpKey(_roleId).c_str(), _roleId);
         roleId = _roleId;
     }
 
@@ -81,7 +87,7 @@ namespace Xem
     __INLINE void
     Document::processDomEvent (XProcessor& xproc, DomEventType eventType, NodeRef& nodeRef)
     {
-        Log ("XProc=%p, eventType=%x, nodeRef=%s\n", &xproc, eventType, nodeRef.getKey().c_str());
+        Log("XProc=%p, eventType=%x, nodeRef=%s\n", &xproc, eventType, nodeRef.getKey().c_str());
         DocumentMeta documentMeta = getDocumentMeta();
         if (!documentMeta.getChild())
         {

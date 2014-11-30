@@ -223,9 +223,9 @@ namespace Xem
         String key;
         if (getNamespaceId(keyId))
         {
-            key += "(";
+            key += "{";
             key += getNamespaceURL(getNamespaceId(keyId));
-            key += "):";
+            key += "}";
         }
         key += getLocalKey(getLocalKeyId(keyId));
         return key;

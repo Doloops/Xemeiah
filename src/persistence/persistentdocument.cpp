@@ -337,6 +337,15 @@ namespace Xem
          * Update reference
          */
         getStore().getBranchManager().updateDocumentReference(this, initialBranchRevId, getBranchRevId());
+
+        /**
+         * First thing, we really wish to reset our elementIds provided !
+         */
+        authorizeWriteDocumentHead();
+        alterDocumentHead();
+        getDocumentHead().firstReservedElementId = 0;
+        getDocumentHead().lastReservedElementId = 0;
+        protectDocumentHead();
     }
 
     void

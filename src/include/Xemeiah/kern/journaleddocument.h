@@ -40,6 +40,8 @@ namespace Xem
      * Protect journal head
      */
     virtual void protectJournalHead () = 0;
+
+    void applyJournalCreateElement(XProcessor& xproc, JournalItem* journalItem, ElementRef& baseElement, ElementRef& sourceAltElement);
   public:
     /**
      * Virtual destructor

@@ -264,12 +264,12 @@ namespace Xem
 
         Info("[JOURNAL] Journal reset for forked brId=[%llx:%llx]\n", _brid(branchRevId));
 
-#if 0    
+#if 0
         /*
          * We do not wish to share reserved ElementIds with the forked branch, so make them both zero
          */
-        revPage->documentHead.firstReservedElementId = 0;
-        revPage->documentHead.lastReservedElementId = 0;
+        revPageRef.getPage()->documentHead.firstReservedElementId = 0;
+        revPageRef.getPage()->documentHead.lastReservedElementId = 0;
 #endif
 
         getPersistentStore().protectPage(revPageRef.getPage());

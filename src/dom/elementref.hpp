@@ -162,9 +162,9 @@ namespace Xem
             String s;
             if (prefixId == getKeyCache().getBuiltinKeys().nons.xmlns() || prefixId == 0)
             {
-                s += "(";
+                s += "{";
                 s += getKeyCache().getNamespaceURL(KeyCache::getNamespaceId(keyId));
-                s += ")";
+                s += "}";
             }
             else
             {
@@ -389,7 +389,7 @@ namespace Xem
     __INLINE void
     ElementRef::setText (const char* text, DomTextSize textSize)
     {
-        AssertBug(isText() || isPI() || isComment(), "Not a text element !\n");
+        AssertBug(isText() || isPI() || isComment(), "Not a text element ! id=%llx, path=%s\n", getElementId(), generateVersatileXPath().c_str());
 
         ElementSegment* me = getMe<Write>();
         AssertBug(me->flags & ElementFlag_HasTextualContents, "Invalid flags %x\n", me->flags);
@@ -422,7 +422,10 @@ namespace Xem
             me->textualContents.contentsPtr = contentsPtr;
             getDocumentAllocator().protect(me);
         }
-        getDocument().appendJournal(*this, JournalOperation_UpdateTextNode, *this, 0);
+        if ( getFather() )
+        {
+            getDocument().appendJournal(*this, JournalOperation_UpdateTextNode, *this, 0);
+        }
     }
 
     __INLINE void

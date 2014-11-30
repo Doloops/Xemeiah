@@ -53,8 +53,9 @@ namespace Xem
 
         getJournalHead().lastAllocedJournalItem = journalItemPtr;
 
-        Log_Journal("Now firstJournalItem=%llx, firstAllocedJournalItem=%llx, lastAllocedJournalItem=%llx\n",
-                    getJournalHead().firstJournalItem, getJournalHead().firstAllocedJournalItem, getJournalHead().lastAllocedJournalItem);
+        Log("Now firstJournalItem=%llx, firstAllocedJournalItem=%llx, lastAllocedJournalItem=%llx\n",
+            getJournalHead().firstJournalItem, getJournalHead().firstAllocedJournalItem,
+            getJournalHead().lastAllocedJournalItem);
 
         protectJournalHead();
 
@@ -96,6 +97,42 @@ namespace Xem
         getDocumentAllocator().protect(journalItem);
 
         appendJournalItem(journalItemPtr, journalItem);
+    }
+
+    void
+    JournaledDocument::applyJournalCreateElement (XProcessor& xproc, JournalItem* journalItem, ElementRef& baseElement,
+                                                  ElementRef& sourceAltElement)
+    {
+        bool recursive = false;
+        ElementRef newChild = createElement(baseElement, sourceAltElement.getKeyId(), journalItem->altElementId);
+        if ( newChild.isText() )
+        {
+            newChild.setText(sourceAltElement.getText());
+        }
+        switch (journalItem->op)
+        {
+            case JournalOperation_InsertChild:
+                baseElement.insertChild(newChild);
+                break;
+            case JournalOperation_AppendChild:
+                baseElement.appendLastChild(newChild);
+                break;
+            case JournalOperation_InsertBefore:
+                baseElement.insertBefore(newChild);
+                break;
+            case JournalOperation_InsertAfter:
+                baseElement.insertAfter(newChild);
+                break;
+            default:
+                Bug("Not supported here : op=%x\n", journalItem->op);
+        }
+        if (recursive)
+        {
+            duplicateElement(xproc, newChild, sourceAltElement);
+        }
+        Log_Journal_Apply ( "[JOURNAL] Appended '%s'\n", sourceAltElement.generateVersatileXPath().c_str() );
+        newChild.eventElement(xproc, DomEventType_CreateElement);
+
     }
 
     void
@@ -161,45 +198,11 @@ namespace Xem
             switch (op)
             {
                 case JournalOperation_InsertChild:
-                {
-                    ElementRef newChild = createElement(baseElement, sourceAltElement.getKeyId(),
-                                                        journalItem->altElementId);
-                    baseElement.insertChild(newChild);
-                    if (recursive)
-                        duplicateElement(xproc, newChild, sourceAltElement);
-                    Log_Journal_Apply ( "[JOURNAL] Appended '%s'\n", sourceAltElement.generateVersatileXPath().c_str() );
-                    newChild.eventElement(xproc, DomEventType_CreateElement);
-                    break;
-                }
                 case JournalOperation_AppendChild:
-                {
-                    ElementRef newChild = createElement(baseElement, sourceAltElement.getKeyId(),
-                                                        journalItem->altElementId);
-                    baseElement.appendLastChild(newChild);
-                    if (recursive)
-                        duplicateElement(xproc, newChild, sourceAltElement);
-                    Log_Journal_Apply ( "[JOURNAL] Appended '%s'\n", sourceAltElement.generateVersatileXPath().c_str() );
-                    newChild.eventElement(xproc, DomEventType_CreateElement);
-                    break;
-                }
                 case JournalOperation_InsertBefore:
-                {
-                    ElementRef newChild = createElement(baseElement, sourceAltElement.getKeyId(),
-                                                        journalItem->altElementId);
-                    baseElement.insertBefore(newChild);
-                    if (recursive)
-                        duplicateElement(xproc, newChild, sourceAltElement);
-                    newChild.eventElement(xproc, DomEventType_CreateElement);
-                    break;
-                }
                 case JournalOperation_InsertAfter:
                 {
-                    ElementRef newChild = createElement(baseElement, sourceAltElement.getKeyId(),
-                                                        journalItem->altElementId);
-                    baseElement.insertAfter(newChild);
-                    if (recursive)
-                        duplicateElement(xproc, newChild, sourceAltElement);
-                    newChild.eventElement(xproc, DomEventType_CreateElement);
+                    applyJournalCreateElement(xproc, journalItem, baseElement, sourceAltElement);
                     break;
                 }
                 case JournalOperation_Remove:
@@ -220,8 +223,8 @@ namespace Xem
                     if (!sourceAltElement)
                     {
                         Warn("[JOURNAL-APPLY] Could not apply Journal op=%x, attr=%x, next=0x%llx, base=0x%llx, alt=0x%llx\n",
-                             journalItem->op, journalItem->attributeKeyId, journalItem->nextJournalItem,
-                             journalItem->baseElementId, journalItem->altElementId);
+                                journalItem->op, journalItem->attributeKeyId, journalItem->nextJournalItem,
+                                journalItem->baseElementId, journalItem->altElementId);
                         continue;
                         throwException(Exception, "No sourceAltElement for UpdateAttribute !!!\n");
                     }
@@ -250,9 +253,9 @@ namespace Xem
                                 if (foundAttr)
                                 {
                                     throwException(Exception,
-                                                   "Duplicate multiple-type attribute %s (type=%x, exists=%x)!\n",
-                                                   sourceAttr.generateVersatileXPath().c_str(),
-                                                   sourceAttr.getAttributeType(), foundAttr.getAttributeType());
+                                            "Duplicate multiple-type attribute %s (type=%x, exists=%x)!\n",
+                                            sourceAttr.generateVersatileXPath().c_str(),
+                                            sourceAttr.getAttributeType(), foundAttr.getAttributeType());
                                 }
                                 foundAttr = sourceAttr;
                             }
@@ -300,24 +303,24 @@ namespace Xem
                     break;
                 }
 #if 0
-                    case JournalOperation_AddMeta:
-                    {
-                        DomEvent newEvent = getDocumentMeta().getDomEvents().createDomEvent();
-                        Log_Journal_Apply ( "Copy DomEvent contents : (%s)\n", baseElement.generateVersatileXPath().c_str() );
-                        newEvent.copyContents(xproc, baseElement, false);
-                        Log_Journal_Apply ( "Copy DomEvent contents : done\n" );
-                        getDocumentMeta().getDomEvents().buildEventMap();
-                        Bug ( "." );
-                        Warn_Journal_Apply ( "[JOURNAL-APPLY] Stupid JournalOperation_AddMeta !\n" );
-                        break;
-                    }
+                case JournalOperation_AddMeta:
+                {
+                    DomEvent newEvent = getDocumentMeta().getDomEvents().createDomEvent();
+                    Log_Journal_Apply ( "Copy DomEvent contents : (%s)\n", baseElement.generateVersatileXPath().c_str() );
+                    newEvent.copyContents(xproc, baseElement, false);
+                    Log_Journal_Apply ( "Copy DomEvent contents : done\n" );
+                    getDocumentMeta().getDomEvents().buildEventMap();
+                    Bug ( "." );
+                    Warn_Journal_Apply ( "[JOURNAL-APPLY] Stupid JournalOperation_AddMeta !\n" );
+                    break;
+                }
 #endif
                 case JournalOperation_DeleteAttribute:
                 case JournalOperation_NoOp:
                 case JournalOperation_LastOperation:
-                    Warn_Journal_Apply ( "[JOURNAL-APPLY] Invalid/NotImplemented no-op journal item %d:%s !\n", op, JournalOperationLabel[op] );
-                    continue;
-                }
+                Warn_Journal_Apply ( "[JOURNAL-APPLY] Invalid/NotImplemented no-op journal item %d:%s !\n", op, JournalOperationLabel[op] );
+                continue;
+            }
 
             SegmentPtr copiedJournalItemPtr = getDocumentAllocator().getFreeSegmentPtr(sizeof(JournalItem), 0);
             JournalItem* copiedJournalItem = getDocumentAllocator().getSegment<JournalItem, Write>(
@@ -328,7 +331,9 @@ namespace Xem
             getDocumentAllocator().protect(copiedJournalItem);
 
             appendJournalItem(copiedJournalItemPtr, copiedJournalItem);
-            Log_Journal_Apply ( "[JOURNAL-APPLY] : Item applied ok.\n" );
+            Log_Journal ( "[JOURNAL-APPLY] Applied : op=%d:'%s', baseRef=%llx, alt=%llx, attr=%x\n",
+                    op, JournalOperationLabel[op], journalItem->baseElementId,
+                    journalItem->altElementId, journalItem->attributeKeyId );
         }
     }
 

@@ -277,10 +277,17 @@ namespace Xem
     ElementRef
     Document::createElement (ElementRef& fromElement, KeyId keyId, ElementId elementId)
     {
-#if PARANOID
         AssertBug ( isWritable(), "Document not writable !\n" );
         AssertBug ( isLockedWrite(), "Document not locked write !\n" );
-#endif
+
+        if ( keyId == getKeyCache().getBuiltinKeys().xemint.textnode() )
+        {
+            return createTextualNode(fromElement, keyId, elementId);
+        }
+
+
+        AssertBug ( keyId != getKeyCache().getBuiltinKeys().xemint.textnode(), "Invalid keyId '%s'\n", getKeyCache().dumpKey(keyId).c_str());
+
         AllocationProfile allocProfile =
                 fromElement ? getDocumentAllocator().getAllocationProfile(fromElement, keyId) : 0;
         ElementPtr eltPtr = getDocumentAllocator().getFreeSegmentPtr(sizeof(ElementSegment), allocProfile);

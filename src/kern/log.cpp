@@ -18,6 +18,10 @@
 
 namespace Xem
 {
+    static bool assertThrowsException = false;
+
+    static bool useSysLog = false;
+
 #if 0
     static const char* levelName[] =
     {
@@ -53,8 +57,6 @@ namespace Xem
         return "???";
     }
     ;
-
-    static bool useSysLog = false;
 
     void
     doTraceMessageVA (LogLevel level, const char* file, const char* function, int line, const char* format,
@@ -104,8 +106,6 @@ namespace Xem
         throw(e);
     }
 
-    static const bool assertThrowsException = true;
-
     void
     doAssertFails (const char* file, const char* function, int line, const char* format, ...)
     {
@@ -122,10 +122,8 @@ namespace Xem
         {
             va_list a_list;
             va_start(a_list, format);
-            doTraceMessageVA(LOG_ERR, file, function, line, format, a_list);
+            doTraceMessageVA(LOG_EMERG, file, function, line, format, a_list);
             va_end(a_list);
-
-            char *p = NULL; p[0] = 1;
         }
     }
 }

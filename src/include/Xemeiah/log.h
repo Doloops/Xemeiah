@@ -67,11 +67,13 @@ namespace Xem
 #define Warn(...)   DoTrace( LOG_WARNING,__VA_ARGS__)
 
 #define Fatal(...) { DoTrace( LOG_CRIT,__VA_ARGS__); exit(1); }
-#define Bug(...)   { DoTrace( LOG_EMERG,__VA_ARGS__); char *p = NULL; p[0] = 1; }
+#define Bug(...)   do { DoTrace( LOG_EMERG,__VA_ARGS__); char *p = NULL; p[0] = 1; } while(0)
 
 #define Message(...) DoTrace( LOG_INFO,"[MESSAGE]" __VA_ARGS__)
 
-#define Assert(__cond,...) { if ( ! (__cond) ) { Xem::doAssertFails (__FILE__,__FUNCTION__,__LINE__, __VA_ARGS__); } }
+#define ImmediateStop() do { char *p = NULL; p[0] = 1; } while (0)
+
+#define Assert(__cond,...) { if ( ! (__cond) ) { Xem::doAssertFails (__FILE__,__FUNCTION__,__LINE__, __VA_ARGS__); ImmediateStop(); } }
 
 #if PARANOID
 #define AssertBug Assert
