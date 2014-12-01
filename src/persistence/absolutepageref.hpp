@@ -54,11 +54,19 @@ namespace Xem
         __INLINE
         AbsolutePageRef<T>::AbsolutePageRef (const AbsolutePageRef& pageRef)
         {
-            AssertBug(pageRef.persistentStore != NULL,
-                      "Should not be instantiated with NULL pageRef.persistentStore here !\n");
+            AssertBug(pageRef.persistentStore != NULL || pageRef.page != NULL,
+                    "Invalid NULL pageRef : persistentStore=%p, pagePtr=%llx, page=%p !\n",
+                    pageRef.persistentStore, pageRef.pagePtr, pageRef.page);
             this->persistentStore = pageRef.persistentStore;
             this->pagePtr = pageRef.pagePtr;
-            this->page = NULL;
+            if (this->persistentStore != NULL)
+            {
+                this->page = NULL;
+            }
+            else
+            {
+                this->page = pageRef.page;
+            }
             Log_APR("Ref by constructor(const&)  : pagePtr=%llx\n", pageRef.pagePtr);
         }
 

@@ -17,6 +17,7 @@ namespace Xem
             friend class PersistentStore;
             friend class PersistentBranchManager;
             friend class PersistentDocumentAllocator;
+            friend class PageInfoCache;
             friend class PageInfoIterator;
         private:
             PersistentStore* persistentStore;

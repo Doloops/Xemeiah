@@ -35,14 +35,14 @@ namespace Xem
     /**
      * \todo implement segmentAllocProfile fetching
      */
-    __INLINE bool
+    __INLINE void
     DocumentAllocator::freeSegment (SegmentPtr segPtr, __ui64 size)
     {
         AllocationProfile allocProfile = getAllocationProfile(segPtr);
-        return freeSegment(segPtr, size, allocProfile);
+        freeSegment(segPtr, size, allocProfile);
     }
 
-    __INLINE bool
+    __INLINE void
     DocumentAllocator::freeSegment (SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile)
     {
 #if 0
@@ -57,8 +57,7 @@ namespace Xem
         /*
          * \todo : better error handling, and allocedBytes increment
          */
-        markSegmentAsFree(segPtr, size, allocProfile);
-        return true;
+        markSegmentAsFree(segPtr, size, allocProfile, true);
     }
 
 }

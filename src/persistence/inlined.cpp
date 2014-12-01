@@ -20,5 +20,6 @@
 #include "persistentstore-protect.hpp"
 #include "persistentdocumentallocator.hpp"
 #include "writablepagecache.hpp"
+#include "pageinfocache.hpp"
 
 #endif

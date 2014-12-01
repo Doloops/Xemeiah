@@ -35,6 +35,10 @@
 #include "../../../persistence/writablepagecache.hpp"
 #endif
 
+#ifdef __XEM_PERSISTENCE_PAGEINFOCACHE_H
+#include "../../../persistence/pageinfocache.hpp"
+#endif
+
 #undef __INLINE
 
 #else // no  __XEM_USE_INLINE

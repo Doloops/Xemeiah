@@ -57,6 +57,8 @@ namespace Xem
   
   void DocumentAllocator::__foo__ ()
   {
+    getSegment<DocumentHead,Read> ( 0, 0 );
+    getSegment<DocumentHead,Write> ( 0, 0 );
     getSegment<FreeSegment,Read> ( 0, 0 );
     getSegment<FreeSegment,Write> ( 0, 0 );
     getSegment<void,Read> ( 0, 0 );

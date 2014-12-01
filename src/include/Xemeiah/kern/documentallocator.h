@@ -163,9 +163,11 @@ namespace Xem
 
     /**
      * Mark a (supposed-to-be non-allocated) virgin segment as being free for now on (does not increment DocumentHead::allocedBytes)
+     *
+     * @param shouldCoalesce if this is a new free segment, should check the surroundings to make a larger segment
      */
     void markSegmentAsFree ( SegmentPtr segPtr, __ui64 size,
-    AllocationProfile allocProfile );
+    AllocationProfile allocProfile, bool shouldCoalesce );
 
     /**
      * markSegmentAsFree helper function : try to coalesce the segment with left and right free segments
@@ -199,7 +201,7 @@ namespace Xem
      * @param size the size of the segment, as provided in the getFreeSegment() calls.
      * @param allocProfile the allocation profile of the segment to delete, which shall be the allocation profile of the page selected.
      */
-    INLINE bool freeSegment ( SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile );
+    INLINE void freeSegment ( SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile );
 
     /*
      * Segment Retrieving
@@ -340,7 +342,7 @@ namespace Xem
      * @param segPtr the (relative) segment ptr.
      * @param size the size of the segment, as provided in the getFreeSegment() calls.
      */
-    INLINE bool freeSegment ( SegmentPtr segPtr, __ui64 size );
+    INLINE void freeSegment ( SegmentPtr segPtr, __ui64 size );
 
     /**
      * Obtain the AllocationProfile affinity for an element to be created.

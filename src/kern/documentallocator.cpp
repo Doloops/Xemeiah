@@ -168,7 +168,7 @@ namespace Xem
 #endif
 
     void
-    DocumentAllocator::markSegmentAsFree (SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile)
+    DocumentAllocator::markSegmentAsFree (SegmentPtr segPtr, __ui64 size, AllocationProfile allocProfile, bool shouldCoalesce)
     {
 #if PARANOID
         if (!isWritable())
@@ -191,7 +191,7 @@ namespace Xem
         /*
          * First, compute coalescion for this segment
          */
-        if (__assertDocumentHasCoalesce)
+        if (shouldCoalesce && __assertDocumentHasCoalesce)
         {
             coalesceFreeSegment(segPtr, size, allocProfile);
         }
@@ -393,7 +393,7 @@ namespace Xem
                 remainsSize -= sizeof(FreeSegment);
             }
             SegmentPtr remainsStart = ptr + size;
-            markSegmentAsFree(remainsStart, remainsSize, allocProfile);
+            markSegmentAsFree(remainsStart, remainsSize, allocProfile, false);
         }
         return ptr;
     }
@@ -571,7 +571,7 @@ namespace Xem
              */
             if (lastFreeSeg->size > size)
             {
-                markSegmentAsFree(segPtr + size, lastFreeSeg->size - size, allocProfile);
+                markSegmentAsFree(segPtr + size, lastFreeSeg->size - size, allocProfile, false);
             }
             return segPtr;
         }

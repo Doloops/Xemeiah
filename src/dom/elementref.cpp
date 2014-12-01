@@ -316,26 +316,11 @@ namespace Xem
         Log("deleteChildren(ptr=%llx, me=%llx, flags=%x)\n", getElementPtr(), me->id, me->flags);
         __checkElementFlag_HasAttributesAndChildren(me->flags);
 
-#if 1
         for (ElementRef child = getChild(); child; child = getChild())
         {
-//            ElementPtr childPtr = me->attributesAndChildren.childPtr;
-//            if ( childPtr == 0 )
-//            {
-//                break;
-//            }
-//            Log_Element("Delete child : at childPtr=%llx\n", childPtr);
-//            ElementRef child ( getDocument(), childPtr );
             Log_Element("Delete child : at childPtr=%llx, id=%llx\n", child.getElementPtr(), child.getElementId());
             child.deleteElement(xproc);
         }
-#endif
-#if 0
-        getDocumentAllocator().alter(me);
-        me->attributesAndChildren.childPtr = NullPtr;
-        me->attributesAndChildren.lastChildPtr = NullPtr;
-        getDocumentAllocator().protect(me);
-#endif
     }
 
     void

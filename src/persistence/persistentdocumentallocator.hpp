@@ -5,8 +5,8 @@
 
 #include <Xemeiah/persistence/format/indirection.h>
 
-#define Log_PDAHPP Debug
 #define Log_PDA_AbsolutePage Debug
+#define Log_PIP(...) Log("[PIP]" __VA_ARGS__)
 
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID //< Option : Paranoid checks for PageInfoPageTable
 
@@ -106,18 +106,17 @@ namespace Xem
          */
         __ui64 indirectionOffset = pageIndex - index;
 
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-        PageInfoPageTable::iterator iter = pageInfoPageTable.find(indirectionOffset);
-        if ( iter != pageInfoPageTable.end() && (!write || iter->second->isStolen() ) )
+        AbsolutePageRef<PageInfoPage> cached = pageInfoCache.getPageInfoPage(relativePagePtr, write);
+        if ( cached.getPagePtr() )
         {
-            Log_PDAHPP ( "PIPT [%llx] : [%llx] => %llx\n", relativePagePtr, iter->first, iter->second->getPageInfoPageRef().getPagePtr() );
-            return iter->second->getPageInfoPageRef().steal();
+            Log_PIP ( "[%llx] CACHE FOUND (indirectionOffset=%llx, pageIndex=%llx, write=%d) => %llx\n",
+            relativePagePtr, indirectionOffset, pageIndex, write, cached.getPagePtr() );
+            return cached;
         }
-        Log_PDAHPP ( "PIPT [%llx] CACHE MISS (indirectionOffset=%llx, pageIndex=%llx, write=%d)\n",
+        Log_PIP ( "[%llx] CACHE MISS (indirectionOffset=%llx, pageIndex=%llx, write=%d)\n",
         relativePagePtr, indirectionOffset, pageIndex, write );
-#endif
 
-        Log_PDAHPP ( "getPageInfoPage(relativePagePtr=%llx) : pageIndex=%llx, index=%llx, indirectionOffset=%llx\n",
+        Log_PIP ( "getPageInfoPage(relativePagePtr=%llx) : pageIndex=%llx, index=%llx, indirectionOffset=%llx\n",
         relativePagePtr, pageIndex, index, indirectionOffset );
 
         /**
@@ -130,14 +129,9 @@ namespace Xem
 
         AbsolutePageRef<PageInfoPage> pageInfoPageRef = getPageInfoPage(pageInfoPagePtr);
 
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-        Log_PDAHPP ( "PIPT [%llx] CACHE SET (indirectionOffset=%llx, pageIndex=%llx, pageInfoPage=%p, write=%d)\n",
-                     relativePagePtr, indirectionOffset, pageIndex, pageInfoPageRef.getPage(), write );
-        // AbsolutePagePtr tgt = ((__ui64) pageInfoPagePtr | (write ? PageFlags_Stolen : 0));
-        // pageInfoPageTable[indirectionOffset] = (PageInfoPage*)
-        //  ((__ui64)pageInfoPage) | (write ? PageFlags_Stolen : 0) );
-        pageInfoPageTable[indirectionOffset] = new PageInfoPageItem(pageInfoPageRef, write);
-#endif
+        Log_PIP ( "[%llx] CACHE SET (indirectionOffset=%llx, pageIndex=%llx, pageInfoPage=%p, write=%d)\n",
+        relativePagePtr, indirectionOffset, pageIndex, pageInfoPageRef.getPage(), write );
+        pageInfoCache.putPageInfoPage(relativePagePtr, pageInfoPageRef, write);
 
 #if PARANOID
         AssertBug ( pageInfoPageRef.getPage(), "Null PageInfoPage !!!\n" );
@@ -151,74 +145,12 @@ namespace Xem
         return pageInfoPageRef;
     }
 
-#if 0
-    __INLINE PageInfo
-    PersistentDocumentAllocator::getPageInfo (RelativePagePtr relativePagePtr, bool write)
-    {
-        mapMutex.assertLocked();
-        __ui64 index;
-        AbsolutePageRef<PageInfoPage> pageInfoPageRef = doGetPageInfoPage(relativePagePtr, index, write);
-        AssertBug(pageInfoPageRef.getPage(), "Null page !");
-        return pageInfoPageRef.getPage()->pageInfo[index];
-    }
-#endif
-
     __INLINE PageInfo&
     PersistentDocumentAllocator::getPageInfo (AbsolutePageRef<PageInfoPage> &pageInfoPageRef, __ui64 index)
     {
         mapMutex.assertLocked();
         return pageInfoPageRef.getPage()->pageInfo[index];
     }
-#if 0
-    template<typename PageClass>
-    __INLINE PageClass*
-    PersistentDocumentAllocator::getAbsolutePage (AbsolutePagePtr absPagePtr)
-    {
-        AssertBug(absPagePtr, "NULL absPagePtr provided !\n");
-        mapMutex.assertLocked();
-        AssertBug(( absPagePtr & PagePtr_Mask ) == absPagePtr, "Erroneous absPagePtr %llx\n", absPagePtr);
-        AbsolutePages::iterator iter = absolutePages.find(absPagePtr);
-        if (iter != absolutePages.end())
-        {
-            Log_PDAHPP ( "Absolute page %llx already claimed : at %p !\n", absPagePtr, iter->second );
-            return (PageClass*) iter->second;
-        }
-        PageClass* page = getPersistentStore().getAbsolutePage<PageClass>(absPagePtr);
-        absolutePages[absPagePtr] = (void*) page;
-        Log_PDA_AbsolutePage ( "Absolute page %llx set to %p !\n", absPagePtr, page );
-        return page;
-    }
-#endif
-
-#if 0
-    __INLINE void
-    PersistentDocumentAllocator::releasePage (AbsolutePagePtr absPagePtr)
-    {
-        mapMutex.assertLocked();
-        Log_PDAHPP ( "releasePage %llx : absPagePtr\n", absPagePtr );
-
-        absPagePtr &= PagePtr_Mask;
-        AbsolutePages::iterator iter = absolutePages.find(absPagePtr);
-        AssertBug(iter != absolutePages.end(), "Page %llx not recorded !\n", absPagePtr);
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID
-        void* page = iter->second;
-        for ( PageInfoPageTable::iterator it2 = pageInfoPageTable.begin(); it2 != pageInfoPageTable.end(); it2++ )
-        {
-            void* pageInfoPage = (PageInfoPage*) (((__ui64)it2->second) & PagePtr_Mask);
-            if ( pageInfoPage == page )
-            {
-                Bug ( "releasePage() but the page is recorded in PageInfoPageTable !\n" );
-            }
-        }
-#endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_PAGEINFOPAGETABLE_PARANOID
-#endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-        absolutePages.erase(iter);
-        Log_PDAHPP ( "releasePage %llx : absPagePtr : Ok\n", absPagePtr );
-        getPersistentStore().releasePage(absPagePtr);
-        Log_PDA_AbsolutePage ( "releasePage %llx : absPagePtr : Ok from store\n", absPagePtr );
-    }
-#endif
 
     __INLINE AbsolutePageRef<IndirectionPage>
     PersistentDocumentAllocator::getIndirectionPage (IndirectionPagePtr indirectionPagePtr)

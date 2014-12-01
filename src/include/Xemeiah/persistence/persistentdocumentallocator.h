@@ -6,6 +6,7 @@
 #include <Xemeiah/kern/mutex.h>
 #include <Xemeiah/persistence/persistentstore.h>
 #include <Xemeiah/persistence/writablepagecache.h>
+#include <Xemeiah/persistence/pageinfocache.h>
 
 #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
 // #define __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
@@ -23,6 +24,7 @@ namespace Xem
         friend class PersistentDocument;
         friend class PersistentStore;
         friend class PageInfoIterator;
+        friend class PageInfoCache;
     protected:
         /**
          * Reference to our store
@@ -46,6 +48,11 @@ namespace Xem
         {
             return persistentStore;
         }
+
+        /**
+         * Our pageInfoCache
+         */
+        PageInfoCache pageInfoCache;
 
         /**
          * Reference to the RevisionPage
@@ -172,27 +179,6 @@ namespace Xem
         AbsolutePagePtr
         __getFreePagePtr (PageType pageType);
 
-#if 0
-        /**
-         * Map of all AbsolutePages claimed to Store
-         */
-        typedef std::map<AbsolutePagePtr, void*> AbsolutePages;
-
-        /**
-         * Map instance of AbsolutePages claimed
-         */
-        AbsolutePages absolutePages;
-#endif
-
-#if 0
-        /**
-         *  Access stub to AbsolutePagePtr
-         */
-        template<typename PageClass>
-        INLINE PageClass*
-        getAbsolutePage (AbsolutePagePtr absPagePtr);
-#endif
-
         /**
          * Access stub for IndirectionPage pages
          * @param indirectionPagePtr the indirection absolute page pointer
@@ -252,15 +238,6 @@ namespace Xem
         AbsolutePageRef<SegmentPage>
         getSegmentPage (AbsolutePagePtr segmentPagePtr);
 
-#if 0
-        /**
-         * Release an absolute page ptr
-         */
-        INLINE
-        void
-        releasePage (AbsolutePagePtr absPagePtr);
-#endif // 0
-
         /**
          * allocates a new IndirectionPage page.
          * @param reset set to true to perform a memset() on it
@@ -278,6 +255,11 @@ namespace Xem
         getFreePageInfoPagePtr (bool reset = false);
 
         /**
+         * Increase covered area
+         */
+        void increaseIndirectionCoveredArea ();
+
+        /**
          * Get the PageInfoPage containing the provided RelativePagePtr
          * @param relativePagePtr the relative page ptr we want to see
          * @param pageInfoPage the resulting pageInfo
@@ -289,158 +271,105 @@ namespace Xem
         AbsolutePageRef<PageInfoPage>
         doGetPageInfoPage (RelativePagePtr relativePagePtr, __ui64& index, bool write );
 
-    /**
-     * Increase covered area
-     */
-    void increaseIndirectionCoveredArea ();
-
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
-                           /**
-                            * PageInfoPage Pointer Table
-                            */
-                           typedef std::map<__ui64,PageInfoPagePtr> PageInfoPagePtrTable;
-
-                           /**
-                            * PageInfoPage Pointer Table instance
-                            */
-                           PageInfoPagePtrTable pageInfoPagePtrTable;
-#endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGEPTRTABLE
-
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-
-                           class PageInfoPageItem
-                           {
-                           private:
-                               AbsolutePageRef<PageInfoPage> pageInfoPageRef;
-                               bool stolen;
-                           public:
-                               PageInfoPageItem(const AbsolutePageRef<PageInfoPage>& _pageInfoPageRef, bool _stolen)
-                               : pageInfoPageRef(_pageInfoPageRef)
-                               {
-                                   stolen = _stolen;
-                               }
-
-                               AbsolutePageRef<PageInfoPage>& getPageInfoPageRef()
-                               {
-                                   return pageInfoPageRef;
-                               }
-                               bool isStolen()
-                               {
-                                   return stolen;
-                               }
-                           };
-                           /**
-                            * PageInfoPage Table
-                            */
-                           typedef std::map<RelativePagePtr, PageInfoPageItem*> PageInfoPageTable;
-
-                           /**
-                            * PageInfoPage Table instance
-                            */
-                           PageInfoPageTable pageInfoPageTable;
-#endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-
-                           /**
-                            * Get a given PageInfoPage, using caching if necessary
-                            * @param indirectionOffset the index of the page to fetch considering all PageInfoPage as a linear vector : divid
-                            * @param write set to true for a writable PageInfoPage, false if dont care
-                            * @return the corresponding PageInfoPage, or NULL if a problem arose
-                            */
-                           INLINE PageInfoPagePtr getPageInfoPagePtr ( __ui64 indirectionOffset, bool write );
-
-                           /**
-                            * Fetch a given PageInfoPage
-                            * @param indirectionOffset the index of the page to fetch considering all PageInfoPage as a linear vector : divid
-                            * @param write set to true for a writable PageInfoPage, false if dont care
-                            * @return the corresponding PageInfoPage, or NULL if a problem arose
-                            */
-                           PageInfoPagePtr fetchPageInfoPagePtr ( __ui64 indirectionOffset, bool write );
-
-                           /**
-                            * Fetch a given PageInfoPage from an indirection page
-                            */
-                           PageInfoPagePtr fetchPageInfoPagePtrFromIndirection ( IndirectionPagePtr indirectionPagePtr,
-                           __ui32 currentLevel, __ui64 indirectionOffset, bool write );
-
 #if 0
-                           /**
-                            * returns the PageInfo active for a given RelativePagePtr
-                            * @param relativePagePtr the relative page ptr we want to see
-                            * @param pageInfo the resulting (read-only !) pageInfo
-                            * @return true on succes, false if not.
-                            */
-                           bool getPageInfo ( RelativePagePtr relativePagePtr, PageInfo& pageInfo ) DEPRECATED;
+    /**
+     * PageInfoPage Table
+     */
+    typedef std::map<RelativePagePtr, PageInfoPageItem*> PageInfoPageTable;
+
+    /**
+     * PageInfoPage Table instance
+     */
+    PageInfoPageTable pageInfoPageTable;
 #endif
 
-                           /**
-                            * Provide a reference to a pageInfo, must be called with mapMutex locked
-                            * @param relativePagePtr the relative page pointer to fetch PageInfo for
-                            * @param write (optional) set to true if you want to modify this PageInfo
-                            * @return a reference to the PageInfo
-                            */
-                           INLINE PageInfo& getPageInfo ( AbsolutePageRef<PageInfoPage> &pageInfoPageRef, __ui64 index);
+    /**
+     * Get a given PageInfoPage, using caching if necessary
+     * @param indirectionOffset the index of the page to fetch considering all PageInfoPage as a linear vector : divid
+     * @param write set to true for a writable PageInfoPage, false if dont care
+     * @return the corresponding PageInfoPage, or NULL if a problem arose
+     */
+    INLINE PageInfoPagePtr getPageInfoPagePtr ( __ui64 indirectionOffset, bool write );
 
-                           /**
-                            * Sets info inside of a PageInfo page
-                            */
-                           // void setPageInfo ( RelativePagePtr relativePagePtr, PageInfo& pageInfo );
-                           /**
-                            * returns a copy of a stolen indirection page. The copy is owned by this revision, and can be altered.
-                            * @param stolenPagePtr the location of the page to copy.
-                            * @return the absolut page pointer of the copy of the indirection page.
-                            */
-                           AbsolutePagePtr stealIndirectionPage ( AbsolutePagePtr stolenPagePtr );
+    /**
+     * Fetch a given PageInfoPage
+     * @param indirectionOffset the index of the page to fetch considering all PageInfoPage as a linear vector : divid
+     * @param write set to true for a writable PageInfoPage, false if dont care
+     * @return the corresponding PageInfoPage, or NULL if a problem arose
+     */
+    PageInfoPagePtr fetchPageInfoPagePtr ( __ui64 indirectionOffset, bool write );
 
-                           /**
-                            * returns a copy of a stolen PageInfoPage page. The copy is owned by this revision, and can be altered.
-                            * @param stolenPagePtr the location of the page to copy.
-                            * @return the absolut page pointer of the copy of the indirection page.
-                            */
-                           PageInfoPagePtr stealPageInfoPage ( PageInfoPagePtr stolenPagePtr );
+    /**
+     * Fetch a given PageInfoPage from an indirection page
+     */
+    PageInfoPagePtr fetchPageInfoPagePtrFromIndirection ( IndirectionPagePtr indirectionPagePtr,
+    __ui32 currentLevel, __ui64 indirectionOffset, bool write );
 
-                           /**
-                            * returns a copy of a stolen segment page. The copy is owned by this revision, and can be altered.
-                            * @param segPage the in-mem pointer of the segment page.
-                            * @param pageType the corresponding page type (unused).
-                            * @return the absolute index of the copy.
-                            */
-                           AbsolutePagePtr stealSegmentPage ( SegmentPage* segPage, PageType pageType );
+    /**
+     * Provide a reference to a pageInfo, must be called with mapMutex locked
+     * @param relativePagePtr the relative page pointer to fetch PageInfo for
+     * @param write (optional) set to true if you want to modify this PageInfo
+     * @return a reference to the PageInfo
+     */
+    INLINE PageInfo& getPageInfo ( AbsolutePageRef<PageInfoPage> &pageInfoPageRef, __ui64 index);
 
-                           /**
-                            * Get the allocation profile of a given segment using PageInfo on its Page
-                            * @param segmentPtr the relative segment pointer, which will be converted to a RelativePagePtr
-                            * @return the allocation profile of the page
-                            */
-                           AllocationProfile getAllocationProfile ( SegmentPtr segmentPtr );
+    /**
+     * returns a copy of a stolen indirection page. The copy is owned by this revision, and can be altered.
+     * @param stolenPagePtr the location of the page to copy.
+     * @return the absolut page pointer of the copy of the indirection page.
+     */
+    AbsolutePagePtr stealIndirectionPage ( AbsolutePagePtr stolenPagePtr );
 
-                           /**
-                            * Get the first free segment offset of a given page
-                            * @param relPagePtr the RelativePagePtr of the page
-                            * @return the offset of the first free segment in page, or a value greater or equal to PageSize if the page has no free segment
-                            */
-                           __ui32 getFirstFreeSegmentOffset ( RelativePagePtr relPagePtr );
+    /**
+     * returns a copy of a stolen PageInfoPage page. The copy is owned by this revision, and can be altered.
+     * @param stolenPagePtr the location of the page to copy.
+     * @return the absolut page pointer of the copy of the indirection page.
+     */
+    PageInfoPagePtr stealPageInfoPage ( PageInfoPagePtr stolenPagePtr );
 
-                           /**
-                            * Set the first free segment offset of a given page
-                            * @param relPagePtr the RelativePagePtr of the page
-                            * @param offset the offset of the first free segment in page, or a value greater or equal to PageSize to mark the absence of a free segment
-                            */
-                           void setFirstFreeSegmentOffset ( RelativePagePtr relPagePtr, __ui32 offset );
+    /**
+     * returns a copy of a stolen segment page. The copy is owned by this revision, and can be altered.
+     * @param segPage the in-mem pointer of the segment page.
+     * @param pageType the corresponding page type (unused).
+     * @return the absolute index of the copy.
+     */
+    AbsolutePagePtr stealSegmentPage ( SegmentPage* segPage, PageType pageType );
 
-                           /**
-                            * returns the absolute index of the page pointed by a in-mem pointer.
-                            * (May be deprecated).
-                            */
-                           AbsolutePagePtr getAbsolutePagePtr ( void* page ) DEPRECATED;
+    /**
+     * Get the allocation profile of a given segment using PageInfo on its Page
+     * @param segmentPtr the relative segment pointer, which will be converted to a RelativePagePtr
+     * @return the allocation profile of the page
+     */
+    AllocationProfile getAllocationProfile ( SegmentPtr segmentPtr );
 
-                           /**
-                            * Allocates a continuous chunk of free relative relative pages
-                            * @param askedNumber number of pages to allocate.
-                            * @param allocedNumber number of pages allocated (shall be more than or equals to askedNumber)
-                            * @param allocProfile the allocation profile of the pages to allocate
-                            * @return the relative page pointer to the first page of the continuous chunk.
-                            */
-                           RelativePagePtr getFreeRelativePages ( __ui64 askedNumber, __ui64& allocedNumber,AllocationProfile allocProfile );
+    /**
+     * Get the first free segment offset of a given page
+     * @param relPagePtr the RelativePagePtr of the page
+     * @return the offset of the first free segment in page, or a value greater or equal to PageSize if the page has no free segment
+     */
+    __ui32 getFirstFreeSegmentOffset ( RelativePagePtr relPagePtr );
+
+    /**
+     * Set the first free segment offset of a given page
+     * @param relPagePtr the RelativePagePtr of the page
+     * @param offset the offset of the first free segment in page, or a value greater or equal to PageSize to mark the absence of a free segment
+     */
+    void setFirstFreeSegmentOffset ( RelativePagePtr relPagePtr, __ui32 offset );
+
+    /**
+     * returns the absolute index of the page pointed by a in-mem pointer.
+     * (May be deprecated).
+     */
+    AbsolutePagePtr getAbsolutePagePtr ( void* page ) DEPRECATED;
+
+    /**
+     * Allocates a continuous chunk of free relative relative pages
+     * @param askedNumber number of pages to allocate.
+     * @param allocedNumber number of pages allocated (shall be more than or equals to askedNumber)
+     * @param allocProfile the allocation profile of the pages to allocate
+     * @return the relative page pointer to the first page of the continuous chunk.
+     */
+    RelativePagePtr getFreeRelativePages ( __ui64 askedNumber, __ui64& allocedNumber,AllocationProfile allocProfile );
 
     /**
      * Promotes a page read-write
@@ -449,29 +378,29 @@ namespace Xem
     void authorizePageWrite ( RelativePagePtr relPagePtr );
 
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
-    /**
-     * Writable page cache
-     */
-     WritablePageCache writablePageCache;
+                           /**
+                            * Writable page cache
+                            */
+                           WritablePageCache writablePageCache;
 #endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
 
-    /**
-     * Debug function : really check that a page in alterable, ie a authorizePageWrite() has been called ; a Bug() is issued otherwise.
-     * @param page an in-memory pointer, which shall correspond to a page inside of a mapped Area
-     */
-    void checkPageIsAlterable ( void* page );
+                           /**
+                            * Debug function : really check that a page in alterable, ie a authorizePageWrite() has been called ; a Bug() is issued otherwise.
+                            * @param page an in-memory pointer, which shall correspond to a page inside of a mapped Area
+                            */
+                           void checkPageIsAlterable ( void* page );
 
-    /*
-     * Whole pages actions
-     */
-    /**
-     * Action to be performed on each owned page.
-     * @param relPagePtr the relative page ptr of the page
-     * @param arg the void* argument provided to PersistentDocument::forAllOwnedPages
-     * @return if false, will stop iterating over pages.
-     */
-    typedef bool ( PersistentDocumentAllocator::*SegmentPageAction ) 
-        ( RelativePagePtr relPagePtr, PageInfo& pageInfo, PageType pageType, bool isStolen, void* arg );
+                           /*
+                            * Whole pages actions
+                            */
+                           /**
+                            * Action to be performed on each owned page.
+                            * @param relPagePtr the relative page ptr of the page
+                            * @param arg the void* argument provided to PersistentDocument::forAllOwnedPages
+                            * @return if false, will stop iterating over pages.
+                            */
+                           typedef bool ( PersistentDocumentAllocator::*SegmentPageAction )
+                           ( RelativePagePtr relPagePtr, PageInfo& pageInfo, PageType pageType, bool isStolen, void* arg);
 
   
     /**

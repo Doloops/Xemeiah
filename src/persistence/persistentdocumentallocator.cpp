@@ -21,7 +21,7 @@
 namespace Xem
 {
     PersistentDocumentAllocator::PersistentDocumentAllocator (PersistentStore& store, AbsolutePagePtr revisionPagePtr) :
-            DocumentAllocator(store), persistentStore(store), revisionPageRef(store, revisionPagePtr), mapMutex("Map Mutex", this)
+            DocumentAllocator(store), persistentStore(store), pageInfoCache(*this), revisionPageRef(store, revisionPagePtr), mapMutex("Map Mutex", this)
 #ifdef  __XEM_DOCUMENTALLOCATOR_HAS_ALLOC_MUTEX
     , allocMutex("Alloc Mutex", this)
 #endif
@@ -52,10 +52,7 @@ namespace Xem
     void
     PersistentDocumentAllocator::flushInMemCaches ()
     {
-#ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
-        Log_PDA ( "PIPT CACHE Flush pageInfoPageTable\n" );
-        pageInfoPageTable.clear();
-#endif // __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_PAGEINFOPAGETABLE
+        pageInfoCache.flush();
         releaseAllAbsolutePages();
 #ifdef __XEM_PERSISTENTDOCUMENTALLOCATOR_HAS_WRITABLEPAGECACHE
         writablePageCache.clearCache();
@@ -474,7 +471,7 @@ namespace Xem
          */
         if ( firstProvidedPagePtr != firstUsedPagePtr )
         {
-            markSegmentAsFree ( firstUsedPagePtr, firstProvidedPagePtr - firstUsedPagePtr, allocProfile );
+            markSegmentAsFree ( firstUsedPagePtr, firstProvidedPagePtr - firstUsedPagePtr, allocProfile, false );
         }
 
         /*
